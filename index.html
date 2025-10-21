@@ -10,8 +10,8 @@
   <meta property="og:title" content="修羅王丸 永遠の焦土パズル" />
   <meta property="og:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
   <!-- Replace the URL below with your published absolute URL -->
-  <meta property="og:image" content="https://2010guild-noir.github.io/match3-games//og.jpg" />
-  <meta property="og:url" content="https://2010guild-noir.github.io/match3-games//" />
+  <meta property="og:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
+  <meta property="og:url" content="https://shuraomaru.itch.io/match3game" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="修羅王丸マッチ3ゲーム" />
 
@@ -19,7 +19,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="修羅王丸 永遠の焦土パズル" />
   <meta name="twitter:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
-  <meta name="twitter:image" content="https://2010guild-noir.github.io/match3-games//og.jpg" />
+  <meta name="twitter:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
@@ -377,7 +377,7 @@ details.help li {
   <div class="wrap">
     <div class="panel">
       <div class="hud">
-        <div class="badge" id="score">暗躍値: 0</div> <div class="badge" id="rank">修羅王丸: トランスフォーム <span class="rank-progress" id="rankProgress"></span></div>
+        <div class="badge" id="score">暗躍値: 0</div> <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
       </div>
 
       <canvas id="gameCanvas"></canvas>
@@ -507,10 +507,9 @@ const SE_BANK = {
   rumble:document.getElementById("se_rumble"),
   shine:document.getElementById("se_shine"),
   push:document.getElementById("se_push"), 
-  index:document.getElementById("se_index"), /* index open/
+  index:document.getElementById("se_index"), /* index open */
   /* ★push.mp3を追加 */
   bell:document.getElementById("se_bell"),
-  shuffle:document.getElementById("vo_shuffle"),
 };
 const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
   init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
@@ -712,14 +711,14 @@ function loadImages(done){
 
 /* ===== キャラクター図鑑 (省略: 変更なし) ===== */
 const CHARACTERS = [ 
-  { sym: "CHIEKO", name: "チエコ", tag: "通常", desc: "修羅王丸の最古の式神。基礎的な暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
+  { sym: "CHIEKO", name: "美毒丸", tag: "通常", desc: "修羅王丸の最古の式神。基礎的な暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
   { sym: "SANZU", name: "三途", tag: "通常", desc: "修羅王丸の矛たる式神。基礎的な暗躍を担う。", image: "SANZU", unlock: { key: "initial" } },
   { sym: "HANZO", name: "ハンゾウ", tag: "通常", desc: "修羅王丸の駒たる式神。基礎的な暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
   { sym: "MUTSU", name: "陸奥怪童", tag: "通常", desc: "修羅王丸の手足たる式神。基礎的な暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
 
-  { sym: "S_BIR", name: "修羅王丸・トランスフォーム", tag: "特殊", desc: "修羅王丸の最初の姿。縦列を消去する。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
-  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を捨てた修羅王丸の姿。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
-  { sym: "S_SHU", name: "修羅王丸・しゅらちゃん", tag: "特殊", desc: "ネオレトロを切り捨て生まれた存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_BIR", name: "修羅王丸・ミミック", tag: "特殊", desc: "かつて人と共に在った修羅王丸。縦列を消去する。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
+  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を辞めた修羅王丸の姿。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "修羅王丸・しゅらちゃん", tag: "特殊", desc: "ネオレトロを斬り捨て顕現した存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
   { sym: "S_REQ", name: "修羅王丸・レクイエム", tag: "特殊", desc: "新たな境地を求めて生まれた存在。横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
   { sym: "S_UNK", name: "修羅王丸・アンノウン", tag: "特殊", desc: "未だ見ぬ先の境地。斜め列を消去する（切り替え可能）。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
@@ -825,7 +824,7 @@ function closeCharModal(){
   }
 }
 
-/* ★操作説明のデータ（仮） */
+/* ★操作説明のデータ */
 const HOWTO_IMAGES = [
   "images/howto1.png",
   "images/howto2.png",
@@ -901,8 +900,6 @@ function onHowtoKey(e){
   else if(e.key==='Escape') window.closeHowto();
 }
 
-/* --- ★修正ここまで --- */
-
 
 /* ===== 覚醒リセット関連 (新規) ===== */
 function openResetConfirmModal(){
@@ -965,7 +962,7 @@ function resetRank(){
 
 /* ===== ランク・種別 (省略: 変更なし) ===== */
 const RANKS = [ /* (省略: 変更なし) */
-  { key:"S_BIR", name:"トランスフォーム", score: 100 },
+  { key:"S_BIR", name:"ミミック", score: 100 },
   { key:"S_NE0", name:"ネオレトロ", score: 200 },
   { key:"S_SHU", name:"しゅらちゃん", score: 300 },
   { key:"S_REQ", name:"レクイエム", score: 400 },
@@ -989,7 +986,7 @@ let isBgmReady = false; // BGMの準備完了フラグ
 /* ★ランクMAX到達フラグを追加 (永続化) */
 let hasReachedMaxRank = store.get("hasReachedMaxRank", false);
 
-/* === 最終ランク：特殊ブロック選択 (変更なし) === */
+/* === 最終ランク：特殊ブロック選択  === */
 let selectedSpecialOverride = null; // null時は通常のランク依存
 function voiceForSpecial(sym){ /* (省略: 変更なし) */
   if(sym==="S_BIR") return document.getElementById("vo_rank0");
@@ -1035,14 +1032,14 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 /* ===== RankMAX (Rank 5) の名称定義 ===== */
 // NORMALSとSPECIALSに続いて、ランクの名称一覧を定義します。
 // rankIndex (1-based) から名称を取得できるように、配列のインデックスを調整する必要があります。
-// rankIndex 0: トランスフォーム
+// rankIndex 0: ミミック
 // rankIndex 1: ネオレトロ
 // rankIndex 2: しゅらちゃん
 // rankIndex 3: レクイエム
 // rankIndex 4: アンノウン
 // rankIndex 5: 永遠の焦土 (Rank MAX)
 const RANK_TITLES = [
-  "トランスフォーム", // rankIndex = 0 or 1 (初期値/Rank 1として使用する想定)
+  "ミミック", // rankIndex = 0 or 1 (初期値/Rank 1として使用する想定)
   "ネオレトロ", // rankIndex = 1ｓ
   "しゅらちゃん", // rankIndex = 2
   "レクイエム", // rankIndex = 3
@@ -1149,7 +1146,7 @@ function onMove(x,y){ /* (省略: 変更なし) */
 }
 function onEnd(){ drag.active=false; drag.start=null; drag.t=null; }
 
-/* ===== モード・一時停止（A） (省略: 変更なし) ===== */
+/* ===== モード・一時停止(省略: 変更なし) ===== */
 function setMode(mode){ /* (省略: 変更なし) */
   isKanki=(mode==='kanki');
   document.getElementById("btnKanki").classList.toggle("active",isKanki);
@@ -1195,7 +1192,7 @@ function findMatches(checkOnly=true){ /* (省略: 変更なし) */
   return false;
 }
 
-/* ランク進捗・ボイス（A） (省略: 変更なし) */
+/* ランク進捗・ボイス (省略: 変更なし) */
 function updateRank(){ /* (省略: 変更なし) */
   if(rankIndex<MAX_RANK_INDEX && rankProgress>=RANK_THRESH[rankIndex]){
     rankProgress=0; rankIndex++;
