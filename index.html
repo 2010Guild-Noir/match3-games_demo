@@ -1,24 +1,23 @@
 <!DOCTYPE html>
 <head>
-<!-- ===== HARD MUTE AUDIO GATE (iOS Safari/Chrome Safe) ===== -->
+<!-- ===== HARD MUTE AUDIO GATE + SOURCE DEFERRAL (iOS Safari/Chrome Safe) ===== -->
 <script>
 (function(){
+  // 1) Hard mute + play() gating (catch any premature play())
   var locked = true;
   var pending = new Set();
   var origPlay = HTMLMediaElement.prototype.play;
   var origVolume = new WeakMap();
+  window.__audioGateUnlocked = false;
 
   function hardMute(el){
     if (!origVolume.has(el)) origVolume.set(el, el.volume);
-    el.muted = true;
-    el.volume = 0;
+    el.muted = true; el.volume = 0;
   }
   function restore(el){
     var v = origVolume.get(el);
-    el.muted = false;
-    el.volume = (v != null ? v : 1);
+    el.muted = false; el.volume = (v != null ? v : 1);
   }
-
   function muteAllExisting(){
     document.querySelectorAll('audio,video').forEach(hardMute);
   }
@@ -43,21 +42,69 @@
   }
   HTMLMediaElement.prototype.play = gatedPlay;
 
+  // 2) Source deferral: strip src until first gesture so nothing can actually play
+  function deferSources(root){
+    (root.querySelectorAll ? root.querySelectorAll('audio,video') : []).forEach(function(el){
+      if (el.dataset && !el.dataset.src && el.src) {
+        el.dataset.src = el.currentSrc || el.getAttribute('src') || '';
+        el.removeAttribute('src');
+        try { el.load(); } catch(e){}
+      }
+      // also disable autoplay defensively
+      if (el.autoplay) el.autoplay = false;
+      el.setAttribute('preload','none');
+    });
+  }
+
+  // run after body parsed as well
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ deferSources(document); }, {once:true});
+  } else {
+    deferSources(document);
+  }
+  var mo2 = new MutationObserver(function(ms){
+    ms.forEach(function(m){
+      m.addedNodes && m.addedNodes.forEach(function(n){
+        if (n && (n.tagName === 'AUDIO' || n.tagName === 'VIDEO')) deferSources(document);
+        if (n && n.querySelectorAll) deferSources(n);
+      });
+    });
+  });
+  mo2.observe(document.documentElement, {childList:true, subtree:true});
+
+  function attachAndPrime(el){
+    try{
+      if (el.dataset && el.dataset.src && !el.src) {
+        el.setAttribute('src', el.dataset.src);
+        try { el.load(); } catch(e){}
+      }
+      // prime silently
+      var p = origPlay.call(el);
+      var stop = function(){
+        try { el.pause(); el.currentTime = 0; restore(el); } catch(e){}
+      };
+      if (p && p.then) p.then(stop).catch(stop); else stop();
+    }catch(e){}
+  }
+
   function onFirstGesture(){
     if (!locked) return;
     locked = false;
-    pending.forEach(function(a){
-      try {
-        var p = origPlay.call(a);
-        var stop = function(){
-          try { a.pause(); a.currentTime = 0; restore(a); } catch(e){}
-        };
-        if (p && p.then) p.then(stop).catch(stop); else stop();
-      } catch(e){}
-    });
+    window.__audioGateUnlocked = true;
+
+    // restore all sources and prime silently
+    var media = document.querySelectorAll('audio,video');
+    media.forEach(function(el){ attachAndPrime(el); });
+
+    // also process any pending play()s that happened during lock
+    pending.forEach(function(a){ attachAndPrime(a); });
     pending.clear();
+
+    // restore original play and disconnect observers
     HTMLMediaElement.prototype.play = origPlay;
     try { mo.disconnect(); } catch(e){}
+    try { mo2.disconnect(); } catch(e){}
+
     window.removeEventListener('pointerdown', onFirstGesture, true);
     window.removeEventListener('touchstart', onFirstGesture, true);
     window.removeEventListener('keydown', onFirstGesture, true);
@@ -68,12 +115,9 @@
   window.addEventListener('touchstart',  onFirstGesture, { once:true, passive:true, capture:true });
   window.addEventListener('keydown',     onFirstGesture, { once:true, capture:true });
   window.addEventListener('mousedown',   onFirstGesture, { once:true, capture:true });
-
-  window.addEventListener('canplay', function(e){ if(locked) hardMute(e.target); }, true);
-  window.addEventListener('canplaythrough', function(e){ if(locked) hardMute(e.target); }, true);
 })();
 </script>
-<!-- ===== /HARD MUTE AUDIO GATE ===== -->
+<!-- ===== /HARD MUTE AUDIO GATE + SOURCE DEFERRAL ===== -->
 
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
@@ -669,7 +713,7 @@ function selectBGM(which){
   updateBGMSelectButton(); // 表示更新（色/ラベル）
 
   if(bgmOn){ 
-    currentBGM().play().then(()=>{ 
+    if (window.__audioGateUnlocked) { currentBGM().play().then(()=>{ 
       bgmBtn.textContent="🔊 ♪ BGM ON"; // ★修正：ON状態のテキストに統一
       bgmBtn.classList.add('active'); 
     }).catch(()=>{
@@ -678,7 +722,7 @@ function selectBGM(which){
       pauseAllBGM(); 
       bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
       bgmBtn.classList.remove('active');
-    }); 
+    }); } else { /* if __audioGateUnlocked was false, do nothing now; resumeOnce will handle after gesture */
   }
   else{ 
     pauseAllBGM(); 
@@ -716,7 +760,7 @@ function userGesture(){
   updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
 
   if(bgmOn){ 
-    currentBGM().play().then(()=>{ 
+    if (window.__audioGateUnlocked) { currentBGM().play().then(()=>{ 
       bgmBtn.textContent="♪ BGM OFF";
       bgmBtn.classList.add('active'); 
     }).catch(()=>{
@@ -733,7 +777,7 @@ function userGesture(){
       document.addEventListener('pointerdown', resumeOnce, true);
       document.addEventListener('keydown', resumeOnce, true);
       document.addEventListener('touchstart', resumeOnce, true);
-    }); 
+    }); } else { /* if __audioGateUnlocked was false, do nothing now; resumeOnce will handle after gesture */
   }
   else{ 
     pauseAllBGM(); 
