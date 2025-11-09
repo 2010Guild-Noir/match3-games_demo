@@ -2337,5 +2337,48 @@ if (ok){
 
 <!-- ===== /RankMAX Ceremony ===== -->
 
+
+<script>
+// ---------- PATCH: One-shot silent audio unlock (iOS-safe, cross-browser no-op) ----------
+(function () {
+  var unlocked = false;
+
+  // Fallback: define unlockAllSE if not provided
+  if (typeof window.unlockAllSE !== "function") {
+    window.unlockAllSE = function () {
+      document.querySelectorAll('audio').forEach(function (a) {
+        try {
+          var orig = a.volume;
+          a.volume = 0.0001; // nearly silent, prime hardware decoder
+          var p = a.play();
+          var stop = function () {
+            try { a.pause(); a.currentTime = 0; } finally { a.volume = orig; }
+          };
+          if (p && typeof p.then === "function") { p.then(stop).catch(stop); }
+          else { stop(); }
+        } catch (e) {}
+      });
+    };
+  }
+
+  function onFirstGesture() {
+    if (unlocked) return;
+    unlocked = true;
+    try { window.unlockAllSE(); } catch (e) {}
+
+    // Remove listeners
+    window.removeEventListener('pointerdown', onFirstGesture, true);
+    window.removeEventListener('touchstart', onFirstGesture, true);
+    window.removeEventListener('keydown', onFirstGesture, true);
+    window.removeEventListener('mousedown', onFirstGesture, true);
+  }
+
+  // Hook earliest possible user gestures; capture ensures early run
+  window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true, capture: true });
+  window.addEventListener('touchstart',  onFirstGesture, { once: true, passive: true, capture: true });
+  window.addEventListener('keydown',     onFirstGesture, { once: true, capture: true });
+  window.addEventListener('mousedown',   onFirstGesture, { once: true, capture: true });
+})();
+</script>
 </body>
 </html>
