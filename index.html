@@ -1,5 +1,80 @@
 <!DOCTYPE html>
 <head>
+<!-- ===== HARD MUTE AUDIO GATE (iOS Safari/Chrome Safe) ===== -->
+<script>
+(function(){
+  var locked = true;
+  var pending = new Set();
+  var origPlay = HTMLMediaElement.prototype.play;
+  var origVolume = new WeakMap();
+
+  function hardMute(el){
+    if (!origVolume.has(el)) origVolume.set(el, el.volume);
+    el.muted = true;
+    el.volume = 0;
+  }
+  function restore(el){
+    var v = origVolume.get(el);
+    el.muted = false;
+    el.volume = (v != null ? v : 1);
+  }
+
+  function muteAllExisting(){
+    document.querySelectorAll('audio,video').forEach(hardMute);
+  }
+  muteAllExisting();
+
+  var mo = new MutationObserver(function(ms){
+    if (!locked) return;
+    ms.forEach(function(m){
+      m.addedNodes && m.addedNodes.forEach(function(n){
+        if (n && (n.tagName === 'AUDIO' || n.tagName === 'VIDEO')) hardMute(n);
+        if (n && n.querySelectorAll) n.querySelectorAll('audio,video').forEach(hardMute);
+      });
+    });
+  });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+
+  function gatedPlay(){
+    if (!locked) return origPlay.apply(this, arguments);
+    hardMute(this);
+    pending.add(this);
+    try { return Promise.resolve(); } catch(e) { return; }
+  }
+  HTMLMediaElement.prototype.play = gatedPlay;
+
+  function onFirstGesture(){
+    if (!locked) return;
+    locked = false;
+    pending.forEach(function(a){
+      try {
+        var p = origPlay.call(a);
+        var stop = function(){
+          try { a.pause(); a.currentTime = 0; restore(a); } catch(e){}
+        };
+        if (p && p.then) p.then(stop).catch(stop); else stop();
+      } catch(e){}
+    });
+    pending.clear();
+    HTMLMediaElement.prototype.play = origPlay;
+    try { mo.disconnect(); } catch(e){}
+    window.removeEventListener('pointerdown', onFirstGesture, true);
+    window.removeEventListener('touchstart', onFirstGesture, true);
+    window.removeEventListener('keydown', onFirstGesture, true);
+    window.removeEventListener('mousedown', onFirstGesture, true);
+  }
+
+  window.addEventListener('pointerdown', onFirstGesture, { once:true, passive:true, capture:true });
+  window.addEventListener('touchstart',  onFirstGesture, { once:true, passive:true, capture:true });
+  window.addEventListener('keydown',     onFirstGesture, { once:true, capture:true });
+  window.addEventListener('mousedown',   onFirstGesture, { once:true, capture:true });
+
+  window.addEventListener('canplay', function(e){ if(locked) hardMute(e.target); }, true);
+  window.addEventListener('canplaythrough', function(e){ if(locked) hardMute(e.target); }, true);
+})();
+</script>
+<!-- ===== /HARD MUTE AUDIO GATE ===== -->
+
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
