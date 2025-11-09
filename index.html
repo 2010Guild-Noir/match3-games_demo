@@ -120,6 +120,27 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   .char-item img { width:40px; height:40px; margin-right:10px; border-radius:4px; vertical-align:middle; }
   .char-item .title-row { display:flex; align-items:center; }
 
+/* === 図鑑：ロック中は完全ブラインド表示 === */
+.char-item.locked{ 
+  opacity:1;
+  background:#1b1b1b;
+}
+.char-item.locked .title-row img,
+.char-item.locked .char-tag,
+.char-item.locked p,
+.char-item.locked small{
+  display:none !important;
+}
+.char-item.locked .title-row::before{
+  content:"";
+  display:inline-block;
+  width:40px; height:40px;
+  margin-right:10px;
+  border-radius:4px;
+  background:#0e0e0e;
+  border:1px solid #333;
+}
+
   /* 図鑑のタグ */
   .char-tag{ display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; font-weight:700; border:1px solid #444; margin-left:6px; }
   .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 合歓=黄色 */
@@ -137,6 +158,7 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(127, 183, 255, 0);
     transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease;
   }
+
   #rankSelectRow .btn-icon:hover{ transform:translateY(-1px); border-color:#3c4048; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.5); }
   #rankSelectRow .btn-icon.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
 
@@ -398,7 +420,7 @@ details.help li {
       <div id="charModal" class="modal-overlay" onclick="if(event.target.id === 'charModal') closeCharModal()" hidden>
         <div class="modal-content char-modal-content">
           <button class="close-btn" onclick="closeCharModal()" aria-label="閉じる"></button>
-          <h2>👤 修羅王丸 顕現図鑑</h2>
+          <h2>👤 修羅王丸 顕現名鑑</h2>
           <div id="char-list" class="char-list"></div>
         </div>
       </div>
@@ -418,6 +440,7 @@ details.help li {
   <audio id="se_push"       src="audio/se_push.mp3"   preload="auto"></audio>
   <audio id="se_bell"       src="audio/se_bell.mp3"    preload="auto"></audio>
   <audio id="se_rumble"     src="audio/se_rumble.mp3"  preload="auto"></audio>
+  <audio id="se_not"       src="audio/se_not.mp3"  preload="auto"></audio>
   <audio id="vo_rank0" src="audio/vo_rank0.mp3" preload="auto"></audio>
   <audio id="vo_rank1" src="audio/vo_rank1.mp3" preload="auto"></audio>
   <audio id="vo_rank2" src="audio/vo_rank2.mp3" preload="auto"></audio>
@@ -438,7 +461,7 @@ details.help li {
       </div>
       <button class="btn" id="bgmSelectBtn" onclick="toggleBGMSelect(); onClickSE()">♪1 / ♪2 BGM切替</button>
       
-      <button class="btn" id="btnCharIntroIndex" onclick="openCharModal(); onClickSE()">👤 修羅王丸 顕現図鑑</button>
+      <button class="btn" id="btnCharIntroIndex" onclick="openCharModal(); onClickSE()">👤 修羅王丸 顕現名鑑</button>
       
       <button class="btn" id="openHowtoBtn" onclick="openHowto(); onClickSE()">ⓘ 操作説明</button>
       
@@ -510,6 +533,7 @@ const SE_BANK = {
   index:document.getElementById("se_index"), /* index open */
   /* ★push.mp3を追加 */
   bell:document.getElementById("se_bell"),
+　not:document.getElementById("se_not"),
 };
 const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
   init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
@@ -685,13 +709,14 @@ const DRAG_THRESHOLD = 0.35;
 
 /* ===== 画像 (省略: 変更なし) ===== */
 const IMG = { 
-  "SANZU": new Image(), "MUTSU": new Image(), "HANZO": new Image(), "CHIEKO": new Image(),
+  "SANZU": new Image(), "MUTSU": new Image(), "HANZO": new Image(), "CHIEKO": new Image(), "KUJAKU": new Image(),
   "S_BIR": new Image(), "S_NE0": new Image(), "S_SHU": new Image(), "S_REQ": new Image(), "S_UNK": new Image(),
   "J_NEM": new Image(), "J_SHI": new Image(), "J_PRO": new Image(),
   "PATH_SANZU": "images/sanzu.png",
   "PATH_MUTSU": "images/mutsu.png",
   "PATH_HANZO": "images/hanzo.png",
   "PATH_CHIEKO": "images/chieko.png",
+  "PATH_KUJAKU": "images/kujaku.png",
   "PATH_S_BIR": "images/special_bir.png",
   "PATH_S_NE0": "images/special_ne0.png",
   "PATH_S_SHU": "images/special_shu.png",
@@ -713,18 +738,19 @@ function loadImages(done){
 const CHARACTERS = [ 
   { sym: "CHIEKO", name: "美毒丸", tag: "通常", desc: "修羅王丸の最古の式神。基礎的な暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
   { sym: "SANZU", name: "三途", tag: "通常", desc: "修羅王丸の矛たる式神。基礎的な暗躍を担う。", image: "SANZU", unlock: { key: "initial" } },
-  { sym: "HANZO", name: "ハンゾウ", tag: "通常", desc: "修羅王丸の駒たる式神。基礎的な暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
-  { sym: "MUTSU", name: "陸奥怪童", tag: "通常", desc: "修羅王丸の手足たる式神。基礎的な暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
+  { sym: "HANZO", name: "ハンゾウ", tag: "通常", desc: "修羅王丸の先陣たる式神。基礎的な暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
+  { sym: "MUTSU", name: "陸奥怪童", tag: "通常", desc: "修羅王丸の盾たる式神。基礎的な暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
+  { sym: "KUJAKU", name: "クジャク", tag: "通常", desc: "修羅王丸の盟約たる式神。基礎的な暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
 
   { sym: "S_BIR", name: "修羅王丸・ミミック", tag: "特殊", desc: "かつて人と共に在った修羅王丸。縦列を消去する。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
-  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を辞めた修羅王丸の姿。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
-  { sym: "S_SHU", name: "修羅王丸・しゅらちゃん", tag: "特殊", desc: "ネオレトロを斬り捨て顕現した存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を辞めた修羅王丸。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "修羅王丸・シンギュラ", tag: "特殊", desc: "ネオレトロを斬り捨て顕現した存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
   { sym: "S_REQ", name: "修羅王丸・レクイエム", tag: "特殊", desc: "新たな境地を求めて生まれた存在。横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
   { sym: "S_UNK", name: "修羅王丸・アンノウン", tag: "特殊", desc: "未だ見ぬ先の境地。斜め列を消去する（切り替え可能）。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
-  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。隣接する消去でHPを削る。HP:1。", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。隣接する消去でHPを削る。HP:3。", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。隣接する消去でHPを削る。HP:5。", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。移動できず、隣接する消去でHPを削る。HP:1。", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。移動できず、隣接する消去でHPを削る。HP:3。", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。移動できず、隣接する消去でHPを削る。HP:5。", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
 ];
 let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false });
 
@@ -743,12 +769,23 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
     else if(ch.unlock.key==="juso_spawn" && !unlockedChars.juso_spawn){ locked=true; note=`呪詛ブロックの出現で解放`; }
     const src = IMG["PATH_"+(ch.image||ch.sym)] || "";
     const tagHtml = `<span class="char-tag ${tagClassByChar(ch)}">${ch.tag}</span>`;
-    html += `<div class="char-item ${locked?'locked':'unlocked'}">
-      <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
-        <h4>${ch.name} ${tagHtml}</h4>
-      </div>
-      <p>${ch.desc}</p>${locked?`<small>${note}</small>`:''}
-    </div>`;
+ if(locked){
+
+  // ★ブラインド：名前/タグ/説明/解放条件を隠す
+  html += `<div class="char-item locked">
+    <div class="title-row">
+      <!-- 画像はCSSで消し、ダミー枠は::beforeで表示 -->
+      <h4>？？？</h4>
+    </div>
+  </div>`;
+}else{
+  html += `<div class="char-item unlocked">
+    <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
+      <h4>${ch.name} ${tagHtml}</h4>
+    </div>
+    <p>${ch.desc}</p>
+  </div>`;
+}
   });
   $charList.innerHTML=html;
 }
@@ -964,12 +1001,12 @@ function resetRank(){
 const RANKS = [ /* (省略: 変更なし) */
   { key:"S_BIR", name:"ミミック", score: 100 },
   { key:"S_NE0", name:"ネオレトロ", score: 200 },
-  { key:"S_SHU", name:"しゅらちゃん", score: 300 },
+  { key:"S_SHU", name:"シンギュラ", score: 300 },
   { key:"S_REQ", name:"レクイエム", score: 400 },
   { key:"S_UNK", name:"アンノウン", score: 500 }
 ];
 const MAX_RANK_INDEX = RANKS.length - 1;
-const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO"];
+const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
 const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
@@ -980,6 +1017,7 @@ let slashes=[], particles=[]; // Bのエフェクト要素
 let vanishMask=null, vanishP=0, animState="idle";
 let drag={active:false,start:null,t:null}, swapPair=null;
 let jusoHP=[], currentObstacleCount=0;
+let jusoShake=[]; // 0..1 の減衰パワー
 
 let isBgmReady = false; // BGMの準備完了フラグ
 
@@ -1034,14 +1072,14 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 // rankIndex (1-based) から名称を取得できるように、配列のインデックスを調整する必要があります。
 // rankIndex 0: ミミック
 // rankIndex 1: ネオレトロ
-// rankIndex 2: しゅらちゃん
+// rankIndex 2: シンギュラ
 // rankIndex 3: レクイエム
 // rankIndex 4: アンノウン
 // rankIndex 5: 永遠の焦土 (Rank MAX)
 const RANK_TITLES = [
   "ミミック", // rankIndex = 0 or 1 (初期値/Rank 1として使用する想定)
   "ネオレトロ", // rankIndex = 1ｓ
-  "しゅらちゃん", // rankIndex = 2
+  "シンギュラ", // rankIndex = 2
   "レクイエム", // rankIndex = 3
   "アンノウン", // rankIndex = 4 (MAX_RANK_INDEXに相当)
   "永遠の焦土" // rankIndex = 5 (Rank MAX)
@@ -1105,6 +1143,7 @@ function initBoard(){ /* (省略: 変更なし) */
   jusoHP= Array.from({length:size},()=>Array(size).fill(0));
   yAnim = Array.from({length:size},()=>Array(size).fill(0));
   yVel  = Array.from({length:size},()=>Array(size).fill(0));
+  jusoShake = Array.from({length:size},()=>Array(size).fill(0));
   for(let r=0;r<size;r++){
     for(let c=0;c<size;c++){
       let b;
@@ -1140,7 +1179,18 @@ function onMove(x,y){ /* (省略: 変更なし) */
   if(Math.abs(dx)>Math.abs(dy)) dirX=dx>0?1:-1; else dirY=dy>0?1:-1;
   const {r,c}=drag.start, nr=r+dirY, nc=c+dirX;
   if(nr>=0 && nr<size && nc>=0 && nc<size){
-    if (JUSOS.includes(get(r,c)) || JUSOS.includes(get(nr,nc))) return;
+    if (JUSOS.includes(get(r,c)) || JUSOS.includes(get(nr,nc))) {
+      // 触れたJUSO側に小刻みシェイク
+      if (JUSOS.includes(get(r,c)))  triggerJusoShake(r, c, 1.0);
+      if (JUSOS.includes(get(nr,nc))) triggerJusoShake(nr, nc, 1.0);
+      // 拒否SE
+      if (!window.__seNotCooldown) {
+  Sound.play('not', 1.0);
+  window.__seNotCooldown = true;
+  setTimeout(() => window.__seNotCooldown = false, 300); // 0.3秒間クールダウン
+}
+      return;
+    }
     drag.active=false; swapAndStart(r,c,nr,nc);
   }
 }
@@ -1308,8 +1358,11 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
         if (!damagedThisVanish.has(key)) {
         jusoHP[tr][tc]--;
         damagedThisVanish.add(key);
+        triggerJusoShake(tr, tc, 1.0);
         }
           if (jusoHP[tr][tc]===0){
+            // ★このセルは「消去によるnull化」だとマークする
+            (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
             set(tr,tc,null);
             jusoHP[tr][tc] = 0;
             score += 100;
@@ -1459,7 +1512,7 @@ const SWAP_ANIM_TIME=0.15*60, VANISH_ANIM_TIME=0.25*60;
 function drawSlashes(){ /* (省略: 変更なし) */
   if(!slashes.length) return;
   ctx.save();
-  ctx.strokeStyle = isKanki ? "rgba(255,255,255,0.8)" : "rgba(200,40,40,0.85)";
+  ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
   ctx.globalCompositeOperation='lighter';
   for(const s of slashes){
     const t=Math.min(1,s.t); const len=tileSize*(1+t*1.2); const w=Math.max(2,6-t*5);
@@ -1488,6 +1541,16 @@ function drawParticles(){ /* (省略: 変更なし) */
 
 function drawBlock(r,c,x,y,a=1){ /* (省略: 変更なし) */
   const b=get(r,c); if(b===null) return;
+  // --- JUSO 震えオフセット ---
+  if (Array.isArray(JUSOS) && JUSOS.includes(b)) {
+    const pow = (jusoShake && jusoShake[r] ? jusoShake[r][c] : 0) || 0;
+    if (pow > 0){
+      const t = performance.now()/1000;
+      const amp = 3 * pow; // 最大3px相当揺れ強度
+      x += Math.sin(t*36 + (r*7+c)) * amp;
+      y += Math.cos(t*36 + (r*11+c)) * amp * 0.6;
+    }
+  }
   ctx.save(); ctx.globalAlpha=a;
   const img=IMG[b]; const s=tileSize*0.9, off=tileSize*0.05;
   if(img&&img.complete) ctx.drawImage(img,x+off,y+off,s,s);
@@ -1504,6 +1567,7 @@ function drawBlock(r,c,x,y,a=1){ /* (省略: 変更なし) */
 }
 
 function drawGame(){ /* (省略: 変更なし) */
+  decayJusoShake();
   ctx.clearRect(0,0,logicalSize,logicalSize);
   const bg=IMG.BG; if(bg&&bg.complete&&bg.naturalWidth>0){
     for(let r=0;r<size;r++) for(let c=0;c<size;c++){
@@ -1542,7 +1606,12 @@ function drawGame(){ /* (省略: 変更なし) */
 
 /* スワップ～ループ (省略: 変更なし) */
 function canSwapAndMatch(r1,c1,r2,c2){ /* (省略: 変更なし) */
-  if(JUSOS.includes(get(r1,c1))||JUSOS.includes(get(r2,c2))) return false;
+  if(JUSOS.includes(get(r1,c1))||JUSOS.includes(get(r2,c2))){
+    if (JUSOS.includes(get(r1,c1))) triggerJusoShake(r1,c1, 1.0);
+    if (JUSOS.includes(get(r2,c2))) triggerJusoShake(r2,c2, 1.0);
+    Sound.play('not', 1.0);
+    return false;
+  }
   swap(r1,c1,r2,c2);
   const has = !!findMatches(true);
   swap(r1,c1,r2,c2);
@@ -1992,6 +2061,25 @@ window.addEventListener("DOMContentLoaded", () => {
   else bindCapture();
 })();
 </script>
+<script>
+/* === JUSO シェイク制御 === */
+function triggerJusoShake(r,c, power=1){
+  if(r<0||c<0||r>=size||c>=size) return;
+  if(!jusoShake || !jusoShake[r]) return;
+  // 既存より強いシェイクが来たら上書き（最大1.2まで）
+  jusoShake[r][c] = Math.min(Math.max(jusoShake[r][c], power), 1.2);
+}
+function decayJusoShake(){
+  if(!jusoShake || !jusoShake.length) return;
+  // 毎フレームゆっくり減衰
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      const v = jusoShake[r][c];
+      if(v>0.001){ jusoShake[r][c] = v * 0.88; if(jusoShake[r][c]<0.001) jusoShake[r][c]=0; }
+    }
+  }
+}
+</script>
 
 <script>
 /* ===== Enhancements bundle ===== */
@@ -2031,9 +2119,9 @@ window.addEventListener("DOMContentLoaded", () => {
         var spdBase=(mode==='scorched'?2.4:1.6);
         var spd = (__bias<0.7 ? spdBase*(0.6+Math.random()*0.8) : spdBase*(1.3+Math.random()*1.1));
         var rBase=(mode==='scorched'?2.6:1.4), r=rBase+Math.random()*(mode==='scorched'?1.4:0.8);
-        var color,blend,alpha; if(mode==='joy'){ var tint=Math.floor(235+Math.random()*20); color='rgba('+tint+','+tint+',255,1)'; blend='lighter'; alpha=0.95; }
+        var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
         else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
-        var life=(200+Math.random()*160)*1.5, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
+        var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
         p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
         ACTIVE.push(p); }
       if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
@@ -2062,15 +2150,24 @@ window.addEventListener("DOMContentLoaded", () => {
         try{
           var prev=_get(r,c);
           _set(r,c,v);
-          if(prev && v===null && J.indexOf(prev)>=0 && window.ParticleFX){
-            var pos=gridCellCenterToScreen(r,c); var __joy = (typeof isKanki !== 'undefined' ? !!isKanki : !!window.isKanki) 
-            || !!window.isJubilee 
-            || (''+ (window.currentMode || '')).toLowerCase().includes('jubilee')
-            || (''+ (window.currentMode || '')).toLowerCase().includes('kanki');
-            if (__joy) ParticleFX.burstJoy(pos.x, pos.y);
-            else       ParticleFX.burstScorched(pos.x, pos.y);
+if(prev && v===null && J.indexOf(prev)>=0 && window.ParticleFX){
+ // ★「消去によるnull化」だけを許可
+var key = r + ',' + c;
+ var ok  = !!(window.__jusoEraseSet && window.__jusoEraseSet.has(key));
+if (ok){
+ // 一度使った許可は消す（多重発火防止）
+ window.__jusoEraseSet.delete(key);
+ var pos = gridCellCenterToScreen(r,c);
+ var __joy = (typeof isKanki !== 'undefined' ? !!isKanki : !!window.isKanki)
+                 || !!window.isJubilee
+                 || (''+(window.currentMode||'')).toLowerCase().includes('jubilee')
+                 || (''+(window.currentMode||'')).toLowerCase().includes('kanki');
+     if (__joy) ParticleFX.burstJoy(pos.x, pos.y);
+     else       ParticleFX.burstScorched(pos.x, pos.y);
+   }
+ }
 
-          }
+
         }catch(e){ try{ _set(r,c,v);}catch(_){ } }
       };
       return;
@@ -2159,20 +2256,39 @@ window.addEventListener("DOMContentLoaded", () => {
     return false;
   }
   window.hasAnyMove = hasAnyMove;
-
   window.shuffleBoard = function(){
-    if (typeof size==='undefined') return;
-    let attempts = 0;
-    const flat = [];
-    for (let r=0;r<size;r++) for (let c=0;c<size;c++) flat.push(get(r,c));
-    do {
-      attempts++;
-      for (let i=flat.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=flat[i]; flat[i]=flat[j]; flat[j]=t; }
-      let k=0; for (let r=0;r<size;r++) for (let c=0;c<size;c++) set(r,c, flat[k++]);
-      if (findMatches(true)) continue;
-      if (hasAnyMove()) break;
-    } while (attempts < 50);
-    if (typeof prepareDrop==='function') prepareDrop();
+    if (window.__shuffling) return;      // 二重呼び出し防止
+    window.__shuffling = true;
+    try{
+      if (typeof updateStatus==='function'){
+        updateStatus('status: 動かせる駒がありません。シャッフルします');
+      }
+    }catch(_){}
+    try{ Sound.play('whoosh', 1.0); }catch(_){}  // se_whoosh.mp3 再生（既存のSE_BANKにwhooshあり）
+    setTimeout(function(){  // ← ワンクッション（待ち時間は好みで調整）
+      if (typeof size==='undefined'){ window.__shuffling=false; return; }
+      let attempts = 0;
+      const flat = [];
+      for (let r=0;r<size;r++) for (let c=0;c<size;c++) flat.push(get(r,c));
+      do {
+        attempts++;
+        for (let i=flat.length-1;i>0;i--){
+          const j=Math.floor(Math.random()*(i+1));
+          const t=flat[i]; flat[i]=flat[j]; flat[j]=t;
+        }
+        let k=0; for (let r=0;r<size;r++) for (let c=0;c<size;c++) set(r,c, flat[k++]);
+        if (findMatches(true)) continue;
+        if (hasAnyMove()) break;
+      } while (attempts < 50);
+      try{
+        if (typeof updateStatus==='function'){
+          updateStatus('status: 盤面をシャッフルしました。');
+        }
+      }catch(_){}
+      if (typeof prepareDrop==='function') prepareDrop();
+      window.__shuffling = false;
+    }, 600); // ← ここが“ワンクッション”時間(ms)
+
   };
 
   // Hook after maybeSpawnObstacles is called in resolve flow (polling fallback)
