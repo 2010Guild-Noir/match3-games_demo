@@ -1,124 +1,5 @@
 <!DOCTYPE html>
 <head>
-<!-- ===== HARD MUTE AUDIO GATE + SOURCE DEFERRAL (iOS Safari/Chrome Safe) ===== -->
-<script>
-(function(){
-  // 1) Hard mute + play() gating (catch any premature play())
-  var locked = true;
-  var pending = new Set();
-  var origPlay = HTMLMediaElement.prototype.play;
-  var origVolume = new WeakMap();
-  window.__audioGateUnlocked = false;
-
-  function hardMute(el){
-    if (!origVolume.has(el)) origVolume.set(el, el.volume);
-    el.muted = true; el.volume = 0;
-  }
-  function restore(el){
-    var v = origVolume.get(el);
-    el.muted = false; el.volume = (v != null ? v : 1);
-  }
-  function muteAllExisting(){
-    document.querySelectorAll('audio,video').forEach(hardMute);
-  }
-  muteAllExisting();
-
-  var mo = new MutationObserver(function(ms){
-    if (!locked) return;
-    ms.forEach(function(m){
-      m.addedNodes && m.addedNodes.forEach(function(n){
-        if (n && (n.tagName === 'AUDIO' || n.tagName === 'VIDEO')) hardMute(n);
-        if (n && n.querySelectorAll) n.querySelectorAll('audio,video').forEach(hardMute);
-      });
-    });
-  });
-  mo.observe(document.documentElement, {childList:true, subtree:true});
-
-  function gatedPlay(){
-    if (!locked) return origPlay.apply(this, arguments);
-    hardMute(this);
-    pending.add(this);
-    try { return Promise.resolve(); } catch(e) { return; }
-  }
-  HTMLMediaElement.prototype.play = gatedPlay;
-
-  // 2) Source deferral: strip src until first gesture so nothing can actually play
-  function deferSources(root){
-    (root.querySelectorAll ? root.querySelectorAll('audio,video') : []).forEach(function(el){
-      if (el.dataset && !el.dataset.src && el.src) {
-        el.dataset.src = el.currentSrc || el.getAttribute('src') || '';
-        el.removeAttribute('src');
-        try { el.load(); } catch(e){}
-      }
-      // also disable autoplay defensively
-      if (el.autoplay) el.autoplay = false;
-      el.setAttribute('preload','none');
-    });
-  }
-
-  // run after body parsed as well
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function(){ deferSources(document); }, {once:true});
-  } else {
-    deferSources(document);
-  }
-  var mo2 = new MutationObserver(function(ms){
-    ms.forEach(function(m){
-      m.addedNodes && m.addedNodes.forEach(function(n){
-        if (n && (n.tagName === 'AUDIO' || n.tagName === 'VIDEO')) deferSources(document);
-        if (n && n.querySelectorAll) deferSources(n);
-      });
-    });
-  });
-  mo2.observe(document.documentElement, {childList:true, subtree:true});
-
-  function attachAndPrime(el){
-    try{
-      if (el.dataset && el.dataset.src && !el.src) {
-        el.setAttribute('src', el.dataset.src);
-        try { el.load(); } catch(e){}
-      }
-      // prime silently
-      var p = origPlay.call(el);
-      var stop = function(){
-        try { el.pause(); el.currentTime = 0; restore(el); } catch(e){}
-      };
-      if (p && p.then) p.then(stop).catch(stop); else stop();
-    }catch(e){}
-  }
-
-  function onFirstGesture(){
-    if (!locked) return;
-    locked = false;
-    window.__audioGateUnlocked = true;
-
-    // restore all sources and prime silently
-    var media = document.querySelectorAll('audio,video');
-    media.forEach(function(el){ attachAndPrime(el); });
-
-    // also process any pending play()s that happened during lock
-    pending.forEach(function(a){ attachAndPrime(a); });
-    pending.clear();
-
-    // restore original play and disconnect observers
-    HTMLMediaElement.prototype.play = origPlay;
-    try { mo.disconnect(); } catch(e){}
-    try { mo2.disconnect(); } catch(e){}
-
-    window.removeEventListener('pointerdown', onFirstGesture, true);
-    window.removeEventListener('touchstart', onFirstGesture, true);
-    window.removeEventListener('keydown', onFirstGesture, true);
-    window.removeEventListener('mousedown', onFirstGesture, true);
-  }
-
-  window.addEventListener('pointerdown', onFirstGesture, { once:true, passive:true, capture:true });
-  window.addEventListener('touchstart',  onFirstGesture, { once:true, passive:true, capture:true });
-  window.addEventListener('keydown',     onFirstGesture, { once:true, capture:true });
-  window.addEventListener('mousedown',   onFirstGesture, { once:true, capture:true });
-})();
-</script>
-<!-- ===== /HARD MUTE AUDIO GATE + SOURCE DEFERRAL ===== -->
-
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
@@ -239,27 +120,6 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   .char-item img { width:40px; height:40px; margin-right:10px; border-radius:4px; vertical-align:middle; }
   .char-item .title-row { display:flex; align-items:center; }
 
-/* === 図鑑：ロック中は完全ブラインド表示 === */
-.char-item.locked{ 
-  opacity:1;
-  background:#1b1b1b;
-}
-.char-item.locked .title-row img,
-.char-item.locked .char-tag,
-.char-item.locked p,
-.char-item.locked small{
-  display:none !important;
-}
-.char-item.locked .title-row::before{
-  content:"";
-  display:inline-block;
-  width:40px; height:40px;
-  margin-right:10px;
-  border-radius:4px;
-  background:#0e0e0e;
-  border:1px solid #333;
-}
-
   /* 図鑑のタグ */
   .char-tag{ display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; font-weight:700; border:1px solid #444; margin-left:6px; }
   .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 合歓=黄色 */
@@ -277,7 +137,6 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(127, 183, 255, 0);
     transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease;
   }
-
   #rankSelectRow .btn-icon:hover{ transform:translateY(-1px); border-color:#3c4048; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.5); }
   #rankSelectRow .btn-icon.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
 
@@ -713,7 +572,7 @@ function selectBGM(which){
   updateBGMSelectButton(); // 表示更新（色/ラベル）
 
   if(bgmOn){ 
-    if (window.__audioGateUnlocked) { currentBGM().play().then(()=>{ 
+    currentBGM().play().then(()=>{ 
       bgmBtn.textContent="🔊 ♪ BGM ON"; // ★修正：ON状態のテキストに統一
       bgmBtn.classList.add('active'); 
     }).catch(()=>{
@@ -722,7 +581,7 @@ function selectBGM(which){
       pauseAllBGM(); 
       bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
       bgmBtn.classList.remove('active');
-    }); } else { /* if __audioGateUnlocked was false, do nothing now; resumeOnce will handle after gesture */
+    }); 
   }
   else{ 
     pauseAllBGM(); 
@@ -760,7 +619,7 @@ function userGesture(){
   updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
 
   if(bgmOn){ 
-    if (window.__audioGateUnlocked) { currentBGM().play().then(()=>{ 
+    currentBGM().play().then(()=>{ 
       bgmBtn.textContent="♪ BGM OFF";
       bgmBtn.classList.add('active'); 
     }).catch(()=>{
@@ -777,7 +636,7 @@ function userGesture(){
       document.addEventListener('pointerdown', resumeOnce, true);
       document.addEventListener('keydown', resumeOnce, true);
       document.addEventListener('touchstart', resumeOnce, true);
-    }); } else { /* if __audioGateUnlocked was false, do nothing now; resumeOnce will handle after gesture */
+    }); 
   }
   else{ 
     pauseAllBGM(); 
@@ -888,23 +747,12 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
     else if(ch.unlock.key==="juso_spawn" && !unlockedChars.juso_spawn){ locked=true; note=`呪詛ブロックの出現で解放`; }
     const src = IMG["PATH_"+(ch.image||ch.sym)] || "";
     const tagHtml = `<span class="char-tag ${tagClassByChar(ch)}">${ch.tag}</span>`;
- if(locked){
-
-  // ★ブラインド：名前/タグ/説明/解放条件を隠す
-  html += `<div class="char-item locked">
-    <div class="title-row">
-      <!-- 画像はCSSで消し、ダミー枠は::beforeで表示 -->
-      <h4>？？？</h4>
-    </div>
-  </div>`;
-}else{
-  html += `<div class="char-item unlocked">
-    <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
-      <h4>${ch.name} ${tagHtml}</h4>
-    </div>
-    <p>${ch.desc}</p>
-  </div>`;
-}
+    html += `<div class="char-item ${locked?'locked':'unlocked'}">
+      <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
+        <h4>${ch.name} ${tagHtml}</h4>
+      </div>
+      <p>${ch.desc}</p>${locked?`<small>${note}</small>`:''}
+    </div>`;
   });
   $charList.innerHTML=html;
 }
@@ -2456,48 +2304,5 @@ if (ok){
 
 <!-- ===== /RankMAX Ceremony ===== -->
 
-
-<script>
-// ---------- PATCH: One-shot silent audio unlock (iOS-safe, cross-browser no-op) ----------
-(function () {
-  var unlocked = false;
-
-  // Fallback: define unlockAllSE if not provided
-  if (typeof window.unlockAllSE !== "function") {
-    window.unlockAllSE = function () {
-      document.querySelectorAll('audio').forEach(function (a) {
-        try {
-          var orig = a.volume;
-          a.volume = 0.0001; // nearly silent, prime hardware decoder
-          var p = a.play();
-          var stop = function () {
-            try { a.pause(); a.currentTime = 0; } finally { a.volume = orig; }
-          };
-          if (p && typeof p.then === "function") { p.then(stop).catch(stop); }
-          else { stop(); }
-        } catch (e) {}
-      });
-    };
-  }
-
-  function onFirstGesture() {
-    if (unlocked) return;
-    unlocked = true;
-    try { window.unlockAllSE(); } catch (e) {}
-
-    // Remove listeners
-    window.removeEventListener('pointerdown', onFirstGesture, true);
-    window.removeEventListener('touchstart', onFirstGesture, true);
-    window.removeEventListener('keydown', onFirstGesture, true);
-    window.removeEventListener('mousedown', onFirstGesture, true);
-  }
-
-  // Hook earliest possible user gestures; capture ensures early run
-  window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true, capture: true });
-  window.addEventListener('touchstart',  onFirstGesture, { once: true, passive: true, capture: true });
-  window.addEventListener('keydown',     onFirstGesture, { once: true, capture: true });
-  window.addEventListener('mousedown',   onFirstGesture, { once: true, capture: true });
-})();
-</script>
 </body>
 </html>
