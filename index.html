@@ -120,27 +120,6 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   .char-item img { width:40px; height:40px; margin-right:10px; border-radius:4px; vertical-align:middle; }
   .char-item .title-row { display:flex; align-items:center; }
 
-/* === 図鑑：ロック中は完全ブラインド表示 === */
-.char-item.locked{ 
-  opacity:1;
-  background:#1b1b1b;
-}
-.char-item.locked .title-row img,
-.char-item.locked .char-tag,
-.char-item.locked p,
-.char-item.locked small{
-  display:none !important;
-}
-.char-item.locked .title-row::before{
-  content:"";
-  display:inline-block;
-  width:40px; height:40px;
-  margin-right:10px;
-  border-radius:4px;
-  background:#0e0e0e;
-  border:1px solid #333;
-}
-
   /* 図鑑のタグ */
   .char-tag{ display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; font-weight:700; border:1px solid #444; margin-left:6px; }
   .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 合歓=黄色 */
@@ -158,7 +137,6 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(127, 183, 255, 0);
     transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease;
   }
-
   #rankSelectRow .btn-icon:hover{ transform:translateY(-1px); border-color:#3c4048; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.5); }
   #rankSelectRow .btn-icon.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
 
@@ -617,22 +595,10 @@ let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
   audioUnlocked=true;
-  // 【修正】SEの一斉再生を避けるため、SE_BANKに対するループを削除し、
-  // BGM (bgm1, bgm2) のみに対してアンロック処理を行います。
-  const audioElements = [bgm1, bgm2]; // ★SEの要素は含めず、bgm1とbgm2のみを指定
-  
-  audioElements.forEach(a => {
-    if (!a) return;
-    try{ 
-      const v=a.volume; 
-      a.volume=0.0001; 
-      a.play().then(()=>{ 
-        a.pause(); a.currentTime=0; a.volume=v; 
-      }).catch(()=>{ 
-        a.volume=v; 
-      }); 
-    }catch(_){}
-  });
+  for(const k in SE_BANK){
+    const a=SE_BANK[k]; if(!a) continue;
+    try{ const v=a.volume; a.volume=0.0001; a.play().then(()=>{ a.pause(); a.currentTime=0; a.volume=v; }).catch(()=>{ a.volume=v; }); }catch(_){}
+  }
 }
 function userGesture(){
   unlockAllSE();
@@ -781,23 +747,12 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
     else if(ch.unlock.key==="juso_spawn" && !unlockedChars.juso_spawn){ locked=true; note=`呪詛ブロックの出現で解放`; }
     const src = IMG["PATH_"+(ch.image||ch.sym)] || "";
     const tagHtml = `<span class="char-tag ${tagClassByChar(ch)}">${ch.tag}</span>`;
- if(locked){
-
-  // ★ブラインド：名前/タグ/説明/解放条件を隠す
-  html += `<div class="char-item locked">
-    <div class="title-row">
-      <!-- 画像はCSSで消し、ダミー枠は::beforeで表示 -->
-      <h4>？？？</h4>
-    </div>
-  </div>`;
-}else{
-  html += `<div class="char-item unlocked">
-    <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
-      <h4>${ch.name} ${tagHtml}</h4>
-    </div>
-    <p>${ch.desc}</p>
-  </div>`;
-}
+    html += `<div class="char-item ${locked?'locked':'unlocked'}">
+      <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
+        <h4>${ch.name} ${tagHtml}</h4>
+      </div>
+      <p>${ch.desc}</p>${locked?`<small>${note}</small>`:''}
+    </div>`;
   });
   $charList.innerHTML=html;
 }
