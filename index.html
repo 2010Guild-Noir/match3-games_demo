@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8" />
+<title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
+
+  <!-- === Site Icon === -->
+  <link rel="icon" href="favicon.png" type="image/png" />
+
+  <!-- === Open Graph (SNS) === -->
+  <meta property="og:title" content="修羅王丸 永遠の焦土パズル" />
+  <meta property="og:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
+  <!-- Replace the URL below with your published absolute URL -->
+  <meta property="og:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
+  <meta property="og:url" content="https://shuraomaru.itch.io/match3game" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="修羅王丸マッチ3ゲーム" />
+
+  <!-- === Twitter Card === -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="修羅王丸 永遠の焦土パズル" />
+  <meta name="twitter:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
+  <meta name="twitter:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+.modal-overlay[hidden]{display:none !important;}
+
+  :root{ --bg-0:#070707; --ink:#f5f7fb; --muted:#a3a7b3; --line:#2b2e34; }
+  body{ margin:0; color:var(--ink); font-family:"Noto Sans JP",system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background: radial-gradient(1400px 680px at 50% -10%, #1b1c20 0%, #0c0c0e 55%, var(--bg-0) 100%),
+               linear-gradient(180deg, #0b0b0c 0%, #09090a 100%); min-height:100dvh; text-align:center; }
+  .wrap{ max-width:640px; margin:22px auto 28px; padding:16px; }
+  .panel{ margin:0 auto; padding:16px 14px; border-radius:16px; background:#121316; border:1px solid var(--line);
+    box-shadow:0 18px 60px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.06) inset; backdrop-filter:saturate(120%) blur(8px); }
+  /* タイトルサイズ＝B */
+  h1{ font-size:22px; letter-spacing:.03em; margin:4px 0 2px; font-weight:700; }
+  .subtitle{ font-size:12.5px; color:var(--muted); margin:0 0 10px; letter-spacing:.05em; }
+  .hud{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin:10px 0 6px; flex-wrap:wrap; }
+  .badge{ background:linear-gradient(180deg,#1c1d22,#14151a); border:1px solid var(--line); border-radius:999px; padding:8px 14px; font-weight:700; }
+  .rank-progress{ font-size:12px; font-weight:400; margin-left:8px; opacity:0.8; }
+canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; aspect-ratio:1/1; box-sizing:border-box; background:#111; border-radius:14px; border:1px solid var(--line);
+   box-shadow:0 16px 40px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.05) inset; touch-action:none; }
+ .panel{ overflow:hidden; } /* はみ出しを左右均等にクリップ */
+  .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:16px 0 12px; }
+  .btn{ display:inline-flex; align-items:center; gap:.4em; font-weight:600; font-size:14px;
+    background:linear-gradient(180deg,#202126,#14151a); color:#fff; border:1px solid var(--line);
+    border-radius:999px; padding:8px 12px; cursor:pointer; user-select:none;
+    /* ★発光効果 */
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(127, 183, 255, 0);
+    transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease; }
+  /* ★発光効果 (Hover) */
+  .btn:hover, .btn.hover-glow{ 
+    transform:translateY(-1px); border-color:#3c4048; 
+    box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.5); /* ホバー時の発光 */
+  }
+  .btn:active{ transform:translateY(0); box-shadow:0 6px 14px rgba(0,0,0,.44) inset; }
+  .btn-kanki{ background:linear-gradient(180deg,#233246,#17212c); border-color:#2b3b4f; }
+  .btn-shodo{ background:linear-gradient(180deg,#3a1b1e,#1d0e10); border-color:#4b2a2f; }
+  /* ★発光効果 (Active) */
+  .btn.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
+  .btn-shuffle{ background:linear-gradient(180deg,#44224a,#2c1430); border-color:#5c3563; }
+  .btn-mini{ padding:4px 8px; font-size:12px; }
+  .status{ margin:6px 0 10px; font-size:12.5px; color:var(--muted); }
+
+  /* 新規：リセットボタンの色 */
+  .btn-reset{ 
+    background:linear-gradient(180deg,#6e2222,#421515); 
+    border-color:#a53939; color:#ffeded; 
+    /* リセットボタンのホバー時の発光を赤系に */
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(255, 100, 100, 0);
+  }
+  .btn-reset:hover, .btn-reset.hover-glow{ 
+    transform:translateY(-1px); border-color:#c84f4f; 
+    box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(255, 100, 100, 0.5); /* 赤系発光 */
+  }
+  .btn-reset:active{ transform:translateY(0); box-shadow:0 6px 14px rgba(0,0,0,.44) inset; }
+
+
+  /* 操作方法＝ */
+  details.help{ text-align:left; background:linear-gradient(180deg,#14151a,#111217); border:1px solid var(--line);
+                border-radius:14px; padding:12px 14px; margin:14px 0; box-shadow:0 12px 32px rgba(0,0,0,.35) inset; }
+  details.help summary{ cursor:pointer; font-weight:700; }
+  details.help ul{ margin:8px 0 0 18px; } details.help li{ margin:4px 0; line-height:1.6; }
+  small.note{ opacity:.75; display:block; margin-top:6px; }
+
+  /* モーダル共通スタイル（図鑑用をベースに調整） */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .modal-overlay.open { display: flex; }
+  /* ★インデックスの上に重ねて表示するため、図鑑と操作説明のZ-indexを上げる */
+  /* Z-index: 10010 (indexModal) < 10012 (charModal, howtoModal) */
+  /* ★修正: .openクラスがなくてもz-indexを適用し、インデックスモーダルより前面に表示されるようにする */
+  #charModal { z-index: 20000; } 
+  #howtoModal { z-index: 20000; }
+  
+  .modal-content { background:#191b1f; padding:25px; border-radius:12px; max-width:90%; max-height:80%; overflow-y:auto; position:relative; color:var(--ink); text-align:left; border:1px solid var(--line); box-shadow:0 12px 30px rgba(0,0,0,0.6); }
+  
+  /* クローズボタンのスタイルを統一 */
+  .close-btn { 
+    position:absolute; top:10px; right:15px; z-index:1000; 
+    display:inline-block; width:36px; height:36px;
+    background:transparent url("images/closebutton.png") center/contain no-repeat;
+    border:none;padding:0;margin:0;box-shadow:none;border-radius:0;
+    color:transparent;text-indent:-9999px;overflow:hidden;cursor:pointer;
+  }
+  .close-btn:hover{filter:brightness(1.1);}
+
+  /* 図鑑固有 */
+  .char-modal-content { /* 図鑑のコンテンツは少し広め */
+    max-width: 90%;
+    max-height: 80%;
+    width: min(92vw, 720px); 
+    padding: 25px;
+  }
+  .char-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:15px;margin-top:20px; }
+  .char-item { border:1px solid #333; padding:10px; border-radius:8px; background:#222; opacity:0.5; transition:opacity .3s; }
+  .char-item.unlocked{ opacity:1; }
+  .char-item h4 { margin:0 0 5px 0; font-size:16px; }
+  .char-item p { margin:0; font:12px; color:var(--muted); }
+  .char-item img { width:40px; height:40px; margin-right:10px; border-radius:4px; vertical-align:middle; }
+  .char-item .title-row { display:flex; align-items:center; }
+
+/* === 図鑑：ロック中は完全ブラインド表示 === */
+.char-item.locked{ 
+  opacity:1;
+  background:#1b1b1b;
+}
+.char-item.locked .title-row img,
+.char-item.locked .char-tag,
+.char-item.locked p,
+.char-item.locked small{
+  display:none !important;
+}
+.char-item.locked .title-row::before{
+  content:"";
+  display:inline-block;
+  width:40px; height:40px;
+  margin-right:10px;
+  border-radius:4px;
+  background:#0e0e0e;
+  border:1px solid #333;
+}
+
+  /* 図鑑のタグ */
+  .char-tag{ display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; font-weight:700; border:1px solid #444; margin-left:6px; }
+  .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 合歓=黄色 */
+  .char-tag.blue  { background:#0c2a4a; border-color:#174a7a; color:#7fc8ff; }/* 辰十郎=青 */
+  .char-tag.red   { background:#3a0c12; border-color:#5a1c22; color:#ff8a8a; }/* プロパガンダ=赤 */
+  .char-tag.neutral{ background:#333; color:#ccc; }
+  .char-tag.orange{ background:#4a2a00; border-color:#6a3a00; color:#ffb25f; }/* 特殊=橙 */
+
+  /* 最終ランク時：特殊選択行のアイコンボタン */
+  #rankSelectRow .btn-icon{
+    display:inline-flex; align-items:center; gap:4px; padding:2px 4px; border-radius:10px;
+    font-size:12px; line-height:0; border:1px solid var(--line); background:linear-gradient(180deg,#222,#16171b);
+    cursor:pointer; user-select:none;
+    /* ★発光効果 */
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(127, 183, 255, 0);
+    transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease;
+  }
+
+  #rankSelectRow .btn-icon:hover{ transform:translateY(-1px); border-color:#3c4048; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.5); }
+  #rankSelectRow .btn-icon.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
+
+#rankSelectRow { 
+  gap: 14px;
+}
+  #rankSelectRow .btn-icon img{ width:40px; height:40px; border-radius:3px; display:block; }
+  
+.panel{ overflow: hidden; }
+.panel > .row + .row { margin-top: 10px; }
+.panel > .row:not(#rankSelectRow) {
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+details.help summary,
+details.help ul,
+details.help li {
+  text-align: left;
+}
+
+/* === インデックスボタン＋モーダル  === */
+/* 右上に固定するボタン（インデックス） */
+#indexBtn{
+  position:fixed;top:10px;right:10px;width:40px;height:40px;
+  display:inline-grid;place-items:center;border-radius:10px;border:1px solid var(--line);
+  /* アイコンは適宜変更してください。ここではデフォルトのhowtoアイコンを流用 */
+  background:rgba(20,20,20,.9) url("images/howtobutton.png") center/28px 28px no-repeat;
+  color:transparent;cursor:pointer;z-index:10005; border-color:#4169E1;
+  /* ★発光効果 */
+  box-shadow:0 0 0 rgba(127, 183, 255, 0);
+  transition: box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+#indexBtn:hover{
+  border-color:#7fb7ff;
+  box-shadow:0 0 8px rgba(127, 183, 255, 0.6);
+}
+
+#indexModal[hidden]{display:none;}
+#indexModal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.8);z-index:10010;}
+#indexModal .index-panel{
+  background:#111;color:var(--ink);border:1px solid var(--line);border-radius:14px;
+  width:min(92vw,360px);max-height:90vh;box-shadow:0 10px 28px rgba(0,0,0,.6);
+  position:relative;padding:25px;text-align:center;
+}
+#indexModal .index-panel h2{margin:0 0 20px; font-size:24px;}
+/* インデックス内のボタンリスト */
+#indexModal .btn-list{display:grid; gap:12px;}
+#indexModal .btn-list .btn{ 
+  width:100%; justify-content:center; 
+  padding:12px 16px; /* ボタンを大きく */
+  font-size:16px; 
+}
+/* BGM/SEボタンは小さく左右に並べる */
+#indexModal .btn-group{display:flex; gap:10px;}
+#indexModal .btn-group .btn{ flex:1; padding:10px 12px; font-size:15px; }
+
+/* 覚醒リセットボタンのスタイルとマージン */
+#indexModal #resetRankBtn{ 
+  margin-top: 30px; /* 他のボタンと間隔を空ける */
+  padding:12px 16px; 
+  font-size:16px; 
+}
+
+
+/* === 操作説明モーダル (howtoModal) === */
+#howtoModal[hidden]{display:none;} /* 追加 */
+#howtoModal .modal-content { 
+  width:min(92vw,720px); max-height:90vh; padding:14px 14px 10px; /* 図鑑より薄く */
+}
+#howtoModal .howto-img-wrap{position:relative;display:grid;place-items:center;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;}
+#howtoModal img#howtoImg{width:100%;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;}
+#howtoModal .howto-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:9999px;border:1px solid var(--line);background:rgba(28,28,28,.9);color:var(--ink);cursor:pointer;z-index:10;}
+#howtoModal .howto-nav.prev{left:8px;}
+#howtoModal .howto-nav.next{right:8px;}
+#howtoModal .howto-caption{margin-top:8px;text-align:center;font-size:13px;opacity:.9;}
+
+
+/* === ランク確認モーダル (新規) === */
+#resetConfirmModal[hidden]{display:none;}
+#resetConfirmModal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.9);z-index:10015;}
+#resetConfirmModal .modal-content {
+  max-width: 320px;
+  padding: 30px 20px 20px;
+  text-align: center;
+  background:#201111; /* 赤黒系の背景 */
+  border-color:#4d2020;
+}
+#resetConfirmModal h3 {
+  margin: 0 0 20px;
+  font-size: 18px;
+  color: #ffc0c0;
+}
+#resetConfirmModal .confirm-btns {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+#resetConfirmModal .confirm-btns .btn {
+  width: 45%;
+  font-size: 15px;
+}
+/* はいボタンは赤系 */
+#resetConfirmModal #confirmResetYes {
+    background: linear-gradient(180deg,#6e2222,#421515);
+    border-color: #a53939;
+    color: #ffeded;
+}
+
+/* hide debug status */
+#status{ display:none !important; }
+</style>
+<style>
+/* === BGM selection glow colors === */
+.btn.bgm1-active{ outline:2px solid rgba(120,200,150,.85); box-shadow:0 0 15px rgba(120,200,150,.7); }
+.btn.bgm2-active{ outline:2px solid rgba(240,120,120,.85); box-shadow:0 0 15px rgba(240,120,120,.7); }
+/* FX canvas safety */
+#fxCanvas{ background:transparent!important; pointer-events:none; z-index:1!important; display:none; }
+
+/* hide debug status */
+#status{ display:none !important; }
+</style>
+
+<!-- howto responsive fit override -->
+<style id="howto-fit-override">
+#howtoModal .modal-content{
+  width: min(94vw, 640px);
+  max-height: 92vh;
+  overflow: hidden;
+}
+#howtoModal .howto-img-wrap{
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  aspect-ratio: auto;
+  display: grid;
+  place-items: center;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#howtoModal .howto-img-wrap img,
+#howtoModal img#howtoImg{
+  max-width: 100%;
+  max-height: 85vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+}
+</style>
+
+<!-- howto nav shift override: move prev/next half outside so they don't cover the image -->
+<style id="howto-nav-shift-override">
+/* 画像外側にボタンをずらすため、ラッパーのはみ出しを許可 */
+#howtoModal .howto-img-wrap{
+  overflow: visible !important;
+  position: relative;
+}
+
+/* よくあるセレクタ群にまとめて適用（どれかにマッチすれば動く） */
+#howtoModal .howto-prev, 
+#howtoModal .howto-next,
+#howtoModal .howto-nav .prev, 
+#howtoModal .howto-nav .next,
+#howtoModal #howtoPrev, 
+#howtoModal #howtoNext,
+#howtoModal .btn-prev,
+#howtoModal .btn-next{
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 5;
+}
+
+/* 左ボタン：自分の直径ぶん外へ（= 追加で半分外側に） */
+#howtoModal .howto-prev,
+#howtoModal .howto-nav .prev,
+#howtoModal #howtoPrev,
+#howtoModal .btn-prev{
+  left: 0 !important;
+  transform: translate(calc(-27.5% - 8px), -50%) !important; 
+}
+
+/* 右ボタン：自分の直径ぶん外へ */
+#howtoModal .howto-next,
+#howtoModal .howto-nav .next,
+#howtoModal #howtoNext,
+#howtoModal .btn-next{
+  right: 0 !important;
+  transform: translate(calc(27.5% + 8px), -50%) !important;
+}
+</style>
+<!-- howto arrow color override -->
+<style id="howto-arrow-color-override">
+/* 1) テキストやアイコンフォントで作られた矢印を赤に */
+#howtoModal .howto-prev,
+#howtoModal .howto-next,
+#howtoModal .howto-nav .prev,
+#howtoModal .howto-nav .next,
+#howtoModal #howtoPrev,
+#howtoModal #howtoNext,
+#howtoModal .btn-prev,
+#howtoModal .btn-next{
+  color: #ff3b3b !important;  /* 鮮やかな赤 */
+}
+
+/* 2) 疑似要素で矢印を出している場合（::before など） */
+#howtoModal .howto-prev::before,
+#howtoModal .howto-next::before,
+#howtoModal .howto-nav .prev::before,
+#howtoModal .howto-nav .next::before,
+#howtoModal #howtoPrev::before,
+#howtoModal #howtoNext::before,
+#howtoModal .btn-prev::before,
+#howtoModal .btn-next::before{
+  color: #ff3b3b !important;
+}
+
+/* 3) SVGアイコンを使っている場合 */
+#howtoModal .howto-prev svg,
+#howtoModal .howto-next svg,
+#howtoModal .howto-nav .prev svg,
+#howtoModal .howto-nav .next svg,
+#howtoModal #howtoPrev svg,
+#howtoModal #howtoNext svg,
+#howtoModal .btn-prev svg,
+#howtoModal .btn-next svg{
+  fill: #ff3b3b !important;
+  stroke: #ff3b3b !important; /* アウトライン型でも赤に */
+}
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="hud">
+        <div class="badge" id="score">暗躍値: 0</div> <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
+      </div>
+
+      <canvas id="gameCanvas"></canvas>
+      <div class="row" id="rankSelectRow" style="display:none;"></div>
+
+      <div class="row">
+        <button class="btn btn-kanki" id="btnKanki" onclick="setMode('kanki'); userGesture(); onClickSE()">歓喜</button>
+        <button class="btn btn-shodo" id="btnShodo" onclick="setMode('shodo'); userGesture(); onClickSE()">焦土</button>
+        <button class="btn" id="pauseBtn" onclick="togglePause(); onClickSE()">⏸ 一時停止</button>
+      </div>
+
+      <div class="status" id="status">status: ready</div>
+
+
+
+      <small class="note">Ⓒ 2010 Guild Noir. 　修羅王丸®</small>
+
+      <div id="charModal" class="modal-overlay" onclick="if(event.target.id === 'charModal') closeCharModal()" hidden>
+        <div class="modal-content char-modal-content">
+          <button class="close-btn" onclick="closeCharModal()" aria-label="閉じる"></button>
+          <h2>👤 修羅王丸 顕現名鑑</h2>
+          <div id="char-list" class="char-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgm1" src="audio/bgm1.mp3" loop preload="auto"></audio>
+  <audio id="bgm2" src="audio/bgm2.mp3" loop preload="auto"></audio>
+  <audio id="se_index" src="audio/se_index.mp3" preload="auto"></audio>
+<audio id="se_vertical"   src="audio/se_vertical.mp3"   preload="auto"></audio>
+  <audio id="se_horizontal" src="audio/se_horizontal.mp3" preload="auto"></audio>
+  <audio id="se_circle"     src="audio/se_circle.mp3"     preload="auto"></audio>
+  <audio id="se_cross"      src="audio/se_cross.mp3" preload="auto"></audio>
+  <audio id="se_pop"        src="audio/se_pop.mp3"        preload="auto"></audio>
+  <audio id="se_whoosh"     src="audio/se_whoosh.mp3" preload="auto"></audio>
+  <audio id="se_shine"      src="audio/se_shine.mp3"  preload="auto"></audio>
+  <audio id="se_push"       src="audio/se_push.mp3"   preload="auto"></audio>
+  <audio id="se_bell"       src="audio/se_bell.mp3"    preload="auto"></audio>
+  <audio id="se_rumble"     src="audio/se_rumble.mp3"  preload="auto"></audio>
+  <audio id="se_not"       src="audio/se_not.mp3"  preload="auto"></audio>
+  <audio id="vo_rank0" src="audio/vo_rank0.mp3" preload="auto"></audio>
+  <audio id="vo_rank1" src="audio/vo_rank1.mp3" preload="auto"></audio>
+  <audio id="vo_rank2" src="audio/vo_rank2.mp3" preload="auto"></audio>
+  <audio id="vo_rank3" src="audio/vo_rank3.mp3" preload="auto"></audio>
+  <audio id="vo_rank4" src="audio/vo_rank4.mp3" preload="auto"></audio>
+  <audio id="vo_rank5" src="audio/vo_rank5.mp3" preload="auto"></audio>
+  <audio id="vo_reset" src="audio/vo_reset.mp3" preload="auto"></audio>
+
+<button id="indexBtn" title="インデックス" aria-label="インデックス"></button>
+<div id="indexModal" role="dialog" aria-modal="true" aria-label="インデックスメニュー" hidden class="modal-overlay">
+  <div class="index-panel">
+    <button class="close-btn" onclick="closeIndexModal(); onClickSE()" aria-label="閉じる"></button>
+    <h2>⚙ インデックス</h2>
+    <div class="btn-list">
+      <div class="btn-group">
+        <button class="btn" id="bgmBtnIndex" onclick="toggleBGM(); onClickSE()">♪ BGM ON</button>
+        <button class="btn" id="seBtnIndex"  onclick="toggleSE(); onClickSE()">🔊 SE ON</button>
+      </div>
+      <button class="btn" id="bgmSelectBtn" onclick="toggleBGMSelect(); onClickSE()">♪1 / ♪2 BGM切替</button>
+      
+      <button class="btn" id="btnCharIntroIndex" onclick="openCharModal(); onClickSE()">👤 修羅王丸 顕現名鑑</button>
+      
+      <button class="btn" id="openHowtoBtn" onclick="openHowto(); onClickSE()">ⓘ 操作説明</button>
+      
+      <button class="btn btn-reset" id="resetRankBtn" onclick="openResetConfirmModal(); onClickSE()">
+        🔥 覚醒ランクのリセット
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="resetConfirmModal" role="dialog" aria-modal="true" aria-label="覚醒ランクのリセット確認" hidden>
+  <div class="modal-content">
+    <h3>覚醒ランクをリセットしますか？</h3>
+    <p>これまでの覚醒ランクと暗躍進捗が初期化されます。</p>
+    <div class="confirm-btns">
+      <button class="btn" id="confirmResetNo" onclick="closeResetConfirmModal(); onClickSE()">いいえ</button>
+      <button class="btn btn-reset" id="confirmResetYes" onclick="resetRank(); onClickSE()">はい</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="howtoModal" role="dialog" aria-modal="true" aria-label="操作方法" hidden class="modal-overlay">
+  <div class="modal-content">
+    <button class="close-btn" id="howtoCloseBtn" onclick="closeHowto()" aria-label="閉じる"></button> <div class="howto-img-wrap">
+      <button class="howto-nav prev" id="howtoPrev" aria-label="前の画像" onclick="prevHowtoPage()">◀</button>
+      <img id="howtoImg" alt="操作方法" />
+      <button class="howto-nav next" id="howtoNext" aria-label="次の画像" onclick="nextHowtoPage()">▶</button>
+    </div>
+    <div class="howto-caption"><span id="howtoCounter">1 / 1</span></div>
+  </div>
+</div>
+
+
+<script>
+"use strict";
+
+/* ===== 永続化 ===== */
+const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
+
+/* ===== サウンド（BGM2系統＋SEプール） ===== */
+const bgm1 = document.getElementById("bgm1");
+const bgm2 = document.getElementById("bgm2");
+let activeBGM = store.get("activeBGM", 1) === 2 ? bgm2 : bgm1;
+let bgmOn = !!store.get("bgmOn", false);
+
+/* ★インデックス内のBGM/SEボタンに変更 */
+const bgmBtn = document.getElementById("bgmBtnIndex"); // BGM ON/OFFボタン
+const seBtn  = document.getElementById("seBtnIndex");  // SE ON/OFFボタン
+const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
+
+const BGM_DEFAULT_VOL = 0.35;
+const SE_DEFAULT_VOL  = 0.25;
+    
+function makePool(baseEl, n){
+  // baseEl: an existing <audio> element in the DOM
+  const arr = [baseEl.cloneNode(true)];
+  try{ arr[0].pause(); }catch(_){}
+  try{ arr[0].currentTime = 0; }catch(_){}
+  for(let i=1;i<n;i++){
+    const clone = baseEl.cloneNode(true);
+    try{ clone.pause(); }catch(_){}
+    try{ clone.currentTime = 0; }catch(_){}
+    arr.push(clone);
+  }
+  let idx = 0;
+  return {
+    play(vol){
+      const el = arr[idx++ % arr.length];
+      try{ el.pause(); }catch(_){}
+      try{ el.currentTime = 0; }catch(_){}
+      try{ el.volume = vol; }catch(_){}
+      el.play().catch(()=>{});
+    }
+  };
+}
+const SE_BANK = {
+  vertical:document.getElementById("se_vertical"),
+  horizontal:document.getElementById("se_horizontal"),
+  circle:document.getElementById("se_circle"),
+  cross:document.getElementById("se_cross"),
+  pop:document.getElementById("se_pop"),
+  whoosh:document.getElementById("se_whoosh"),
+  rumble:document.getElementById("se_rumble"),
+  shine:document.getElementById("se_shine"),
+  push:document.getElementById("se_push"), 
+  index:document.getElementById("se_index"), /* index open */
+  /* ★push.mp3を追加 */
+  bell:document.getElementById("se_bell"),
+　not:document.getElementById("se_not"),
+};
+const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
+  init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
+  play(n, volMul=1){ if(!this.enabled) return; const p=this.pools[n]; if(p) p.play(this.vol*volMul); },
+}; Sound.init();
+
+function setBGMVol(v){ const nv=Number(v); bgm1.volume=nv; bgm2.volume=nv; store.set("bgmVol", nv); }
+function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
+
+function toggleSE(){ 
+  Sound.enabled=!Sound.enabled; 
+  seBtn.textContent=Sound.enabled?"🔊 SE ON":"🔇 SE OFF"; 
+  store.set("seOn", Sound.enabled); 
+  /* インデックスメニュー内のボタンをアクティブ/非アクティブで装飾 */
+  seBtn.classList.toggle('active', Sound.enabled);
+}
+
+function pauseAllBGM(){ try{bgm1.pause();}catch(_){} try{bgm2.pause();}catch(_){} }
+function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
+
+function updateBGMSelectButton(){
+  const which = activeBGM === bgm2 ? 2 : 1;
+  bgmSelectBtn.textContent = (which === 1) ? "♪1 BGM切替" : "♪2 BGM切替";
+  bgmSelectBtn.classList.toggle('active', true);
+  try{ bgmSelectBtn.classList.toggle('bgm1-active', which===1); bgmSelectBtn.classList.toggle('bgm2-active', which===2); }catch(e){}
+}
+
+/* ★BGM切替（♪1/♪2の切り替えボタンのロジック） */
+function toggleBGMSelect(){
+  const newWhich = activeBGM === bgm1 ? 2 : 1;
+  selectBGM(newWhich);
+  updateBGMSelectButton();
+}
+
+function toggleBGM(){
+  if(!bgmOn){
+    pauseAllBGM(); currentBGM().currentTime = 0;
+    currentBGM().play().catch(()=>{});
+    bgmOn = true; 
+    bgmBtn.textContent="🔊 ♪ BGM ON"; // ON状態のテキスト
+  }else{
+    pauseAllBGM(); 
+    bgmOn = false; 
+    bgmBtn.textContent="🔇 ♪ BGM OFF"; // OFF状態のテキストに統一
+  }
+  store.set("bgmOn", bgmOn);
+  /* インデックスメニュー内のボタンをアクティブ/非アクティブで装飾 */
+  bgmBtn.classList.toggle('active', bgmOn);
+}
+
+function selectBGM(which){
+  pauseAllBGM();
+  activeBGM = (which===2)?bgm2:bgm1;
+  store.set("activeBGM", which);
+  setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
+  activeBGM.currentTime = 0;
+
+  updateBGMSelectButton(); // 表示更新（色/ラベル）
+
+  if(bgmOn){ 
+    currentBGM().play().then(()=>{ 
+      bgmBtn.textContent="🔊 ♪ BGM ON"; // ★修正：ON状態のテキストに統一
+      bgmBtn.classList.add('active'); 
+    }).catch(()=>{
+      // 自動再生失敗時はOFFに戻す
+      bgmOn=false; store.set("bgmOn", false);
+      pauseAllBGM(); 
+      bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
+      bgmBtn.classList.remove('active');
+    }); 
+  }
+  else{ 
+    pauseAllBGM(); 
+    bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
+    bgmBtn.classList.remove('active');
+  }
+}
+
+/* 初回ジェスチャでBGM/SE解禁 */
+let audioUnlocked=false;
+function unlockAllSE(){
+  if(audioUnlocked) return;
+  audioUnlocked=true;
+  // 【修正】SEの一斉再生を避けるため、SE_BANKに対するループを削除し、
+  // BGM (bgm1, bgm2) のみに対してアンロック処理を行います。
+  const audioElements = [bgm1, bgm2]; // ★SEの要素は含めず、bgm1とbgm2のみを指定
+  
+  audioElements.forEach(a => {
+    if (!a) return;
+    try{ 
+      const v=a.volume; 
+      a.volume=0.0001; 
+      a.play().then(()=>{ 
+        a.pause(); a.currentTime=0; a.volume=v; 
+      }).catch(()=>{ 
+        a.volume=v; 
+      }); 
+    }catch(_){}
+  });
+}
+function userGesture(){
+  unlockAllSE();
+// ★タッチ/移動でBGMをキック（停止中なら再生を試みるが、ユーザー設定(bgmOn)を尊重する）
+  // ユーザーが明示的にBGMをOFFにしている場合は再生も状態の上書きもしないように修正
+  if (bgmOn && currentBGM().paused){ 
+    currentBGM().currentTime = 0;
+    currentBGM().play().catch(()=>{});
+  }
+}
+(function initAudio(){
+  setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
+  if(!Sound.enabled) seBtn.textContent="🔇 SE OFF";
+  seBtn.classList.toggle('active', Sound.enabled);
+
+  const which=store.get("activeBGM",1);
+  activeBGM = which===2?bgm2:bgm1;
+  updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
+
+  if(bgmOn){ 
+    currentBGM().play().then(()=>{ 
+      bgmBtn.textContent="♪ BGM OFF";
+      bgmBtn.classList.add('active'); 
+    }).catch(()=>{
+      // 自動再生がブロック：ユーザー操作で1回だけ復帰（ON設定時のみ）
+      const resumeOnce = ()=>{
+        if(!bgmOn) return;
+        try{ pauseAllBGM(); currentBGM().currentTime=0; currentBGM().play().catch(()=>{}); }catch(_){}
+        document.removeEventListener('pointerdown', resumeOnce, true);
+        document.removeEventListener('keydown', resumeOnce, true);
+        document.removeEventListener('touchstart', resumeOnce, true);
+        bgmBtn.textContent="♪ BGM OFF";
+        bgmBtn.classList.add('active');
+      };
+      document.addEventListener('pointerdown', resumeOnce, true);
+      document.addEventListener('keydown', resumeOnce, true);
+      document.addEventListener('touchstart', resumeOnce, true);
+    }); 
+  }
+  else{ 
+    pauseAllBGM(); 
+    bgmBtn.textContent="♪ BGM ON"; 
+    bgmBtn.classList.remove('active');
+  }
+})();
+
+/* ★SE再生のショートカット関数 */
+const onClickSE = ()=>Sound.play('push', .9);
+
+/* ===== DOM & 基本設定（A 基準） ===== */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d", { alpha:true });
+const $pauseBtn = document.getElementById("pauseBtn");
+const $score = document.getElementById("score");
+const $rank = document.getElementById("rank");
+let $rankProgress = document.getElementById("rankProgress");
+const $status = document.getElementById("status");
+/* ★IDをchar-modalからcharModalに変更 */
+const $charModal = document.getElementById("charModal");
+const $charList = document.getElementById("char-list");
+
+/* ★インデックスメニューDOM */
+const $indexBtn = document.getElementById('indexBtn');
+const $indexModal = document.getElementById('indexModal');
+const $openHowtoBtn = document.getElementById('openHowtoBtn');
+const $btnCharIntroIndex = document.getElementById('btnCharIntroIndex');
+
+/* ★リセットモーダルDOM */
+const $resetConfirmModal = document.getElementById('resetConfirmModal');
+
+/* ★操作説明モーダルDOM (Howto) */
+const $howtoModal = document.getElementById('howtoModal');
+const $howtoImg = document.getElementById('howtoImg');
+const $howtoCounter = document.getElementById('howtoCounter');
+const $howtoPrev = document.getElementById('howtoPrev');
+const $howtoNext = document.getElementById('howtoNext');
+
+
+const size = 7;
+let logicalSize = 400;
+let tileSize = logicalSize/size;
+let DPR = Math.max(1, Math.min(3, Math.floor(window.devicePixelRatio || 1)));
+let paused = false;
+let isKanki = true;
+const DRAG_THRESHOLD = 0.35;
+
+/* ===== 画像 (省略: 変更なし) ===== */
+const IMG = { 
+  "SANZU": new Image(), "MUTSU": new Image(), "HANZO": new Image(), "CHIEKO": new Image(), "KUJAKU": new Image(),
+  "S_BIR": new Image(), "S_NE0": new Image(), "S_SHU": new Image(), "S_REQ": new Image(), "S_UNK": new Image(),
+  "J_NEM": new Image(), "J_SHI": new Image(), "J_PRO": new Image(),
+  "PATH_SANZU": "images/sanzu.png",
+  "PATH_MUTSU": "images/mutsu.png",
+  "PATH_HANZO": "images/hanzo.png",
+  "PATH_CHIEKO": "images/chieko.png",
+  "PATH_KUJAKU": "images/kujaku.png",
+  "PATH_S_BIR": "images/special_bir.png",
+  "PATH_S_NE0": "images/special_ne0.png",
+  "PATH_S_SHU": "images/special_shu.png",
+  "PATH_S_REQ": "images/special_req.png",
+  "PATH_S_UNK": "images/special_unk.png",
+  "PATH_J_NEM": "images/nemu.png",
+  "PATH_J_SHI": "images/shinjuro.png",
+  "PATH_J_PRO": "images/propaganda.png",
+  "BG": new Image(), "PATH_BG": "images/boad_bg.png"
+};
+function loadImages(done){ 
+  let loaded=0; const keys=Object.keys(IMG).filter(k=>!k.startsWith('PATH_')); const total=keys.length;
+  if(total===0){ done(); return; }
+  keys.forEach(k=>{ IMG[k].onload=()=>{ if(++loaded===total) done(); }; IMG[k].onerror=()=>{ if(++loaded===total) done(); };
+    const p=IMG["PATH_"+k]; if(p) IMG[k].src=p; });
+}
+
+/* ===== キャラクター図鑑 (省略: 変更なし) ===== */
+const CHARACTERS = [ 
+  { sym: "CHIEKO", name: "美毒丸", tag: "通常", desc: "修羅王丸の最古の式神。基礎的な暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
+  { sym: "SANZU", name: "三途", tag: "通常", desc: "修羅王丸の矛たる式神。基礎的な暗躍を担う。", image: "SANZU", unlock: { key: "initial" } },
+  { sym: "HANZO", name: "ハンゾウ", tag: "通常", desc: "修羅王丸の先陣たる式神。基礎的な暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
+  { sym: "MUTSU", name: "陸奥怪童", tag: "通常", desc: "修羅王丸の盾たる式神。基礎的な暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
+  { sym: "KUJAKU", name: "クジャク", tag: "通常", desc: "修羅王丸の盟約たる式神。基礎的な暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
+
+  { sym: "S_BIR", name: "修羅王丸・ミミック", tag: "特殊", desc: "かつて人と共に在った修羅王丸。縦列を消去する。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
+  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を辞めた修羅王丸。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "修羅王丸・シンギュラ", tag: "特殊", desc: "ネオレトロを斬り捨て顕現した存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_REQ", name: "修羅王丸・レクイエム", tag: "特殊", desc: "新たな境地を求めて生まれた存在。横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
+  { sym: "S_UNK", name: "修羅王丸・アンノウン", tag: "特殊", desc: "未だ見ぬ先の境地。斜め列を消去する（切り替え可能）。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
+
+  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。移動できず、隣接する消去でHPを削る。HP:1。", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。移動できず、隣接する消去でHPを削る。HP:3。", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。移動できず、隣接する消去でHPを削る。HP:5。", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+];
+let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false });
+
+function tagClassByChar(ch){ /* (省略: 変更なし) */
+  if (Array.isArray(SPECIALS) && SPECIALS.includes(ch.sym)) return "orange";
+  if (ch.sym === "J_NEM") return "yellow";
+  if (ch.sym === "J_SHI") return "blue";
+  if (ch.sym === "J_PRO") return "red";
+  return "neutral";
+}
+function updateCharModalContent(){ /* (省略: 変更なし) */
+  if(!$charList) return; let html="";
+  CHARACTERS.forEach(ch=>{
+    let locked=false, note="";
+    if(ch.unlock.key==="rank" && rankIndex<ch.unlock.value){ locked=true; note=`Rank ${ch.unlock.value} で解放`; }
+    else if(ch.unlock.key==="juso_spawn" && !unlockedChars.juso_spawn){ locked=true; note=`呪詛ブロックの出現で解放`; }
+    const src = IMG["PATH_"+(ch.image||ch.sym)] || "";
+    const tagHtml = `<span class="char-tag ${tagClassByChar(ch)}">${ch.tag}</span>`;
+ if(locked){
+
+  // ★ブラインド：名前/タグ/説明/解放条件を隠す
+  html += `<div class="char-item locked">
+    <div class="title-row">
+      <!-- 画像はCSSで消し、ダミー枠は::beforeで表示 -->
+      <h4>？？？</h4>
+    </div>
+  </div>`;
+}else{
+  html += `<div class="char-item unlocked">
+    <div class="title-row"><img src="${src}" onerror="this.style.display='none';" alt="">
+      <h4>${ch.name} ${tagHtml}</h4>
+    </div>
+    <p>${ch.desc}</p>
+  </div>`;
+}
+  });
+  $charList.innerHTML=html;
+}
+
+/* --- ★ここから修正 --- */
+
+let wasPausedBeforeIndex = false; // インデックスを開く前のポーズ状態を保存
+let wasPausedBeforeChildModal = false; // 子モーダル（図鑑/操作説明）を開く前のポーズ状態を保存
+let isIndexOpen = false;
+
+/* ★インデックスメニュー関連 */
+function openIndexModal(){
+  // ★開く：index だけ（なければ push に1回だけフォールバック）
+  try {
+    if (Sound && Sound.play) {
+      Sound.play('index');           // ← ここだけでOK
+    } else if (typeof onClickSE === 'function') {
+      onClickSE();                   // フォールバック（1回だけ）
+    }
+  } catch(e) {}
+
+  if (!isIndexOpen) { // インデックスが閉じている場合のみ、ポーズ状態を保存
+    wasPausedBeforeIndex = paused;
+    if (!paused) togglePause();
+    isIndexOpen = true;
+  }
+  $indexModal.hidden = false;
+  $indexModal.classList.add('open');
+}
+
+function closeIndexModal(){
+  // ★閉じる：push（onClickSE）だけ
+  try { if (typeof onClickSE === 'function') onClickSE(); } catch(e) {}
+
+  $indexModal.hidden = true;
+  $indexModal.classList.remove('open');
+  isIndexOpen = false;
+
+  // インデックスを開く前の状態に戻す
+  if (paused && !wasPausedBeforeIndex) {
+    togglePause();
+  }
+}
+
+
+/* ★キャラ図鑑を開く・閉じる */
+function openCharModal(){ 
+  // インデックスが開いている前提
+  wasPausedBeforeChildModal = paused; 
+  if (!paused) togglePause();
+  
+  updateCharModalContent(); 
+  $charModal.classList.add("open"); 
+  $charModal.hidden = false;
+  $indexModal.style.filter = "blur(4px)"; // インデックスをぼかして奥にあるように見せる (オプション)
+}
+function closeCharModal(){
+   onClickSE && onClickSE(); try{ window.playSEPush && window.playSEPush(); }catch(e){};
+ 
+  $charModal.classList.remove("open"); 
+  $charModal.hidden = true;
+  $indexModal.style.filter = "none";
+  
+  // インデックスが開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
+  if (isIndexOpen) {
+    // インデックスが開いているため、何もしない（paused = trueのまま）
+    return;
+  }
+
+  // インデックスが閉じていれば、ゲーム開始前の状態に戻す
+  if (paused && !wasPausedBeforeChildModal) { 
+    togglePause(); 
+  }
+}
+
+/* ★操作説明のデータ */
+const HOWTO_IMAGES = [
+  "images/howto1.png",
+  "images/howto2.png",
+  "images/howto3.png"
+];
+const HOWTO_CAPTIONS = [
+  "操作方法1",
+  "操作方法2",
+  "操作方法3"
+];
+let howtoIdx = 0;
+
+function showHowtoPage(i){
+  const len = HOWTO_IMAGES.length;
+  if(len === 0){
+    $howtoImg.src = "";
+    $howtoImg.alt = "操作説明の画像がありません。";
+    $howtoCounter.textContent = "0 / 0";
+    $howtoPrev.style.display = $howtoNext.style.display = 'none';
+    return;
+  }
+
+  howtoIdx = (i + len) % len;
+  $howtoImg.src = HOWTO_IMAGES[howtoIdx];
+  $howtoImg.alt = HOWTO_CAPTIONS[howtoIdx] || "操作説明";
+  $howtoCounter.textContent = `${howtoIdx + 1} / ${len}`;
+  $howtoPrev.style.display = $howtoNext.style.display = '';
+}
+function prevHowtoPage(){ onClickSE(); showHowtoPage(howtoIdx - 1); }
+function nextHowtoPage(){ onClickSE(); showHowtoPage(howtoIdx + 1); }
+
+/* ★操作説明を開く・閉じる (Howtoスクリプト内からも呼び出されるため、グローバルに関数を定義) */
+window.openHowto = function(){ 
+  wasPausedBeforeChildModal = paused; 
+  if (!paused) togglePause();
+
+  const modal = document.getElementById("howtoModal");
+  modal.removeAttribute("hidden");  // ← hidden属性を除去
+  modal.style.display = "flex";     // ← 表示を強制
+  modal.classList.add("open");
+
+  showHowtoPage(0); // ← 最初のページを確実に表示
+
+  // $indexModal.style.filter = "blur(4px)"; // ← ブラーを無効化
+
+  window.addEventListener('keydown', onHowtoKey, {passive:true});
+};
+
+window.closeHowto = function(){ 
+  $howtoModal.hidden = true; 
+  $howtoModal.classList.remove("open");
+  $indexModal.style.filter = "none";
+  
+  // キーボードイベントを削除
+  window.removeEventListener('keydown', onHowtoKey);
+  
+  // インデックスが開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
+  if (isIndexOpen) {
+    // インデックスが開いているため、何もしない（paused = trueのまま）
+    return;
+  }
+
+  // インデックスが閉じていれば、ゲーム開始前の状態に戻す
+  if (paused && !wasPausedBeforeChildModal) { 
+    togglePause(); 
+  }
+}
+
+/* Howtoのキーボード操作 */
+function onHowtoKey(e){
+  if(e.key==='ArrowLeft') prevHowtoPage();
+  else if(e.key==='ArrowRight') nextHowtoPage();
+  else if(e.key==='Escape') window.closeHowto();
+}
+
+
+/* ===== 覚醒リセット関連 (新規) ===== */
+function openResetConfirmModal(){
+  $indexModal.hidden = true; // インデックスを閉じる
+  $resetConfirmModal.hidden = false;
+}
+function closeResetConfirmModal(){
+  $resetConfirmModal.hidden = true;
+  $indexModal.hidden = false; // インデックスに戻る
+}
+function resetRank(){
+  closeResetConfirmModal();
+  // ランク、進捗、スコアをリセット
+  score = 0;
+  rankIndex = 0;
+  rankProgress = 0;
+  store.set("score",score);
+  store.set("rankIndex",rankIndex);
+  store.set("rankProgress",rankProgress);
+
+  // 盤面を初期化（既存描画は消える）
+  initGame(true);
+
+  // ---- 再描画対策：静止状態で一枚だけ描画 ----
+  // アニメ状態をクリアして落下等を抑止
+  if (typeof animState === "undefined" || animState === null) { try{ animState = "idle"; }catch(e){} }
+  animState = "idle";
+
+  if (typeof size === "undefined" || size === null) { try{ size = 7; }catch(e){} } // 念のため
+  if (typeof yAnim === "undefined" || !yAnim) yAnim = [];
+  if (typeof yVel  === "undefined" || !yVel ) yVel  = [];
+
+  for (let r = 0; r < size; r++) {
+    if (!yAnim[r]) yAnim[r] = [];
+    if (!yVel[r])  yVel[r]  = [];
+    for (let c = 0; c < size; c++) {
+      yAnim[r][c] = 0;
+      yVel[r][c]  = 0;
+    }
+  }
+
+  // ポーズ中はループ再開せずに一度だけ描画。ポーズでなければ通常ループ
+  try {
+    if (typeof paused !== "undefined" && paused) {
+      if (typeof drawGame === "function") drawGame();
+    } else {
+      if (typeof gameLoop === "function") gameLoop();
+    }
+  } catch(e){ /* no-op */ }
+
+  // UI更新・ボイス類
+  try { if (typeof updateScoresUI === "function") updateScoresUI(); } catch(e){}
+  try { if (typeof updateStatus === "function") updateStatus("status: 覚醒ランクと暗躍値をリセットしました。"); } catch(e){}
+  try {
+    var v = document.getElementById("vo_reset");
+    if(v){ v.currentTime = 0; v.play && v.play().catch(()=>{}); }
+  } catch(e){}
+}
+
+
+/* ===== ランク・種別 (省略: 変更なし) ===== */
+const RANKS = [ /* (省略: 変更なし) */
+  { key:"S_BIR", name:"ミミック", score: 100 },
+  { key:"S_NE0", name:"ネオレトロ", score: 200 },
+  { key:"S_SHU", name:"シンギュラ", score: 300 },
+  { key:"S_REQ", name:"レクイエム", score: 400 },
+  { key:"S_UNK", name:"アンノウン", score: 500 }
+];
+const MAX_RANK_INDEX = RANKS.length - 1;
+const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
+const SPECIALS=RANKS.map(r=>r.key);
+const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
+const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
+const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
+
+let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
+let slashes=[], particles=[]; // Bのエフェクト要素
+let vanishMask=null, vanishP=0, animState="idle";
+let drag={active:false,start:null,t:null}, swapPair=null;
+let jusoHP=[], currentObstacleCount=0;
+let jusoShake=[]; // 0..1 の減衰パワー
+
+let isBgmReady = false; // BGMの準備完了フラグ
+
+/* ★ランクMAX到達フラグを追加 (永続化) */
+let hasReachedMaxRank = store.get("hasReachedMaxRank", false);
+
+/* === 最終ランク：特殊ブロック選択  === */
+let selectedSpecialOverride = null; // null時は通常のランク依存
+function voiceForSpecial(sym){ /* (省略: 変更なし) */
+  if(sym==="S_BIR") return document.getElementById("vo_rank0");
+  if(sym==="S_NE0") return document.getElementById("vo_rank1");
+  if(sym==="S_SHU") return document.getElementById("vo_rank2");
+  if(sym==="S_REQ") return document.getElementById("vo_rank3");
+  if(sym==="S_UNK") return document.getElementById("vo_rank4");
+  return null;
+}
+function stopAllRankVoices(){ /* (省略: 変更なし) */
+  ["vo_rank1","vo_rank2","vo_rank3","vo_rank4"].forEach(id=>{
+    const a = document.getElementById(id);
+    if(a){ try{ a.pause(); a.currentTime = 0; }catch(_){} }
+  });
+}
+
+function buildRankSelectButtons(){ /* (省略: 変更なし) */
+  const row = document.getElementById('rankSelectRow');
+  if(!row || row.dataset.built==="1") return;
+  const specials = ["S_BIR","S_NE0","S_SHU","S_REQ","S_UNK"];
+  specials.forEach(sym=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn-icon';
+    const img = document.createElement('img');
+    img.src = IMG["PATH_"+sym] || "";
+    img.alt = sym;
+    btn.appendChild(img);
+    btn.addEventListener('click', ()=>{
+      if(!hasReachedMaxRank) return; // ★チェックをhasReachedMaxRankに変更
+      selectedSpecialOverride = sym;
+      [...row.children].forEach(el=>el.classList.remove('active'));
+      btn.classList.add('active');
+
+      stopAllRankVoices();
+      const v = voiceForSpecial(sym);
+      if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
+
+    });
+    row.appendChild(btn);
+  });
+  row.dataset.built="1";
+}
+/* ===== RankMAX (Rank 5) の名称定義 ===== */
+// NORMALSとSPECIALSに続いて、ランクの名称一覧を定義します。
+// rankIndex (1-based) から名称を取得できるように、配列のインデックスを調整する必要があります。
+// rankIndex 0: ミミック
+// rankIndex 1: ネオレトロ
+// rankIndex 2: シンギュラ
+// rankIndex 3: レクイエム
+// rankIndex 4: アンノウン
+// rankIndex 5: 永遠の焦土 (Rank MAX)
+const RANK_TITLES = [
+  "ミミック", // rankIndex = 0 or 1 (初期値/Rank 1として使用する想定)
+  "ネオレトロ", // rankIndex = 1ｓ
+  "シンギュラ", // rankIndex = 2
+  "レクイエム", // rankIndex = 3
+  "アンノウン", // rankIndex = 4 (MAX_RANK_INDEXに相当)
+  "永遠の焦土" // rankIndex = 5 (Rank MAX)
+];
+
+// rankIndexからランク名を取得するためのヘルパー関数
+function getRankName(index) {
+  // rankIndexが配列の範囲外の場合はフォールバック
+  if (index < 0 || index >= RANK_TITLES.length) {
+    return `Rank ${index}`;
+  }
+  return RANK_TITLES[index];
+}
+
+function updateStatus(text){ if($status) $status.textContent=text; }
+function updateScoresUI(){
+  // 暗躍値
+  $score.textContent = `暗躍値: ${score}`;
+  // 右上ランク（A）
+  const label = (rankIndex===MAX_RANK_INDEX && hasReachedMaxRank) ? `修羅王丸: 永遠の焦土 ` : `修羅王丸: ${RANKS[rankIndex].name} `;
+  if ($rank.firstChild) $rank.firstChild.textContent = label; else $rank.textContent = label;
+  $rankProgress = document.getElementById("rankProgress") || (()=>{
+    const sp=document.createElement('span'); sp.className='rank-progress'; sp.id='rankProgress'; $rank.appendChild(sp); return sp;
+  })();
+  if (rankIndex===MAX_RANK_INDEX){
+    $rankProgress.textContent = hasReachedMaxRank ? 'MAX' : `(${unknownStageProgress}/${UNKNOWN_THRESH})`;
+  } else {
+    $rankProgress.textContent = `(${rankProgress}/${RANK_THRESH[rankIndex]})`;
+  }
+  
+  // 最終ランクで選択行を表示 (リセット後も非表示にしない)
+  const selRow = document.getElementById('rankSelectRow');
+  if(selRow){
+    // ★ランクMAXに到達したことがあれば、常にボタンを表示
+    // keep hasReachedMaxRank until闘値達成; do not auto-set here
+    
+    if(hasReachedMaxRank){
+      buildRankSelectButtons();
+      selRow.style.display='';
+      /* ランクMAXでなければ、オーバーライドをクリアし、ボタンの選択を外す */
+      if(rankIndex!==MAX_RANK_INDEX) { 
+        selectedSpecialOverride=null; 
+        [...selRow.children].forEach(el=>el.classList.remove('active'));
+      }
+    }else{
+      selRow.style.display='none';
+    }
+  }
+  // 永続
+  store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
+}
+
+/* ===== 盤面 (省略: 変更なし) ===== */
+function get(r,c){ return (r>=0 && r<size && c>=0 && c<size) ? board[r][c] : null; }
+function set(r,c,v){ if(r>=0 && r<size && c>=0 && c<size) board[r][c]=v; }
+function swap(r1,c1,r2,c2){ [board[r1][c1],board[r2][c2]]=[board[r2][c2],board[r1][c1]]; }
+function getInitialBlock(){ return NORMALS[Math.floor(Math.random()*NORMALS.length)]; }
+
+function initBoard(){ /* (省略: 変更なし) */
+  board = Array.from({length:size},()=>Array(size).fill(0));
+  jusoHP= Array.from({length:size},()=>Array(size).fill(0));
+  yAnim = Array.from({length:size},()=>Array(size).fill(0));
+  yVel  = Array.from({length:size},()=>Array(size).fill(0));
+  jusoShake = Array.from({length:size},()=>Array(size).fill(0));
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      let b;
+      do{ b=getInitialBlock(); }
+      while((c>=2 && get(r,c-1)===b && get(r,c-2)===b) || (r>=2 && get(r-1,c)===b && get(r-2,c)===b));
+      set(r,c,b);
+    }
+  }
+  currentObstacleCount=0;
+  prepareDrop();
+}
+
+/* ===== 入力 (省略: 変更なし) ===== */
+function getGridPos(x,y){ /* (省略: 変更なし) */
+  const rect=canvas.getBoundingClientRect(), nx=x-rect.left, ny=y-rect.top;
+  const scale = logicalSize/rect.width;
+  const gc=Math.floor(nx*scale/tileSize), gr=Math.floor(ny*scale/tileSize);
+  if(gc<0||gc>=size||gr<0||gr>=size) return null;
+  return {r:gr,c:gc};
+}
+function onStart(x,y){ /* (省略: 変更なし) */
+  userGesture();
+  if (paused || animState !== "idle" || swapPair) return;
+  const pos=getGridPos(x,y); if(pos){ drag.active=true; drag.start=pos; drag.t={...pos,px:x,py:y}; }
+}
+function onMove(x,y){ /* (省略: 変更なし) */
+  if(!drag.active || !drag.t) return;
+  const rect=canvas.getBoundingClientRect(), scale=logicalSize/rect.width;
+  const distSq=(x-drag.t.px)**2+(y-drag.t.py)**2;
+  if(distSq<(tileSize*0.35/scale)**2) return;
+  const dx=x-drag.t.px, dy=y-drag.t.py;
+  let dirX=0, dirY=0;
+  if(Math.abs(dx)>Math.abs(dy)) dirX=dx>0?1:-1; else dirY=dy>0?1:-1;
+  const {r,c}=drag.start, nr=r+dirY, nc=c+dirX;
+  if(nr>=0 && nr<size && nc>=0 && nc<size){
+    if (JUSOS.includes(get(r,c)) || JUSOS.includes(get(nr,nc))) {
+      // 触れたJUSO側に小刻みシェイク
+      if (JUSOS.includes(get(r,c)))  triggerJusoShake(r, c, 1.0);
+      if (JUSOS.includes(get(nr,nc))) triggerJusoShake(nr, nc, 1.0);
+      // 拒否SE
+      if (!window.__seNotCooldown) {
+  Sound.play('not', 1.0);
+  window.__seNotCooldown = true;
+  setTimeout(() => window.__seNotCooldown = false, 300); // 0.3秒間クールダウン
+}
+      return;
+    }
+    drag.active=false; swapAndStart(r,c,nr,nc);
+  }
+}
+function onEnd(){ drag.active=false; drag.start=null; drag.t=null; }
+
+/* ===== モード・一時停止(省略: 変更なし) ===== */
+function setMode(mode){ /* (省略: 変更なし) */
+  isKanki=(mode==='kanki');
+  document.getElementById("btnKanki").classList.toggle("active",isKanki);
+  document.getElementById("btnShodo").classList.toggle("active",!isKanki);
+  updateStatus(`status: モードを「${isKanki?'歓喜':'焦土'}」に設定しました。`);
+}
+function togglePause(){ 
+  paused=!paused; 
+  $pauseBtn.textContent=paused?"▶ 再開":"⏸ 一時停止"; 
+  if(!paused) gameLoop(); 
+}
+
+/* ===== マッチ判定～消去 (省略: 変更なし) ===== */
+let lastMatchVH={v:false,h:false};
+function findMatches(checkOnly=true){ /* (省略: 変更なし) */
+  lastMatchVH={v:false,h:false};
+  const matches=new Set(); const isBlocked=(b)=> JUSOS.includes(b) || b===null;
+  // 縦
+  for(let c=0;c<size;c++) for(let r=0;r<=size-3;r++){
+    const b=get(r,c); if(isBlocked(b)) continue;
+    let len=1; for(let i=r+1;i<size;i++){ if(get(i,c)===b) len++; else break; }
+    if(len>=3){ for(let i=0;i<len;i++) matches.add(`${r+i},${c}`); r+=len-1; lastMatchVH.v=true; }
+  }
+  // 横
+  for(let r=0;r<size;r++) for(let c=0;c<=size-3;c++){
+    const b=get(r,c); if(isBlocked(b)) continue;
+    let len=1; for(let i=c+1;i<size;i++){ if(get(r,i)===b) len++; else break; }
+    if(len>=3){ for(let i=0;i<len;i++) matches.add(`${r},${c+i}`); c+=len-1; lastMatchVH.h=true; }
+  }
+
+  if(checkOnly) return matches.size>0;
+  if(matches.size>0){
+    vanishMask = matches; animState="vanish"; vanishP=0;
+    // 消去SE（A）
+    Sound.play('pop',1.0);
+    if(lastMatchVH.v) Sound.play('vertical', .9);
+    if(lastMatchVH.h) Sound.play('horizontal', .9);
+    // エフェクト生成（B風：斬撃＋粒子）
+    createSlashEffects(matches);
+    createParticles(matches);
+    return true;
+  }
+  return false;
+}
+
+/* ランク進捗・ボイス (省略: 変更なし) */
+function updateRank(){ /* (省略: 変更なし) */
+  if(rankIndex<MAX_RANK_INDEX && rankProgress>=RANK_THRESH[rankIndex]){
+    rankProgress=0; rankIndex++;
+    /* ensure Unknown gate resets */
+    try{ 
+      if (typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX){ 
+        if (typeof hasReachedMaxRank!=='undefined'){ hasReachedMaxRank = false; try{ store.set('hasReachedMaxRank', false); }catch(_){} }
+        if (typeof unknownStageProgress==='undefined' || typeof unknownStageProgress!=='number') unknownStageProgress = 0; 
+        else unknownStageProgress = 0;
+        try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', 0); }catch(_){}
+      } 
+    }catch(_){}
+
+    const v = document.getElementById(`vo_rank${Math.min(rankIndex,4)}`);
+    if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
+    Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
+  }
+  if(rankIndex>=1 && !unlockedChars.juso_spawn){ unlockedChars.juso_spawn=true; store.set("unlockedChars", unlockedChars); }
+  updateScoresUI();
+}
+
+/* 消去→落下 (省略: 変更なし) */
+const SEED_BASE_CHANCE = 0.06;
+
+function addCell(set, r, c){ /* (省略: 変更なし) */
+  if(r>=0 && r<size && c>=0 && c<size) set.add(`${r},${c}`);
+}
+function applySpecialGimmicks(baseMatches){ /* (省略: 変更なし) */
+  const extra = new Set();
+  baseMatches.forEach(pos=>{
+    const [r,c]=pos.split(',').map(Number);
+    const b=get(r,c);
+    if(!b || !SPECIALS.includes(b)) return;
+
+    if(b==="S_BIR"){ // 縦列
+      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
+    }
+    else if(b==="S_NE0"){ // 縦列 (+焦土で両隣の列)
+      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
+      if(!isKanki){ for(let rr=0; rr<size; rr++){ addCell(extra, rr, c-1); addCell(extra, rr, c+1); } }
+    }
+    else if(b==="S_SHU"){ // 円形（半径2）
+      for(let rr=r-2; rr<=r+2; rr++) for(let cc=c-2; cc<=c+2; cc++){
+        const dx=cc-c, dy=rr-r;
+        if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
+      }
+    }
+    else if(b==="S_REQ"){ // 横列 (+焦土で上下の行)
+      for(let cc=0; cc<size; cc++) addCell(extra, r, cc);
+      if(!isKanki){ for(let cc=0; cc<size; cc++){ addCell(extra, r-1, cc); addCell(extra, r+1, cc); } }
+    }
+    else if(b==="S_UNK"){ // 斜め×2
+      for(let k=-size; k<=size; k++){
+        addCell(extra, r+k, c+k);
+        addCell(extra, r+k, c-k);
+      }
+    }
+  });
+  return extra;
+}
+
+function resolveVanishAndDrop(){ /* (省略: 変更なし) */
+  if(!vanishMask) return;
+ // ★同一 vanish サイクル中に同じお邪魔へ複数回ダメージを入れないためのメモ
+  const damagedThisVanish = new Set();
+  const specialsHit = new Set();
+  vanishMask.forEach(pos=>{
+    const [r,c] = pos.split(',').map(Number);
+    const b = get(r,c);
+    if (b && SPECIALS.includes(b)) specialsHit.add(b);
+  });
+  specialsHit.forEach(sym=>{
+    if (sym==="S_BIR" || sym==="S_NE0")      Sound.play('vertical', 0.9);
+    else if (sym==="S_REQ")                  Sound.play('horizontal', 0.9);
+    else if (sym==="S_SHU")                  Sound.play('circle', 1.0);
+    else if (sym==="S_UNK")                  Sound.play('cross', 1.0);
+  });
+
+  /* === Unknown 闘値インクリメント（MAX直前のみ） === */
+  try{
+    if (specialsHit && specialsHit.has && specialsHit.has("S_UNK")){
+      if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
+        if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
+        unknownStageProgress += 1;
+        try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
+        try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+        try{ if (typeof maybeReachMax==='function') maybeReachMax(); }catch(_){}
+      }
+    }
+  }catch(_){}
+
+
+  const extra = applySpecialGimmicks(vanishMask);
+  extra.forEach(p=> vanishMask.add(p));
+  if (extra.size) { createSlashEffects(extra); createParticles(extra); }
+
+  vanishMask.forEach(pos=>{
+    const [r,c]=pos.split(',').map(Number);
+    const b=get(r,c);
+    if(b){
+      score += 10;
+      if(SPECIALS.includes(b)){
+        score += SPECIAL_POINTS[b];
+      }
+    }
+    for(let dr=-1; dr<=1; dr++){
+      for(let dc=-1; dc<=1; dc++){
+        if(!dr && !dc) continue;
+        const tr=r+dr, tc=c+dc;
+        if(JUSOS.includes(get(tr,tc)) && jusoHP[tr][tc]>0){
+        // ★同じ座標にこのサイクルで既に当てていないかチェック
+        const key = tr + ',' + tc;
+        if (!damagedThisVanish.has(key)) {
+        jusoHP[tr][tc]--;
+        damagedThisVanish.add(key);
+        triggerJusoShake(tr, tc, 1.0);
+        }
+          if (jusoHP[tr][tc]===0){
+            // ★このセルは「消去によるnull化」だとマークする
+            (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
+            set(tr,tc,null);
+            jusoHP[tr][tc] = 0;
+            score += 100;
+            Sound.play('vertical');
+          } else {
+            Sound.play('rumble');
+          }
+        }
+      }
+    }
+    if (JUSOS.includes(b)) { jusoHP[r][c] = 0; }
+    set(r,c,null);
+  });
+
+  if (specialsHit.size > 0) {
+    rankProgress++;
+  }
+
+  const prevRank = rankIndex;
+  updateRank();
+
+  if(rankIndex > prevRank){
+    const all = new Set();
+    for(let r=0;r<size;r++){
+      for(let c=0;c<size;c++){
+        if(get(r,c)!==null) all.add(`${r},${c}`);
+      }
+    }
+    if(all.size>0){
+      vanishMask = all;
+      animState = "vanish";
+      vanishP = 0;
+      lastMatchVH.v = true;
+      lastMatchVH.h = false;
+      createSlashEffects(all);
+      return;
+    }
+  }
+
+  vanishMask = null;
+  prepareDrop();
+  animState = "drop";
+  maybeSpawnObstacles();
+}
+
+/* ★クッション落下用の速度配列と定数 (省略: 変更なし) */
+let yVel = [];
+const GRAVITY = 0.045;
+const BOUNCE  = 0.25;
+const VEL_EPS = 0.6;
+
+function prepareDrop(){ /* (省略: 変更なし) */
+  for(let c=0;c<size;c++){
+    let empty=size-1;
+    for(let r=size-1;r>=0;r--){
+      const b=get(r,c);
+      if(b!==null){
+        if(r!==empty){
+          set(empty,c,b); set(r,c,null);
+          if (!jusoHP[empty]) jusoHP[empty] = [];
+          if (!jusoHP[r])     jusoHP[r]     = [];
+          jusoHP[empty][c] = jusoHP[r][c] || 0;
+          jusoHP[r][c] = 0;
+          if(!yAnim[empty]) yAnim[empty]=[];
+          if(!yVel[empty])  yVel[empty] =[];
+          yAnim[empty][c] = -(empty-r)*tileSize;
+          yVel[empty][c]  = 0;
+          if(!yVel[r]) yVel[r]=[];
+          yVel[r][c]=0;
+        }
+        empty--;
+      }
+    }
+  }
+  for(let c=0;c<size;c++){
+    let emptyCount=0;
+    for(let r=0;r<size;r++) if(get(r,c)===null) emptyCount++;
+    for(let r=0;r<emptyCount;r++){
+      let nb=getInitialBlock();
+      if(Math.random()<SEED_BASE_CHANCE){
+        nb = (rankIndex===MAX_RANK_INDEX && selectedSpecialOverride)
+             ? selectedSpecialOverride
+             : SPECIALS[Math.min(rankIndex, SPECIALS.length-1)];
+        Sound.play('shine', 0.7);
+      }
+      set(r,c,nb);
+      if (!jusoHP[r]) jusoHP[r] = [];
+      jusoHP[r][c] = 0;
+      if(!yAnim[r]) yAnim[r]=[];
+      if(!yVel[r])  yVel[r] =[];
+      yAnim[r][c] = -(emptyCount-r)*tileSize;
+      yVel[r][c]  = 0;
+    }
+    for(let r=emptyCount;r<size;r++){
+      if(!yAnim[r]) yAnim[r]=[];
+      if(!yVel[r])  yVel[r] =[];
+      yAnim[r][c] = yAnim[r][c] || 0;
+      yVel[r][c]  = yVel[r][c]  || 0;
+    }
+  }
+  Sound.play('whoosh',0.6);
+}
+
+/* お邪魔生成 (省略: 変更なし) */
+function maybeSpawnObstacles(){ /* (省略: 変更なし) */
+  if(rankIndex<1) return;
+  if(Math.random()>0.16) return;
+  const n = 1 + (Math.random()<0.35?1:0);
+  let k=0, guard=100;
+  while(k<n && guard--){
+    const r=Math.floor(Math.random()*size), c=Math.floor(Math.random()*size);
+    const cur=get(r,c); if(!cur || JUSOS.includes(cur)) continue;
+    const pool = ["J_NEM", "J_SHI", "J_PRO"];
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    set(r,c,pick); if(!jusoHP[r]) jusoHP[r]=[]; jusoHP[r][c]=(pick==="J_NEM"?1:(pick==="J_SHI"?3:5)); k++;
+  }
+}
+
+/* 斬撃＆粒子エフェクト (省略: 変更なし) */
+function createSlashEffects(matches){ /* (省略: 変更なし) */
+  slashes=[];
+  matches.forEach(p=>{
+    const [r,c]=p.split(',').map(Number);
+    const cx=c*tileSize+tileSize/2, cy=r*tileSize+tileSize/2;
+    slashes.push({x:cx,y:cy,dir:'h',t:0});
+    slashes.push({x:cx,y:cy,dir:'v',t:0});
+  });
+}
+function createParticles(matches){ /* (省略: 変更なし) */
+  particles=[];
+  matches.forEach(p=>{
+    const [r,c]=p.split(',').map(Number);
+    const cx=c*tileSize+tileSize/2, cy=r*tileSize+tileSize/2;
+    for(let i=0;i<8;i++){
+      particles.push({
+        x:cx, y:cy,
+        vx:(Math.random()-0.5)*tileSize*0.18,
+        vy:(Math.random()-0.5)*tileSize*0.18,
+        life:0, maxLife:18
+      });
+    }
+  });
+}
+
+/* 描画 (省略: 変更なし) */
+const SWAP_ANIM_TIME=0.15*60, VANISH_ANIM_TIME=0.25*60;
+function drawSlashes(){ /* (省略: 変更なし) */
+  if(!slashes.length) return;
+  ctx.save();
+  ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
+  ctx.globalCompositeOperation='lighter';
+  for(const s of slashes){
+    const t=Math.min(1,s.t); const len=tileSize*(1+t*1.2); const w=Math.max(2,6-t*5);
+    ctx.lineWidth=w; ctx.beginPath();
+    if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+    else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+    ctx.stroke(); s.t+=0.12;
+  }
+  slashes=slashes.filter(s=>s.t<1.0); ctx.restore();
+}
+function drawParticles(){ /* (省略: 変更なし) */
+  if(!particles.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(const p of particles){
+    const t=p.life/p.maxLife;
+    const alpha = isKanki ? (0.8*(1-t)) : (0.9*(1-t));
+    ctx.fillStyle = isKanki ? `rgba(180,220,255,${alpha})` : `rgba(220,40,40,${alpha})`;
+    const rad = Math.max(1, 3 - 2*t);
+    ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI*2); ctx.fill();
+    p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life++;
+  }
+  particles=particles.filter(p=>p.life<p.maxLife);
+  ctx.restore();
+}
+
+function drawBlock(r,c,x,y,a=1){ /* (省略: 変更なし) */
+  const b=get(r,c); if(b===null) return;
+  // --- JUSO 震えオフセット ---
+  if (Array.isArray(JUSOS) && JUSOS.includes(b)) {
+    const pow = (jusoShake && jusoShake[r] ? jusoShake[r][c] : 0) || 0;
+    if (pow > 0){
+      const t = performance.now()/1000;
+      const amp = 3 * pow; // 最大3px相当揺れ強度
+      x += Math.sin(t*36 + (r*7+c)) * amp;
+      y += Math.cos(t*36 + (r*11+c)) * amp * 0.6;
+    }
+  }
+  ctx.save(); ctx.globalAlpha=a;
+  const img=IMG[b]; const s=tileSize*0.9, off=tileSize*0.05;
+  if(img&&img.complete) ctx.drawImage(img,x+off,y+off,s,s);
+  else{ ctx.fillStyle='#444'; ctx.fillRect(x,y,tileSize,tileSize); }
+  if (JUSOS.includes(b) && jusoHP[r][c] > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `bold ${tileSize * 0.3}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    const pad = tileSize * 0.08;
+    ctx.fillText(jusoHP[r][c], x + tileSize - pad, y + tileSize - pad);
+  }
+  ctx.restore();
+}
+
+function drawGame(){ /* (省略: 変更なし) */
+  decayJusoShake();
+  ctx.clearRect(0,0,logicalSize,logicalSize);
+  const bg=IMG.BG; if(bg&&bg.complete&&bg.naturalWidth>0){
+    for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+      ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,c*tileSize,r*tileSize,tileSize,tileSize);
+    }
+  }
+  if(!isKanki){ ctx.save(); ctx.fillStyle='rgba(60,0,0,0.22)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
+
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+    if(get(r,c)===null) continue;
+    let x=c*tileSize, y=r*tileSize, a=1, ty=0;
+    if(animState==="vanish" && vanishMask && vanishMask.has(`${r},${c}`)) a = 1-vanishP;
+    if(animState==="drop" && yAnim[r][c]!==0) ty = yAnim[r][c];
+    if(animState==="swap" && swapPair){
+      const {p1,p2,p,back}=swapPair; const prog=Math.min(1,p/(SWAP_ANIM_TIME)), e=Math.sin(prog*Math.PI/2);
+      if(r===p1.r&&c===p1.c){ x+=(back?(p2.c-p1.c)*tileSize*(1-e):(p2.c-p1.c)*tileSize*e);
+                               y+=(back?(p2.r-p1.r)*tileSize*(1-e):(p2.r-p1.r)*tileSize*e); }
+      if(r===p2.r&&c===p2.c){ x+=(back?(p1.c-p2.c)*tileSize*(1-e):(p1.c-p2.c)*tileSize*e);
+                               y+=(back?(p1.r-p2.r)*tileSize*(1-e):(p1.r-p2.r)*tileSize*e); }
+    }
+    drawBlock(r,c,x,y+ty,a);
+  }
+  drawSlashes();
+  drawParticles();
+
+  if(animState==="swap" && swapPair){
+    const {p1,p2,p,back}=swapPair; const prog=Math.min(1,p/(SWAP_ANIM_TIME)), e=Math.sin(prog*Math.PI/2);
+    let x1=p1.c*tileSize+(back?(p2.c-p1.c)*tileSize*(1-e):(p2.c-p1.c)*tileSize*e);
+    let y1=p1.r*tileSize+(back?(p2.r-p1.r)*tileSize*(1-e):(p2.r-p1.r)*tileSize*e);
+    drawBlock(p1.r,p1.c,x1,y1,1);
+    let x2=p2.c*tileSize+(back?(p1.c-p2.c)*tileSize*(1-e):(p1.c-p2.c)*tileSize*e);
+    let y2=p2.r*tileSize+(back?(p1.r-p2.r)*tileSize*(1-e):(p1.r-p2.r)*tileSize*e);
+    drawBlock(p2.r,p2.c,x2,y2,1);
+  }
+}
+
+/* スワップ～ループ (省略: 変更なし) */
+function canSwapAndMatch(r1,c1,r2,c2){ /* (省略: 変更なし) */
+  if(JUSOS.includes(get(r1,c1))||JUSOS.includes(get(r2,c2))){
+    if (JUSOS.includes(get(r1,c1))) triggerJusoShake(r1,c1, 1.0);
+    if (JUSOS.includes(get(r2,c2))) triggerJusoShake(r2,c2, 1.0);
+    Sound.play('not', 1.0);
+    return false;
+  }
+  swap(r1,c1,r2,c2);
+  const has = !!findMatches(true);
+  swap(r1,c1,r2,c2);
+  return has;
+}
+function swapAndStart(r1,c1,r2,c2){ /* (省略: 変更なし) */
+  swapPair={p1:{r:r1,c:c1},p2:{r:r2,c:c2},p:0,back:false};
+  animState="swap";
+  userGesture();
+}
+function gameLoop(){ /* (省略: 変更なし) */
+  if(paused) return;
+  drawGame();
+  switch(animState){
+    case "swap":
+      if(swapPair){
+        swapPair.p++;
+        if(swapPair.p>=SWAP_ANIM_TIME){
+          const {p1,p2,back}=swapPair;
+          if(!back){
+            swap(p1.r,p1.c,p2.r,p2.c);
+            if(findMatches(true)){ findMatches(false); swapPair=null; animState="vanish"; }
+            else{ swap(p1.r,p1.c,p2.r,p2.c); swapPair.p=0; swapPair.back=true; }
+          }else{ swapPair=null; animState="idle"; }
+        }
+      }
+      break;
+    case "vanish":
+      vanishP += (1/VANISH_ANIM_TIME); if(vanishP>=1){ resolveVanishAndDrop(); }
+      break;
+    case "drop":
+      let done=true;
+      for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+        if(yAnim[r][c]!==0 || yVel[r][c]!==0){
+          const g = GRAVITY*tileSize;
+      yVel[r][c] += g;
+      yVel[r][c] *= 0.88;
+      if (yAnim[r][c] + yVel[r][c] >= 0){
+        yAnim[r][c] = 0;
+        yVel[r][c]  = 0;
+      } else {
+        yAnim[r][c] += yVel[r][c];
+      }
+          if(yAnim[r][c]!==0 || yVel[r][c]!==0) done=false;
+        }
+      }
+      if(done){
+        if(findMatches(true)){ findMatches(false); animState="vanish"; }
+        else { animState="idle"; }
+      }
+      break;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+/* シャッフル (省略: 変更なし) */
+function hasPossibleMoves(){ /* (省略: 変更なし) */
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+    if(c+1<size && canSwapAndMatch(r,c,r,c+1)) return true;
+    if(r+1<size && canSwapAndMatch(r,c,r+1,c)) return true;
+  }
+  return false;
+}
+function shuffleBoard(){ /* (省略: 変更なし) */
+  const maxTries=300; let tries=0;
+  do{
+    const flat=board.flat(); for(let i=flat.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [flat[i],flat[j]]=[flat[j],flat[i]]; }
+    for(let r=0,k=0;r<size;r++) for(let c=0;c<size;c++,k++) board[r][c]=flat[k];
+    tries++;
+  }while((findMatches(true)||!hasPossibleMoves()) && tries<maxTries);
+  updateStatus("status: 盤面をシャッフルしました。");
+  animState="drop"; prepareDrop();
+}
+
+/* 起動 (省略: 変更なし) */
+function initGame(reset=false){ /* (省略: 変更なし) */
+const parentW = 480;
+  logicalSize = Math.floor(480/size)*size;
+  tileSize = logicalSize/size;
+  DPR=Math.max(1,Math.min(3,Math.floor(window.devicePixelRatio||1)));
+  canvas.width=logicalSize*DPR; canvas.height=logicalSize*DPR; ctx.setTransform(1,0,0,1,0,0); ctx.scale(DPR,DPR);
+  canvas.style.width = logicalSize + 'px'; canvas.style.height = 'auto';
+  if(reset) initBoard();
+  updateScoresUI(); setMode('kanki');
+  if(!reset) gameLoop();
+}
+function startUp(){ loadImages(()=>{ initGame(true); updateStatus("status: game loaded. ready to play."); gameLoop(); }); }
+
+/* イベント (調整) */
+canvas.addEventListener('mousedown',e=>onStart(e.clientX,e.clientY));
+canvas.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+canvas.addEventListener('mouseup',onEnd);
+canvas.addEventListener('mouseleave',onEnd);
+canvas.addEventListener('touchstart',e=>{ e.preventDefault(); onStart(e.touches[0].clientX,e.touches[0].clientY); });
+canvas.addEventListener('touchmove',e=>{ e.preventDefault(); onMove(e.touches[0].clientX,e.touches[0].clientY); });
+canvas.addEventListener('touchend',onEnd);
+
+/* ★イベントリスナーをインデックス内のボタンに設定 */
+$indexBtn.addEventListener('click', openIndexModal);
+
+/* 背景クリックで閉じる処理 */
+$howtoModal?.addEventListener('click', (event) => {
+  if (event.target === $howtoModal) {
+    window.closeHowto();
+  }
+});
+$charModal?.addEventListener('click', (event) => {
+  if (event.target === $charModal) {
+    closeCharModal();
+  }
+});
+$indexModal?.addEventListener('click', (event) => {
+  if (event.target === $indexModal) {
+    closeIndexModal();
+  }
+});
+
+
+window.addEventListener('beforeunload', ()=>{ /* (省略: 変更なし) */
+  store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
+  // ★ランクMAX到達フラグを保存
+  store.set("hasReachedMaxRank", hasReachedMaxRank);
+});
+
+startUp();
+</script>
+<!-- >>> CHAR MODAL Z-INDEX & DOM FIX PATCH (added by ChatGPT) >>> -->
+<style>
+/* Ensure modal overlays are fixed to viewport and stack correctly */
+.modal-overlay { position: fixed; inset: 0; display: none; justify-content: center; align-items: center; z-index: 10000; }
+#indexModal { z-index: 10010; }
+#charModal, #howtoModal { z-index: 10012; } /* character/howto always above index */
+
+/* hide debug status */
+#status{ display:none !important; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  try {
+    var cm = document.getElementById('charModal');
+    if (cm && cm.parentElement !== document.body) {
+      document.body.appendChild(cm);
+    }
+    var hm = document.getElementById('howtoModal');
+    if (hm && hm.parentElement !== document.body) {
+      document.body.appendChild(hm);
+    }
+  } catch (e) { console && console.warn('Modal relocation patch error:', e); }
+});
+</script>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const howtoBtn = document.getElementById("openHowtoBtn");
+  if (howtoBtn) {
+    howtoBtn.addEventListener("click", () => {
+      openHowto();
+    });
+  }
+});
+
+</script>
+<script>
+/* ============================================================
+   操作説明モーダル（Howto）— 安全・包括版
+   - openHowto()/closeHowto() を提供（未定義でも動く）
+   - インデックスとの連携（ポーズ状態の保存/復帰）を考慮
+   - 外側クリック/Escでクローズ
+   - 画像配列が空でも落ちないフェイルセーフ
+   ============================================================ */
+(function(){
+  // 既に定義済みなら上書きしない（不要ならこの if を消してもOK）
+  if (typeof window.openHowto === 'function' && typeof window.closeHowto === 'function') return;
+
+  // 既存のグローバル想定（ファイル内に定義済み）
+  // paused, togglePause, isIndexOpen, wasPausedBeforeChildModal
+  // HOWTO_IMAGES, HOWTO_CAPTIONS, showHowtoPage, howtoIdx
+  // DOM
+  const $indexModal = document.getElementById('indexModal');
+  const $howtoModal = document.getElementById('howtoModal');
+  const $howtoImg = document.getElementById('howtoImg');
+  const $howtoCounter = document.getElementById('howtoCounter');
+  const $howtoPrev = document.getElementById('howtoPrev');
+  const $howtoNext = document.getElementById('howtoNext');
+  const $openHowtoBtn = document.getElementById('openHowtoBtn');
+
+  // 存在しない場合でも落ちないように
+  window.HOWTO_IMAGES = Array.isArray(window.HOWTO_IMAGES) ? window.HOWTO_IMAGES : [];
+  window.HOWTO_CAPTIONS = Array.isArray(window.HOWTO_CAPTIONS) ? window.HOWTO_CAPTIONS : [];
+  window.howtoIdx = typeof window.howtoIdx === 'number' ? window.howtoIdx : 0;
+
+  // 画像レンダリング（既存の showHowtoPage があればそれを使う）
+  function render(i){
+    if (typeof window.showHowtoPage === 'function') {
+      window.showHowtoPage(i);
+      return;
+    }
+    // 最低限レンダリング（showHowtoPage が無い場合用）
+    const imgs = window.HOWTO_IMAGES, caps = window.HOWTO_CAPTIONS;
+    const len = imgs.length;
+    if (!$howtoImg || !$howtoCounter || !len) {
+      if ($howtoImg) { $howtoImg.removeAttribute('src'); $howtoImg.alt = '操作説明の画像がありません。'; }
+      if ($howtoCounter) $howtoCounter.textContent = '0 / 0';
+      if ($howtoPrev) $howtoPrev.style.display = 'none';
+      if ($howtoNext) $howtoNext.style.display = 'none';
+      return;
+    }
+    window.howtoIdx = (i + len) % len;
+    if ($howtoImg) {
+      $howtoImg.src = imgs[window.howtoIdx];
+      $howtoImg.alt = (caps[window.howtoIdx] || '操作説明');
+    }
+    if ($howtoCounter) $howtoCounter.textContent = (window.howtoIdx + 1) + ' / ' + len;
+    if ($howtoPrev) $howtoPrev.style.display = '';
+    if ($howtoNext) $howtoNext.style.display = '';
+  }
+
+  // 開く
+  window.openHowto = function openHowto(){
+    try {
+      // 子モーダルを開く前のポーズ状態を保存し、必ずポーズへ
+      window.wasPausedBeforeChildModal = typeof window.wasPausedBeforeChildModal === 'boolean'
+        ? window.wasPausedBeforeChildModal
+        : false;
+      window.wasPausedBeforeChildModal = !!window.paused;
+      if (!window.paused && typeof window.togglePause === 'function') window.togglePause();
+
+      // 初期ページにして表示
+      window.howtoIdx = 0;
+      render(window.howtoIdx);
+
+      if ($howtoModal) {
+        $howtoModal.hidden = false;
+        $howtoModal.classList.add('open');
+      }
+      if ($indexModal) $indexModal.style.filter = 'blur(4px)';
+    } catch(e){ console.error('[openHowto] ', e); }
+  };
+
+  // 閉じる
+  window.closeHowto = function closeHowto(){
+    // ★SE: push（Howto閉じる）
+  try{ onClickSE && onClickSE(); }catch(e){};
+  try{ onClickSE && onClickSE(); }catch(e){}; try {
+      if ($howtoModal) {
+        $howtoModal.classList.remove('open');
+        $howtoModal.hidden = true;
+      }
+      if ($indexModal) $indexModal.style.filter = 'none';
+
+      // インデックスが閉じているなら、元のポーズ状態に復帰
+      if (!window.isIndexOpen && typeof window.togglePause === 'function') {
+        if (window.paused && !window.wasPausedBeforeChildModal) {
+          window.togglePause(); // 再開
+        }
+      }
+    } catch(e){ console.error('[closeHowto] ', e); }
+  };
+
+  // 前/次（既に定義済みなら上書きしない）
+  if (typeof window.prevHowtoPage !== 'function') {
+    window.prevHowtoPage = function prevHowtoPage(){
+      if (!Array.isArray(window.HOWTO_IMAGES) || window.HOWTO_IMAGES.length === 0) return;
+      window.howtoIdx = (window.howtoIdx - 1 + window.HOWTO_IMAGES.length) % window.HOWTO_IMAGES.length;
+      render(window.howtoIdx);
+    };
+  }
+  if (typeof window.nextHowtoPage !== 'function') {
+    window.nextHowtoPage = function nextHowtoPage(){
+      if (!Array.isArray(window.HOWTO_IMAGES) || window.HOWTO_IMAGES.length === 0) return;
+      window.howtoIdx = (window.howtoIdx + 1) % window.HOWTO_IMAGES.length;
+      render(window.howtoIdx);
+    };
+  }
+
+  // クリック・キーハンドラ（冪等）
+  if ($howtoModal) {
+    $howtoModal.addEventListener('click', function(e){
+      // オーバーレイ領域クリックで閉じる
+      if (e.target === $howtoModal) window.closeHowto();
+    });
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && $howtoModal && !$howtoModal.hidden) {
+      window.closeHowto();
+    }
+  });
+
+  // 念のためボタンにもバインド（HTML側に onclick があっても重複実行しない）
+  if ($openHowtoBtn) {
+    $openHowtoBtn.addEventListener('click', function(ev){
+      // HTMLの onclick="openHowto()" と二重呼び出しになっても問題ないように
+      // 同一フレーム内で二度目以降は無視（既に開いていれば return）
+      if ($howtoModal && !$howtoModal.hidden) return;
+      window.openHowto();
+    });
+  }
+})();
+</script>
+
+</script>
+<script>
+// === SE push sound helper ===
+(function(){
+  if (!window.playPushSE) {
+    window.playPushSE = function(){
+      try{
+        // Respect existing global SE toggles if present
+        if (typeof window.isSEEnabled === 'boolean' && !window.isSEEnabled) return;
+        if (typeof window.seEnabled === 'boolean' && !window.seEnabled) return;
+        // Prefer existing unified click SE if available
+        if (typeof window.onClickSE === 'function') { window.onClickSE(); return; }
+        // Fallback: play se_push.mp3 directly
+        var el = document.getElementById('sePush');
+        if (!el) {
+          el = document.createElement('audio');
+          el.id = 'sePush';
+          el.src = 'audio/se_push.mp3';
+          el.preload = 'auto';
+          el.style.display = 'none';
+          document.body.appendChild(el);
+        }
+        el.currentTime = 0;
+        el.play().catch(function(){ /* ignore autoplay restrictions */ });
+      }catch(e){ /* no-op */ }
+    };
+  }
+  // Bind to Howto modal close buttons
+  document.addEventListener('DOMContentLoaded', function(){
+    var howto = document.getElementById('howtoModal');
+    if (!howto) return;
+    var targets = howto.querySelectorAll('.close-btn, [data-close], #howtoClose, button[aria-label="Close"], .modal-close');
+    targets.forEach(function(btn){
+      // avoid double-binding
+      btn.addEventListener('click', function(){ window.playPushSE && window.playPushSE(); }, { once:false });
+    });
+  });
+})();
+</script>
+<script>
+(function(){
+  function ensureAudio(id, src){
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('audio');
+      el.id = id;
+      el.src = src;
+      el.preload = 'auto';
+      el.style.display = 'none';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function seAllowed(){
+    if (typeof window.isSEEnabled === 'boolean' && !window.isSEEnabled) return false;
+    if (typeof window.seEnabled === 'boolean' && !window.seEnabled) return false;
+    if (typeof window.SE_ENABLED === 'boolean' && !window.SE_ENABLED) return false;
+    return true;
+  }
+  window.playSEPush = function(){
+    try {
+      if (!seAllowed()) return;
+      var el = ensureAudio('sePush','audio/se_push.mp3');
+      el.currentTime = 0;
+      el.play().catch(function(){});
+    } catch(e){}
+  };
+  window.playSEIndex = function(){
+    try {
+      if (!seAllowed()) return;
+      var el = ensureAudio('seIndex','audio/se_index.mp3');
+      el.currentTime = 0;
+      el.play().catch(function(){});
+    } catch(e){}
+  };
+
+  function bind(){
+    try {
+      // Howto close buttons -> se_push.mp3
+      var howto = document.getElementById('howtoModal');
+      if (howto) {
+        var closeTargets = howto.querySelectorAll('.close-btn, [data-close], #howtoClose, button[aria-label="Close"], .modal-close');
+        closeTargets.forEach(function(btn){
+          if (btn && btn.dataset && btn.dataset.seBoundClose !== '1') {
+            btn.addEventListener('click', function(){ window.playSEPush && window.playSEPush(); });
+            btn.dataset.seBoundClose = '1';
+          }
+        });
+      }
+
+      // Index open button -> se_index.mp3
+      var indexBtn = document.getElementById('indexBtn');
+      if (indexBtn && indexBtn.dataset.seBoundOpen !== '1') {
+        indexBtn.addEventListener('click', function(){ window.playSEIndex && window.playSEIndex(); });
+        indexBtn.dataset.seBoundOpen = '1';
+      }
+
+      // Index modal close buttons & overlay close -> se_index.mp3
+      var indexModal = document.getElementById('indexModal');
+      if (indexModal) {
+        var idxCloseTargets = indexModal.querySelectorAll('.close-btn, [data-close], #indexClose, button[aria-label="Close"], .modal-close');
+        idxCloseTargets.forEach(function(btn){
+          if (btn && btn.dataset && btn.dataset.seBoundIdxClose !== '1') {
+            btn.addEventListener('click', function(){ window.playSEIndex && window.playSEIndex(); });
+            btn.dataset.seBoundIdxClose = '1';
+          }
+        });
+        // Overlay click to close (if implemented) also plays
+        if (indexModal.dataset.seBoundOverlay !== '1') {
+          indexModal.addEventListener('click', function(e){
+            try {
+              var panel = indexModal.querySelector('.index-panel');
+              if (!panel || !panel.contains(e.target)) {
+                window.playSEIndex && window.playSEIndex();
+              }
+            } catch(_){}
+          });
+          indexModal.dataset.seBoundOverlay = '1';
+        }
+      }
+    } catch(e){}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
+})();
+</script>
+<script>
+(function(){
+  function bindCapture(){
+    try{
+      var btn = document.getElementById('howtoCloseBtn');
+      if (btn && btn.dataset.seCap !== '1') {
+        btn.addEventListener('click', function(){ window.playSEPush && window.playSEPush(); }, true); // capture
+        btn.dataset.seCap = '1';
+      }
+      var cmBtn = document.querySelector('#charModal .close-btn');
+      if (cmBtn && cmBtn.dataset.seCap !== '1') {
+        cmBtn.addEventListener('click', function(){ window.playSEPush && window.playSEPush(); }, true);
+        cmBtn.dataset.seCap = '1';
+      }
+    }catch(e){}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindCapture);
+  else bindCapture();
+})();
+</script>
+<script>
+/* === JUSO シェイク制御 === */
+function triggerJusoShake(r,c, power=1){
+  if(r<0||c<0||r>=size||c>=size) return;
+  if(!jusoShake || !jusoShake[r]) return;
+  // 既存より強いシェイクが来たら上書き（最大1.2まで）
+  jusoShake[r][c] = Math.min(Math.max(jusoShake[r][c], power), 1.2);
+}
+function decayJusoShake(){
+  if(!jusoShake || !jusoShake.length) return;
+  // 毎フレームゆっくり減衰
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      const v = jusoShake[r][c];
+      if(v>0.001){ jusoShake[r][c] = v * 0.88; if(jusoShake[r][c]<0.001) jusoShake[r][c]=0; }
+    }
+  }
+}
+</script>
+
+<script>
+/* ===== Enhancements bundle ===== */
+(function(){
+  'use strict';
+
+  // ---------- ParticleFX (single canvas, pooled) ----------
+  if(!window.ParticleFX){
+    var DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
+    var cvs=document.createElement('canvas');
+    cvs.id = 'infernoCanvas'; Object.assign(cvs.style,{position:'fixed',inset:'0',pointerEvents:'none',zIndex:1,background:'transparent',display:'none'});
+    document.body.appendChild(cvs);
+    var ctx=cvs.getContext('2d',{alpha:true});
+    function resize(){ var w=Math.floor(innerWidth*DPR), h=Math.floor(innerHeight*DPR);
+      if(cvs.width!==w||cvs.height!==h){ cvs.width=w; cvs.height=h; cvs.style.width=innerWidth+'px'; cvs.style.height=innerHeight+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); } }
+    resize(); addEventListener('resize', resize);
+    var MAX=120, POOL=new Array(MAX), ACTIVE=[]; for(var i=0;i<MAX;i++) POOL[i]={alive:false};
+    function take(){ for(var i=0;i<MAX;i++){ if(!POOL[i].alive) return POOL[i]; } return null; }
+    var raf=0, prev=0;
+    function loop(ts){ var dt=ts-prev; if(dt>48) dt=48; prev=ts;
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+      for(var i=ACTIVE.length-1;i>=0;i--){ var p=ACTIVE[i], t=(ts-p.t0)/p.life;
+        if(t>=1){ p.alive=false; ACTIVE.splice(i,1); continue; }
+        p.vx*=p.drag; p.vy=p.vy*p.drag+p.g; p.x+=p.vx*(dt/16.67); p.y+=p.vy*(dt/16.67);
+        ctx.globalCompositeOperation=p.blend; ctx.globalAlpha=(1-t)*p.alpha;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=p.color; ctx.fill(); }
+      ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+      if(!ACTIVE.length){ cancelAnimationFrame(raf); raf=0; cvs.style.display='none'; return; }
+      raf=requestAnimationFrame(loop); }
+    function burst(mode,x,y){ try{
+      var base=REDUCED?8:16, N0= (mode === 'scorched') ? base + 6 : base,
+    N= Math.max(1, Math.round(N0 * 1.5));
+      for(var i=0;i<N;i++){ var p=take(); if(!p) break;
+        var ang=(Math.random()*Math.PI*2);
+        var __bias=Math.random();
+        var spdBase=(mode==='scorched'?2.4:1.6);
+        var spd = (__bias<0.7 ? spdBase*(0.6+Math.random()*0.8) : spdBase*(1.3+Math.random()*1.1));
+        var rBase=(mode==='scorched'?2.6:1.4), r=rBase+Math.random()*(mode==='scorched'?1.4:0.8);
+        var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
+        else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
+        var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
+        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
+        ACTIVE.push(p); }
+      if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
+    window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
+  }
+
+  
+    
+// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+(function(){
+  var unlocked = false;
+  var ctx = null;
+  var isIOS = /iP(hone|od|ad)/.test(navigator.platform) ||
+              (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
+
+  function resumeCtx(){
+    try{
+      if (!ctx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC){
+          ctx = window.__sharedAudioCtx || new AC();
+          window.__sharedAudioCtx = ctx;
+        }
+      }
+      if (ctx && ctx.state === 'suspended'){ ctx.resume(); }
+      if (ctx){
+        var b = ctx.createBuffer(1, 1, 22050);
+        var src = ctx.createBufferSource();
+        src.buffer = b; src.connect(ctx.destination); src.start(0);
+      }
+    }catch(e){}
+  }
+
+  function primeBGM(){
+    ['bgm1','bgm2'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      try{
+        el.muted = true;
+        el.currentTime = 0;
+        var p = el.play();
+        if (p && p.then){
+          p.then(function(){
+            try{ el.pause(); el.currentTime = 0; }catch(_){}
+            el.muted = false;
+          }).catch(function(){ el.muted = false; });
+        }else{
+          try{ el.pause(); el.currentTime = 0; }catch(_){}
+          el.muted = false;
+        }
+      }catch(_){}
+    });
+  }
+
+  function unlock(){
+    if (unlocked) return;
+    unlocked = true;
+    resumeCtx();
+    try{ if (typeof unlockAllSE === 'function') unlockAllSE(); }catch(_){}
+    primeBGM();
+    detach();
+  }
+
+  function detach(){
+    window.removeEventListener('pointerdown', unlock, true);
+    window.removeEventListener('touchend', unlock, true);
+    window.removeEventListener('keydown', unlock, true);
+  }
+
+  window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('touchend', unlock, true);
+  window.addEventListener('keydown', unlock, true);
+
+  window.addEventListener('pageshow', function(){
+    resumeCtx();
+    if (typeof ensureBGMAlive === 'function') ensureBGMAlive();
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden){
+      resumeCtx();
+      if (typeof ensureBGMAlive === 'function') ensureBGMAlive();
+    }
+  });
+
+  window.ensureBGMAlive = window.ensureBGMAlive || function(){
+    try{
+      if (typeof currentBGM !== 'function') return;
+      var el = currentBGM();
+      if (!el) return;
+      if (el.paused){
+        var p = el.play();
+        if (p && p.catch) p.catch(function(){});
+      }
+    }catch(_){}
+  };
+
+  if (isIOS && !window.__patchedPlay){
+    window.__patchedPlay = true;
+    var _origPlay = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function(){
+      var ret;
+      try{ ret = _origPlay.call(this); }catch(e){ ret = Promise.reject(e); }
+      if (ret && ret.catch){
+        ret.catch(function(){
+          var self = this;
+          var once = function(){
+            try{ _origPlay.call(self); }catch(_){}
+            cleanup();
+          };
+          function cleanup(){
+            window.removeEventListener('pointerdown', once, true);
+            window.removeEventListener('touchend', once, true);
+            window.removeEventListener('keydown', once, true);
+          }
+          window.addEventListener('pointerdown', once, true);
+          window.addEventListener('touchend', once, true);
+          window.addEventListener('keydown', once, true);
+        }.bind(this));
+      }
+      return ret;
+    };
+  }
+})();
+// ---------- Helper: grid cell center -> screen ----------
+  if(!window.gridCellCenterToScreen){
+    window.gridCellCenterToScreen=function(r,c){ try{ var canvas=document.getElementById('gameCanvas'); var rect=canvas.getBoundingClientRect(); var size=7, logical=400; var tile=logical/size; var scale=rect.width/logical; return {x:rect.left+(c+0.5)*tile*scale, y:rect.top+(r+0.5)*tile*scale}; }catch(_){ return {x:0,y:0}; } };
+  }
+
+  // ---------- Hook set() to emit particles when JUSO becomes null ----------
+  (function hookSet(retry){
+    retry=retry||0;
+    if(typeof window.set==='function' && typeof window.get==='function'){
+      if(window.__setHooked) return; window.__setHooked=true;
+      var _set=window.set, _get=window.get;
+      var J = (Array.isArray(window.JUSOS) ? window.JUSOS.slice() : ["J_NEM","J_SHI","J_PRO"]);
+      window.set=function(r,c,v){
+        try{
+          var prev=_get(r,c);
+          _set(r,c,v);
+if(prev && v===null && J.indexOf(prev)>=0 && window.ParticleFX){
+ // ★「消去によるnull化」だけを許可
+var key = r + ',' + c;
+ var ok  = !!(window.__jusoEraseSet && window.__jusoEraseSet.has(key));
+if (ok){
+ // 一度使った許可は消す（多重発火防止）
+ window.__jusoEraseSet.delete(key);
+ var pos = gridCellCenterToScreen(r,c);
+ var __joy = (typeof isKanki !== 'undefined' ? !!isKanki : !!window.isKanki)
+                 || !!window.isJubilee
+                 || (''+(window.currentMode||'')).toLowerCase().includes('jubilee')
+                 || (''+(window.currentMode||'')).toLowerCase().includes('kanki');
+     if (__joy) ParticleFX.burstJoy(pos.x, pos.y);
+     else       ParticleFX.burstScorched(pos.x, pos.y);
+   }
+ }
+
+
+        }catch(e){ try{ _set(r,c,v);}catch(_){ } }
+      };
+      return;
+    }
+    if(retry<20) setTimeout(function(){ hookSet(retry+1); }, 80);
+  })();
+
+  // ---------- Unknown gating (闘値) ----------
+  if(typeof window.UNKNOWN_THRESH==='undefined'){ window.UNKNOWN_THRESH=5; }
+  if(typeof window.unknownStageProgress==='undefined'){ window.unknownStageProgress = store ? store.get('unknownStageProgress',0) : 0; }
+  function maybeReachMax(){
+    if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
+      if (unknownStageProgress >= UNKNOWN_THRESH){
+        hasReachedMaxRank = true; try{ store.set('hasReachedMaxRank', true); }catch(_){}
+        try{ var v5=document.getElementById('vo_rank5'); if(v5){ v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
+        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
+        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
+        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
+        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+      }
+    }
+  }
+
+  // Patch updateScoresUI to show (x/闘値) at MAX until reached
+  try{
+    var usrc = (window.updateScoresUI||function(){}).toString();
+    if(usrc.indexOf('unknownStageProgress')===-1){
+      window.__updateScoresUI_orig = window.updateScoresUI;
+      window.updateScoresUI = function(){
+        try{
+          __updateScoresUI_orig();
+          try{
+            var span = document.getElementById('rankProgress'); 
+            if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
+              if (rankIndex===MAX_RANK_INDEX){
+                if (hasReachedMaxRank){ span.textContent = 'MAX'; }
+                else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
+              }
+            }
+          }catch(_){}
+        }catch(e){}
+      };
+    }
+  }catch(_){}
+
+  // Increase unknown progress when S_UNK triggered inside resolveVanishAndDrop
+  (function patchResolve(retry){
+    retry=retry||0;
+    if(typeof window.resolveVanishAndDrop==='function'){
+      if(window.__resolvePatched) return; window.__resolvePatched=true;
+      var orig=window.resolveVanishAndDrop;
+      window.resolveVanishAndDrop = function(){
+        // Before run, snapshot specialsHit size via global hook not available,
+        // so we run original and then check globals if present
+        orig();
+        try{
+          // Heuristic: when unknown special triggers, some flag may be set; fallback: increment when rank at MAX and not reached and Sound.cross was played recently is non-trivial -> skip.
+          // Instead, rely on gameplay calling applySpecialGimmicks etc. If S_UNK logged to console or stored, this is complex, so keep progress via a helper someone else calls. As backup, we do nothing here.
+        }catch(_){}
+        maybeReachMax();
+      };
+      return;
+    }
+    if(retry<20) setTimeout(function(){ patchResolve(retry+1); }, 120);
+  })();
+
+  // ---------- Auto-shuffle (no immediate matches, ensure at least one move) ----------
+  function hasAnyMove(){
+    if (typeof size==='undefined') return false;
+    for (let r=0;r<size;r++){
+      for (let c=0;c<size;c++){
+        const b = get(r,c); if (!b || (Array.isArray(JUSOS)&&JUSOS.includes(b))) continue;
+        const dirs = [[0,1],[1,0]];
+        for (const d of dirs){
+          const nr=r+d[0], nc=c+d[1];
+          if (nr<0||nr>=size||nc<0||nc>=size) continue;
+          const b2 = get(nr,nc);
+          if (!b2 || (Array.isArray(JUSOS)&&JUSOS.includes(b2))) continue;
+          swap(r,c,nr,nc);
+          const has = findMatches(true);
+          swap(r,c,nr,nc);
+          if (has) return true;
+        }
+      }
+    }
+    return false;
+  }
+  window.hasAnyMove = hasAnyMove;
+  window.shuffleBoard = function(){
+    if (window.__shuffling) return;      // 二重呼び出し防止
+    window.__shuffling = true;
+    try{
+      if (typeof updateStatus==='function'){
+        updateStatus('status: 動かせる駒がありません。シャッフルします');
+      }
+    }catch(_){}
+    try{ Sound.play('whoosh', 1.0); }catch(_){}  // se_whoosh.mp3 再生（既存のSE_BANKにwhooshあり）
+    setTimeout(function(){  // ← ワンクッション（待ち時間は好みで調整）
+      if (typeof size==='undefined'){ window.__shuffling=false; return; }
+      let attempts = 0;
+      const flat = [];
+      for (let r=0;r<size;r++) for (let c=0;c<size;c++) flat.push(get(r,c));
+      do {
+        attempts++;
+        for (let i=flat.length-1;i>0;i--){
+          const j=Math.floor(Math.random()*(i+1));
+          const t=flat[i]; flat[i]=flat[j]; flat[j]=t;
+        }
+        let k=0; for (let r=0;r<size;r++) for (let c=0;c<size;c++) set(r,c, flat[k++]);
+        if (findMatches(true)) continue;
+        if (hasAnyMove()) break;
+      } while (attempts < 50);
+      try{
+        if (typeof updateStatus==='function'){
+          updateStatus('status: 盤面をシャッフルしました。');
+        }
+      }catch(_){}
+      if (typeof prepareDrop==='function') prepareDrop();
+      window.__shuffling = false;
+    }, 600); // ← ここが“ワンクッション”時間(ms)
+
+  };
+
+  // Hook after maybeSpawnObstacles is called in resolve flow (polling fallback)
+  (function checkShuffleLoop(){
+    try{
+      if (typeof findMatches==='function' && typeof hasAnyMove==='function'){
+        if (!findMatches(true) && !hasAnyMove()){
+          window.shuffleBoard();
+          try{ if (typeof updateStatus==='function') updateStatus('status: シャッフルしました'); }catch(_){}
+        }
+      }
+    }catch(_){}
+    setTimeout(checkShuffleLoop, 1200); // low-frequency check to avoid heavy load
+  })();
+
+})();
+</script>
+<style>
+  /* スマホ右端切れ対策：親幅にフィット（PCは従来通り最大480px） */
+  #gameCanvas{
+    width: min(100%, 480px) !important;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+</style>
+<style>
+  /* スマホだけ盤面を“横幅いっぱい”に近づける（ロジック無変更） */
+  @media (max-width: 480px) {
+    /* パネルの左右パディングを少し削って内側幅を広げる */
+    .wrap { padding-left: 8px; padding-right: 8px; }      /* 16px → 8px */
+    .panel { padding-left: 8px; padding-right: 8px; }     /* 14px → 8px */
+
+    /* 親の内側幅いっぱいまで広げる。上限は必要なら少しだけ拡大OK */
+    #gameCanvas{
+      width: min(100%, 500px) !important;  /* 例：上限480→500。480のままでも可 */
+      height: auto;
+      aspect-ratio: 1 / 1;
+    }
+  }
+</style>
+
+
+
+
+<!-- ===== RankMAX Ceremony: inferno + (optional) vignette + shake ===== -->
+
+<!-- ===== /RankMAX Ceremony ===== -->
+
+</body>
+</html>
