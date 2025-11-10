@@ -537,7 +537,7 @@ function makePool(baseEl, n){
       el.play().catch(()=>{});
     }
   };
-}
+
 const SE_BANK = {
   vertical:document.getElementById("se_vertical"),
   horizontal:document.getElementById("se_horizontal"),
@@ -2159,22 +2159,124 @@ function decayJusoShake(){
   }
 
   
-    // ---------- Audio unlock on first interaction (patched) ----------
-    // Defer to the game's unlockAllSE(), which primes ONLY bgm1/bgm2 (no SE fanfare).
-    (function(){
-      var bound = false;
-      function bridgeUnlock(){
-        if (bound) return; bound = true;
-        try { if (typeof unlockAllSE === 'function') unlockAllSE(); } catch(e){}
-        window.removeEventListener('pointerdown', bridgeUnlock, true);
-        window.removeEventListener('keydown', bridgeUnlock, true);
-        window.removeEventListener('touchstart', bridgeUnlock, true);
+    
+// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+(function(){
+  var unlocked = false;
+  var ctx = null;
+  var isIOS = /iP(hone|od|ad)/.test(navigator.platform) ||
+              (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
+
+  function resumeCtx(){
+    try{
+      if (!ctx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC){
+          ctx = window.__sharedAudioCtx || new AC();
+          window.__sharedAudioCtx = ctx;
+        }
       }
-      window.addEventListener('pointerdown', bridgeUnlock, true);
-      window.addEventListener('keydown', bridgeUnlock, true);
-      window.addEventListener('touchstart', bridgeUnlock, true);
-    })();
-    // ---------- Helper: grid cell center -> screen ----------
+      if (ctx && ctx.state === 'suspended'){ ctx.resume(); }
+      if (ctx){
+        var b = ctx.createBuffer(1, 1, 22050);
+        var src = ctx.createBufferSource();
+        src.buffer = b; src.connect(ctx.destination); src.start(0);
+      }
+    }catch(e){}
+  }
+
+  function primeBGM(){
+    ['bgm1','bgm2'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      try{
+        el.muted = true;
+        el.currentTime = 0;
+        var p = el.play();
+        if (p && p.then){
+          p.then(function(){
+            try{ el.pause(); el.currentTime = 0; }catch(_){}
+            el.muted = false;
+          }).catch(function(){ el.muted = false; });
+        }else{
+          try{ el.pause(); el.currentTime = 0; }catch(_){}
+          el.muted = false;
+        }
+      }catch(_){}
+    });
+  }
+
+  function unlock(){
+    if (unlocked) return;
+    unlocked = true;
+    resumeCtx();
+    try{ if (typeof unlockAllSE === 'function') unlockAllSE(); }catch(_){}
+    primeBGM();
+    detach();
+  }
+
+  function detach(){
+    window.removeEventListener('pointerdown', unlock, true);
+    window.removeEventListener('touchend', unlock, true);
+    window.removeEventListener('keydown', unlock, true);
+  }
+
+  window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('touchend', unlock, true);
+  window.addEventListener('keydown', unlock, true);
+
+  window.addEventListener('pageshow', function(){
+    resumeCtx();
+    if (typeof ensureBGMAlive === 'function') ensureBGMAlive();
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden){
+      resumeCtx();
+      if (typeof ensureBGMAlive === 'function') ensureBGMAlive();
+    }
+  });
+
+  window.ensureBGMAlive = window.ensureBGMAlive || function(){
+    try{
+      if (typeof currentBGM !== 'function') return;
+      var el = currentBGM();
+      if (!el) return;
+      if (el.paused){
+        var p = el.play();
+        if (p && p.catch) p.catch(function(){});
+      }
+    }catch(_){}
+  };
+
+  if (isIOS && !window.__patchedPlay){
+    window.__patchedPlay = true;
+    var _origPlay = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function(){
+      var ret;
+      try{ ret = _origPlay.call(this); }catch(e){ ret = Promise.reject(e); }
+      if (ret && ret.catch){
+        ret.catch(function(){
+          var self = this;
+          var once = function(){
+            try{ _origPlay.call(self); }catch(_){}
+            cleanup();
+          };
+          function cleanup(){
+            window.removeEventListener('pointerdown', once, true);
+            window.removeEventListener('touchend', once, true);
+            window.removeEventListener('keydown', once, true);
+          }
+          window.addEventListener('pointerdown', once, true);
+          window.addEventListener('touchend', once, true);
+          window.addEventListener('keydown', once, true);
+        }.bind(this));
+      }
+      return ret;
+    };
+  }
+})();
+// ---------- Helper: grid cell center -> screen ----------
   if(!window.gridCellCenterToScreen){
     window.gridCellCenterToScreen=function(r,c){ try{ var canvas=document.getElementById('gameCanvas'); var rect=canvas.getBoundingClientRect(); var size=7, logical=400; var tile=logical/size; var scale=rect.width/logical; return {x:rect.left+(c+0.5)*tile*scale, y:rect.top+(r+0.5)*tile*scale}; }catch(_){ return {x:0,y:0}; } };
   }
