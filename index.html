@@ -515,25 +515,29 @@ const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタ
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
-
-function makePool(a,n){ const arr=[a]; for(let i=1;i<n;i++) arr.push(a.cloneNode(true)); let idx=0;
-  return { play(v){ const e=arr[idx++%arr.length]; try{e.pause();e.currentTime=0;}catch(_){}
-    e.volume=v; e.play().catch(()=>{}); } };
-function makePool(src, poolsize){
-  const a=new Audio(); // オリジナル
-  a.src=src;
-  const pool=[a];
-
-  // 複数の要素を生成し、プールに入れる
-  for(let i=1;i<poolsize;i++){
-    const clone=a.cloneNode();
-    // ★【重要な修正】クローン要素が作成時に再生されるのを防ぐ
-    try{ clone.pause(); }catch(_){} // ← この行を追加
-    pool.push(clone);
+    
+function makePool(baseEl, n){
+  // baseEl: an existing <audio> element in the DOM
+  const arr = [baseEl.cloneNode(true)];
+  try{ arr[0].pause(); }catch(_){}
+  try{ arr[0].currentTime = 0; }catch(_){}
+  for(let i=1;i<n;i++){
+    const clone = baseEl.cloneNode(true);
+    try{ clone.pause(); }catch(_){}
+    try{ clone.currentTime = 0; }catch(_){}
+    arr.push(clone);
   }
-  return pool;
-}
-}
+  let idx = 0;
+  return {
+    play(vol){
+      const el = arr[idx++ % arr.length];
+      try{ el.pause(); }catch(_){}
+      try{ el.currentTime = 0; }catch(_){}
+      try{ el.volume = vol; }catch(_){}
+      el.play().catch(()=>{});
+    }
+  };
+\1 = {
 const SE_BANK = {
   vertical:document.getElementById("se_vertical"),
   horizontal:document.getElementById("se_horizontal"),
@@ -2154,13 +2158,23 @@ function decayJusoShake(){
     window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
   }
 
-  // ---------- Audio unlock on first interaction (safe) ----------
-  (function(){ var unlocked=false; function unlock(){ if(unlocked) return; unlocked=true;
-    try{ document.querySelectorAll('audio').forEach(function(a){ try{ var pm=a.play(); if(pm&&pm.then){ pm.then(function(){ a.pause(); a.currentTime=0; }); } else { a.pause(); a.currentTime=0; } }catch(e){} }); }catch(e){} 
-    removeEventListener('pointerdown',unlock,true); removeEventListener('keydown',unlock,true); }
-    addEventListener('pointerdown',unlock,true); addEventListener('keydown',unlock,true); })();
-
-  // ---------- Helper: grid cell center -> screen ----------
+  
+    // ---------- Audio unlock on first interaction (patched) ----------
+    // Defer to the game's unlockAllSE(), which primes ONLY bgm1/bgm2 (no SE fanfare).
+    (function(){
+      var bound = false;
+      function bridgeUnlock(){
+        if (bound) return; bound = true;
+        try { if (typeof unlockAllSE === 'function') unlockAllSE(); } catch(e){}
+        window.removeEventListener('pointerdown', bridgeUnlock, true);
+        window.removeEventListener('keydown', bridgeUnlock, true);
+        window.removeEventListener('touchstart', bridgeUnlock, true);
+      }
+      window.addEventListener('pointerdown', bridgeUnlock, true);
+      window.addEventListener('keydown', bridgeUnlock, true);
+      window.addEventListener('touchstart', bridgeUnlock, true);
+    })();
+    // ---------- Helper: grid cell center -> screen ----------
   if(!window.gridCellCenterToScreen){
     window.gridCellCenterToScreen=function(r,c){ try{ var canvas=document.getElementById('gameCanvas'); var rect=canvas.getBoundingClientRect(); var size=7, logical=400; var tile=logical/size; var scale=rect.width/logical; return {x:rect.left+(c+0.5)*tile*scale, y:rect.top+(r+0.5)*tile*scale}; }catch(_){ return {x:0,y:0}; } };
   }
