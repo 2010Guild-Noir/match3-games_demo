@@ -758,11 +758,47 @@ const IMG = {
   "BG": new Image(), "PATH_BG": "images/boad_bg.png"
 };
 function loadImages(done){ 
-  let loaded=0; const keys=Object.keys(IMG).filter(k=>!k.startsWith('PATH_')); const total=keys.length;
+    // Resilient loader for case-sensitive hosts (GitHub Pages)
+  const triedFallback = new Set();
+  function tryFallback(key){
+    const el = IMG[key];
+    const p  = IMG["PATH_"+key];
+    if (!p || triedFallback.has(key)) return false;
+    triedFallback.add(key);
+    let url = p;
+
+    // Special known typo fallback: boad_bg.png -> board_bg.png
+    if (key === "BG" && /images\/boad_bg\.png$/i.test(p)){
+      url = p.replace(/boad_bg\.png$/i, "board_bg.png");
+      try{ el.src = url; return true; }catch(_){}
+    }
+
+    // General fallback: lowercased basename for case mismatches (e.g., KUJAKU.png vs kujaku.png)
+    const m = p.match(/^(.*\/)([^\/]+)$/);
+    if (m){
+      const dir = m[1], base = m[2];
+      const lower = dir + base.toLowerCase();
+      if (lower !== p){
+        try{ el.src = lower; return true; }catch(_){}
+      }
+    }
+    return false;
+  }
+let loaded=0; const keys=Object.keys(IMG).filter(k=>!k.startsWith('PATH_')); const total=keys.length;
   if(total===0){ done(); return; }
-  keys.forEach(k=>{ IMG[k].onload=()=>{ if(++loaded===total) done(); }; IMG[k].onerror=()=>{ if(++loaded===total) done(); };
-    const p=IMG["PATH_"+k]; if(p) IMG[k].src=p; });
-}
+  keys.forEach(k=>{
+    IMG[k].onload = ()=>{ if(++loaded===total) done(); };
+    IMG[k].onerror = ()=>{
+      // attempt fallback once; otherwise count and continue
+      if (!tryFallback(k)){
+        if(++loaded===total) done();
+        if (/debugload=1/.test(location.search)){
+          (window.__missingAssets ||= []).push(IMG["PATH_"+k] || k);
+        }
+      }
+    };
+    const p=IMG["PATH_"+k]; if(p) IMG[k].src=p;
+  });}
 
 /* ===== キャラクター図鑑 (省略: 変更なし) ===== */
 const CHARACTERS = [ 
@@ -2478,6 +2514,24 @@ if (ok){
 <!-- ===== RankMAX Ceremony: inferno + (optional) vignette + shake ===== -->
 
 <!-- ===== /RankMAX Ceremony ===== -->
+
+
+<script>
+(function(){
+  if (!/debugload=1/.test(location.search)) return;
+  window.addEventListener('load', function(){
+    var miss = window.__missingAssets || [];
+    var box = document.createElement('div');
+    box.style.position='fixed'; box.style.right='8px'; box.style.bottom='8px';
+    box.style.maxWidth='90vw'; box.style.maxHeight='40vh'; box.style.overflow='auto';
+    box.style.background='rgba(0,0,0,0.8)'; box.style.color='#fff';
+    box.style.padding='12px'; box.style.fontSize='12px'; box.style.zIndex='99999';
+    box.style.borderRadius='8px';
+    box.innerHTML = '<b>Missing assets ('+miss.length+')</b><br>'+ miss.map(m=>'<div>'+m+'</div>').join('');
+    document.body.appendChild(box);
+  });
+})();
+</script>
 
 </body>
 </html>
