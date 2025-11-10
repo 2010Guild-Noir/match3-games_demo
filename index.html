@@ -617,9 +617,11 @@ let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
   audioUnlocked=true;
+  // 【修正】SEの一斉再生を避けるため、SE_BANKに対するループを削除しました。
+  // BGM (bgm1, bgm2) のみに対してアンロック処理を行います。
   const audioElements = [bgm1, bgm2];
   audioElements.forEach(a => {
-    if (!a) return;
+    if(!a) return;
     try{ 
       const v=a.volume; 
       a.volume=0.0001; 
