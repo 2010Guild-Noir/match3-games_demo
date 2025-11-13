@@ -2569,5 +2569,54 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+<!-- PATCH2: iPhone voice gain & BGM ducking for voice audios -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    var ua = navigator.userAgent || "";
+    var isIOS = /iP(hone|ad|od)/.test(ua);
+    if(!isIOS) return;
+
+    var bgmEls = [];
+    var b1 = document.getElementById('bgm1');
+    var b2 = document.getElementById('bgm2');
+    if(b1) bgmEls.push(b1);
+    if(b2) bgmEls.push(b2);
+
+    function duckBGM(){
+      bgmEls.forEach(function(b){
+        try{
+          if(b.dataset.prevVol === undefined){
+            b.dataset.prevVol = String(b.volume);
+            b.volume = Math.max(0, b.volume * 0.35); // BGMを約1/3に
+          }
+        }catch(e){}
+      });
+    }
+    function unduckBGM(){
+      bgmEls.forEach(function(b){
+        try{
+          if(b.dataset.prevVol !== undefined){
+            b.volume = Number(b.dataset.prevVol);
+            delete b.dataset.prevVol;
+          }
+        }catch(e){}
+      });
+    }
+
+    var voices = document.querySelectorAll('audio[id^="vo_"]');
+    voices.forEach(function(v){
+      try{
+        v.volume = 1.0; // ボイスは常に最大音量
+      }catch(e){}
+      v.addEventListener('play', duckBGM);
+      v.addEventListener('ended', unduckBGM);
+      v.addEventListener('pause', unduckBGM);
+    });
+  }catch(e){}
+});
+</script>
+
 </body>
 </html>
