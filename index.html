@@ -24,19 +24,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+html{ margin:0; padding:0; height:100%; }
+
 .modal-overlay[hidden]{display:none !important;}
 
   :root{ --bg-0:#070707; --ink:#f5f7fb; --muted:#a3a7b3; --line:#2b2e34; }
   body{ margin:0; color:var(--ink); font-family:"Noto Sans JP",system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",sans-serif;
     background: radial-gradient(1400px 680px at 50% -10%, #1b1c20 0%, #0c0c0e 55%, var(--bg-0) 100%),
                linear-gradient(180deg, #0b0b0c 0%, #09090a 100%); min-height:100dvh; text-align:center; }
-  .wrap{ max-width:640px; margin:22px auto 28px; padding:16px; }
+  .wrap{ max-width:640px; margin:0 auto 28px; padding:0 16px 16px; }
   .panel{ margin:0 auto; padding:16px 14px; border-radius:16px; background:#121316; border:1px solid var(--line);
     box-shadow:0 18px 60px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.06) inset; backdrop-filter:saturate(120%) blur(8px); }
   /* タイトルサイズ＝B */
-  h1{ font-size:22px; letter-spacing:.03em; margin:4px 0 2px; font-weight:700; }
-  .subtitle{ font-size:12.5px; color:var(--muted); margin:0 0 10px; letter-spacing:.05em; }
-  .hud{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin:10px 0 6px; flex-wrap:wrap; }
+  h1{ display:none; }
+  .subtitle{ display:none; }
+  .hud{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin:0; padding:8px 10px 6px; flex-wrap:wrap; }
   .badge{ background:linear-gradient(180deg,#1c1d22,#14151a); border:1px solid var(--line); border-radius:999px; padding:8px 14px; font-weight:700; }
   .rank-progress{ font-size:12px; font-weight:400; margin-left:8px; opacity:0.8; }
 canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; aspect-ratio:1/1; box-sizing:border-box; background:#111; border-radius:14px; border:1px solid var(--line);
@@ -62,6 +64,81 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   .btn-shuffle{ background:linear-gradient(180deg,#44224a,#2c1430); border-color:#5c3563; }
   .btn-mini{ padding:4px 8px; font-size:12px; }
   .status{ margin:6px 0 10px; font-size:12.5px; color:var(--muted); }
+
+  #titleRow{
+    margin:2px 4px 0;
+    font-size:11px;
+    color:var(--muted);
+    text-align:left;
+  }
+/* コンボ技名ラベル */
+  #comboTextRow{
+  width:90%;
+  max-width:260px;
+  margin:2px auto 0;
+  text-align:center;
+
+  /* ★ここが重要：テキストの有無やフォントサイズ変更でもレイアウトが動かない */
+  height:17px;
+  line-height:17px;
+  min-height:17px;
+
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* コンボ技名ラベルのフォント／縁取り（源真ゴシック Heavy想定） */
+  #comboTextLabel{
+    display:inline-block;
+    max-width:100%;
+    font-family: "源真ゴシック Heavy","Yu Gothic","Meiryo",system-ui,sans-serif;
+    font-size:17px;          /* 少し小さめにして「地之叢雲」まで収める */
+    font-weight:900;
+    color:#111111;           /* 黒に近い文字色 */
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  #comboGaugeLabel{
+    margin:2px 4px 0;
+    font-size:10px;
+    color:var(--muted);
+    text-align:left;
+  }
+  #comboGaugeTicks{
+    width:90%;
+    max-width:260px;
+    margin:2px auto 0;
+    font-size:9px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    pointer-events:none;
+  }
+
+  #comboGauge{
+    width:90%;
+    max-width:260px;
+    height:4px;
+    margin:4px auto 0;
+    border-radius:999px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+  #comboGaugeFill{
+    width:0%;
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,#ff6b6b,#ffa94d);
+    transition:width .12s ease-out;
+  }
+
 
   /* 新規：リセットボタンの色 */
   .btn-reset{ 
@@ -143,11 +220,11 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
 
   /* 図鑑のタグ */
   .char-tag{ display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; font-weight:700; border:1px solid #444; margin-left:6px; }
-  .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 合歓=黄色 */
-  .char-tag.blue  { background:#0c2a4a; border-color:#174a7a; color:#7fc8ff; }/* 辰十郎=青 */
-  .char-tag.red   { background:#3a0c12; border-color:#5a1c22; color:#ff8a8a; }/* プロパガンダ=赤 */
+  .char-tag.yellow{ background:#4d4200; border-color:#6b5e00; color:#ffd900; } /* 式神=黄色 */
+  .char-tag.blue  { background:#0c2a4a; border-color:#174a7a; color:#7fc8ff; }/* 修羅王丸=青 */
+  .char-tag.red   { background:#3a0c12; border-color:#5a1c22; color:#ff8a8a; }/* お邪魔=赤 */
   .char-tag.neutral{ background:#333; color:#ccc; }
-  .char-tag.orange{ background:#4a2a00; border-color:#6a3a00; color:#ffb25f; }/* 特殊=橙 */
+  .char-tag.orange{ background:#4a2a00; border-color:#6a3a00; color:#ffb25f; }/* しゅらちゃん=橙 */
 
   /* 最終ランク時：特殊選択行のアイコンボタン */
   #rankSelectRow .btn-icon{
@@ -214,6 +291,25 @@ details.help li {
 }
 /* BGM/SEボタンは小さく左右に並べる */
 #indexModal .btn-group{display:flex; gap:10px;}
+#indexModal .volume-group{
+  flex-direction:column;
+  align-items:stretch;
+}
+.volume-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.volume-text{
+  font-size:14px;
+  min-width:70px;
+  text-align:left;
+}
+.volume-row input[type="range"]{
+  flex:1;
+}
 #indexModal .btn-group .btn{ flex:1; padding:10px 12px; font-size:15px; }
 
 /* 覚醒リセットボタンのスタイルとマージン */
@@ -270,6 +366,186 @@ details.help li {
 
 /* hide debug status */
 #status{ display:none !important; }
+
+
+/* ★BGM/SE トグル：他ボタンと親和する小型ピル（スライダーが長くてもON/OFFしやすく） */
+.vol-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.35em;
+  font-weight:600;
+  font-size:13px;
+
+  min-width:70px; /* 既存のラベル幅を維持 */
+  height:28px;
+  padding:0 10px;
+
+  background:linear-gradient(180deg,#202126,#14151a);
+  color:#fff;
+  border:1px solid var(--line);
+  border-radius:999px;
+
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 18px rgba(0,0,0,.35);
+  transition:transform .08s ease, box-shadow .18s ease, border-color .2s ease, background .2s ease;
+}
+.vol-toggle:hover{
+  transform:translateY(-1px);
+  border-color:#3c4048;
+  box-shadow:0 14px 24px rgba(0,0,0,.44), 0 0 10px rgba(127, 183, 255, 0.35);
+}
+.vol-toggle:active{
+  transform:translateY(0);
+  box-shadow:0 6px 14px rgba(0,0,0,.44) inset;
+}
+.vol-toggle:focus{ outline:none; }
+
+/* ミュート状態の視認性（アイコン自体はJS側で🔈/🔊切替） */
+.vol-toggle.is-muted{
+  opacity:.78;
+  background:linear-gradient(180deg,#1a1b20,#101116);
+  border-color:#2b2e37;
+}
+
+
+/* ★外枠の上下隙間ゼロ＋黒背景を確実に全面表示 */
+html, body{
+  height:100%;
+  min-height:100dvh;
+  margin:0;
+  padding:0;
+  background:#000;
+  /* 画像背景を使う場合は下の行をONにしてください */
+ background-image:url('bg_black_vignette.png'); background-size:cover; background-position:center; background-repeat:no-repeat; 
+}
+.wrap{
+  margin-top:0 !important;
+  padding-top:0 !important;
+  margin-bottom:0 !important;
+  padding-bottom:0 !important;
+  min-height:100dvh;
+}
+.panel{
+  margin-bottom:0 !important;
+  padding-bottom:0 !important;
+}
+
+
+/* === ALL MAX UNLOCK UI === */
+#allmaxOverlay{
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(0,0,0,0.92) 70%);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+#allmaxPanel{
+  position: relative;
+  padding: 28px 26px 30px;
+  width: min(90vw, 360px);
+  background: linear-gradient(180deg, rgba(20,20,25,0.95), rgba(10,10,12,0.98));
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(120,200,255,0.25), 0 0 30px rgba(120,200,255,0.25);
+  text-align: center;
+  color: #eaf6ff;
+}
+#allmaxPanel h2{
+  margin: 0 0 14px;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: #bfe9ff;
+  text-shadow: 0 0 6px rgba(120,200,255,0.8);
+}
+#allmaxInput{
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(120,200,255,0.4);
+  background: rgba(0,0,0,0.6);
+  color: #eaf6ff;
+  outline: none;
+}
+#allmaxInput::placeholder{ color: rgba(200,230,255,0.4); }
+#allmaxError{
+  margin-top: 10px;
+  font-size: 13px;
+  color: #ffb0b0;
+  display: none;
+}
+#allmaxImage{
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 0 40px rgba(120,200,255,0.35);
+  display: none;
+}
+#allmaxClose{
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 18px;
+  color: #bfe9ff;
+  cursor: pointer;
+  opacity: 0.8;
+  user-select: none;
+}
+#allmaxClose:hover{ opacity: 1; }
+
+#titleLabel.allmax-ready{
+  cursor: pointer;
+  text-shadow: 0 0 6px rgba(120,200,255,0.9), 0 0 14px rgba(120,200,255,0.35);
+}
+#titleLabel.allmax-ready:hover{
+  filter: brightness(1.08);
+}
+
+/* === ALL MAX (input row centered + image strictly contained) === */
+#allmaxInputArea{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+#allmaxInputRow{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  width:100%;
+}
+#allmaxInput{
+  width:min(72vw, 240px);
+}
+#allmaxOkBtn{
+  padding:10px 14px;
+  font-size:15px;
+  border-radius:8px;
+  border:1px solid rgba(120,200,255,0.4);
+  background:rgba(0,0,0,0.6);
+  color:#eaf6ff;
+  cursor:pointer;
+}
+#allmaxOkBtn:hover{ filter:brightness(1.08); }
+#allmaxImage{
+  display:none;
+  width:100% !important;
+  max-width:100% !important;
+  height:auto !important;
+  object-fit:contain !important;
+}
+#allmaxOverlay.allmax-unlocked #allmaxImage{ display:block !important; }
+
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -399,8 +675,23 @@ details.help li {
   <div class="wrap">
     <div class="panel">
       <div class="hud">
-        <div class="badge" id="score">暗躍値: 0</div> <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
+        <div class="badge" id="score">暗躍値: 0</div>
+        <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
       </div>
+      <div id="titleRow"><span id="titleLabel"></span></div>
+      <div id="comboGaugeContainer">
+  <div id="comboTextRow"><span id="comboTextLabel"></span></div>
+
+  <div id="comboGauge">
+    <div id="comboGaugeFill"></div>
+  </div>
+
+  <div id="comboGaugeTicks">
+    <span>1</span><span>2</span><span>3</span>
+    <span>4</span><span>5</span><span>X</span>
+  </div>
+</div>
+
 
       <canvas id="gameCanvas"></canvas>
       <div class="row" id="rankSelectRow" style="display:none;"></div>
@@ -435,6 +726,8 @@ details.help li {
   <audio id="se_circle"     src="audio/se_circle.mp3"     preload="auto"></audio>
   <audio id="se_cross"      src="audio/se_cross.mp3" preload="auto"></audio>
   <audio id="se_pop"        src="audio/se_pop.mp3"        preload="auto"></audio>
+  <audio id="se_item"       src="audio/se_item.mp3"       preload="auto"></audio>
+  <audio id="se_itemskill"  src="audio/se_itemskill.mp3"  preload="auto"></audio>
   <audio id="se_whoosh"     src="audio/se_whoosh.mp3" preload="auto"></audio>
   <audio id="se_shine"      src="audio/se_shine.mp3"  preload="auto"></audio>
   <audio id="se_push"       src="audio/se_push.mp3"   preload="auto"></audio>
@@ -448,6 +741,11 @@ details.help li {
   <audio id="vo_rank4" src="audio/vo_rank4.mp3" preload="auto"></audio>
   <audio id="vo_rank5" src="audio/vo_rank5.mp3" preload="auto"></audio>
   <audio id="vo_reset" src="audio/vo_reset.mp3" preload="auto"></audio>
+　<!-- ★ここから連鎖ボイス -->
+<audio id="vo_combo3" src="audio/vo_combo3.mp3" preload="auto"></audio>
+<audio id="vo_combo4" src="audio/vo_combo4.mp3" preload="auto"></audio>
+<audio id="vo_combo5" src="audio/vo_combo5.mp3" preload="auto"></audio>
+<audio id="vo_comboX" src="audio/vo_comboX.mp3" preload="auto"></audio>
 
 <button id="indexBtn" title="インデックス" aria-label="インデックス"></button>
 <div id="indexModal" role="dialog" aria-modal="true" aria-label="インデックスメニュー" hidden class="modal-overlay">
@@ -455,9 +753,15 @@ details.help li {
     <button class="close-btn" onclick="closeIndexModal(); onClickSE()" aria-label="閉じる"></button>
     <h2>⚙ インデックス</h2>
     <div class="btn-list">
-      <div class="btn-group">
-        <button class="btn" id="bgmBtnIndex" onclick="toggleBGM(); onClickSE()">♪ BGM ON</button>
-        <button class="btn" id="seBtnIndex"  onclick="toggleSE(); onClickSE()">🔊 SE ON</button>
+      <div class="btn-group volume-group">
+        <div class="volume-row">
+          <button type="button" class="volume-text vol-toggle" id="bgmBtnIndex">BGM🔊</button>
+          <input type="range" id="bgmSlider" min="0" max="100" step="1">
+        </div>
+        <div class="volume-row">
+          <button type="button" class="volume-text vol-toggle" id="seBtnIndex">SE🔊</button>
+          <input type="range" id="seSlider" min="0" max="100" step="1">
+        </div>
       </div>
       <button class="btn" id="bgmSelectBtn" onclick="toggleBGMSelect(); onClickSE()">♪1 / ♪2 BGM切替</button>
       
@@ -475,7 +779,7 @@ details.help li {
 <div id="resetConfirmModal" role="dialog" aria-modal="true" aria-label="覚醒ランクのリセット確認" hidden>
   <div class="modal-content">
     <h3>覚醒ランクをリセットしますか？</h3>
-    <p>これまでの覚醒ランクと暗躍進捗が初期化されます。</p>
+    <p>これまでの覚醒ランクと暗躍値が初期化されます。</p>
     <div class="confirm-btns">
       <button class="btn" id="confirmResetNo" onclick="closeResetConfirmModal(); onClickSE()">いいえ</button>
       <button class="btn btn-reset" id="confirmResetYes" onclick="resetRank(); onClickSE()">はい</button>
@@ -510,8 +814,75 @@ let bgmOn = !!store.get("bgmOn", false);
 
 /* ★インデックス内のBGM/SEボタンに変更 */
 const bgmBtn = document.getElementById("bgmBtnIndex"); // BGM ON/OFFボタン
+
+if (bgmBtn){
+  bgmBtn.addEventListener("click", ()=>{ try{ toggleBGM(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
+}
+
 const seBtn  = document.getElementById("seBtnIndex");  // SE ON/OFFボタン
+
+if (seBtn){
+  seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
+}
+
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
+const bgmSlider = document.getElementById("bgmSlider");
+const seSlider  = document.getElementById("seSlider");
+
+function updateBgmIcon(vol){
+  if(!bgmBtn) return;
+  const icon = (vol && vol > 0) ? "🔊" : "🔇";
+  bgmBtn.textContent = "BGM" + icon;
+}
+function updateSeIcon(vol){
+  if(!seBtn) return;
+  const icon = (vol && vol > 0) ? "🔊" : "🔇";
+  seBtn.textContent = "SE" + icon;
+}
+
+function onBgmSliderChange(v){
+  v = Number(v);
+  if (isNaN(v)) v = 0;
+  const vol = Math.max(0, Math.min(100, v)) / 100;
+  setBGMVol(vol);
+  bgmOn = vol > 0;
+  store.set("bgmOn", bgmOn);
+  updateBgmIcon(vol);
+
+  if (bgmOn){
+    try{
+      const bgm = currentBGM();
+      if (bgm && bgm.paused){
+        bgm.play().catch(()=>{});
+      }
+    }catch(_){}
+  } else {
+    pauseAllBGM();
+  }
+}
+
+function onSeSliderChange(v){
+  v = Number(v);
+  if (isNaN(v)) v = 0;
+  const vol = Math.max(0, Math.min(100, v)) / 100;
+  if (vol <= 0){
+    Sound.enabled = false;
+  } else {
+    Sound.enabled = true;
+    Sound.vol = vol;
+  }
+  store.set("seOn", Sound.enabled);
+  store.set("seVol", Sound.vol);
+  updateSeIcon(Sound.enabled ? Sound.vol : 0);
+}
+
+// attach slider events
+if (bgmSlider){
+  bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); onClickSE(); });
+}
+if (seSlider){
+  seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); onClickSE(); });
+}
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
@@ -544,6 +915,8 @@ const SE_BANK = {
   circle:document.getElementById("se_circle"),
   cross:document.getElementById("se_cross"),
   pop:document.getElementById("se_pop"),
+  item:document.getElementById("se_item"),
+  itemskill:document.getElementById("se_itemskill"),
   whoosh:document.getElementById("se_whoosh"),
   rumble:document.getElementById("se_rumble"),
   shine:document.getElementById("se_shine"),
@@ -551,7 +924,8 @@ const SE_BANK = {
   index:document.getElementById("se_index"), /* index open */
   /* ★push.mp3を追加 */
   bell:document.getElementById("se_bell"),
-　not:document.getElementById("se_not"),
+  not:document.getElementById("se_not"),
+  scream:document.getElementById("se_scream"),
 };
 const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
   init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
@@ -562,11 +936,17 @@ function setBGMVol(v){ const nv=Number(v); bgm1.volume=nv; bgm2.volume=nv; store
 function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
 
 function toggleSE(){ 
-  Sound.enabled=!Sound.enabled; 
-  seBtn.textContent=Sound.enabled?"🔊 SE ON":"🔇 SE OFF"; 
-  store.set("seOn", Sound.enabled); 
-  /* インデックスメニュー内のボタンをアクティブ/非アクティブで装飾 */
-  seBtn.classList.toggle('active', Sound.enabled);
+  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
+  if (seSlider){
+    const now = Number(seSlider.value||"0");
+    const next = now > 0 ? 0 : 50;
+    seSlider.value = next;
+    onSeSliderChange(next);
+  } else {
+    Sound.enabled = !Sound.enabled;
+    store.set("seOn", Sound.enabled);
+    updateSeIcon(Sound.enabled ? Sound.vol : 0);
+  }
 }
 
 function pauseAllBGM(){ try{bgm1.pause();}catch(_){} try{bgm2.pause();}catch(_){} }
@@ -575,8 +955,12 @@ function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
 function updateBGMSelectButton(){
   const which = activeBGM === bgm2 ? 2 : 1;
   bgmSelectBtn.textContent = (which === 1) ? "♪1 BGM切替" : "♪2 BGM切替";
-  bgmSelectBtn.classList.toggle('active', true);
-  try{ bgmSelectBtn.classList.toggle('bgm1-active', which===1); bgmSelectBtn.classList.toggle('bgm2-active', which===2); }catch(e){}
+  // オプション：どちらを選んでいるか色で区別したい場合のクラス制御
+  try{
+    bgmSelectBtn.classList.remove('bgm1-active','bgm2-active');
+    if (which === 1) bgmSelectBtn.classList.add('bgm1-active');
+    else bgmSelectBtn.classList.add('bgm2-active');
+  }catch(_){}
 }
 
 /* ★BGM切替（♪1/♪2の切り替えボタンのロジック） */
@@ -587,19 +971,23 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
-  if(!bgmOn){
-    pauseAllBGM(); currentBGM().currentTime = 0;
-    currentBGM().play().catch(()=>{});
-    bgmOn = true; 
-    bgmBtn.textContent="🔊 ♪ BGM ON"; // ON状態のテキスト
-  }else{
-    pauseAllBGM(); 
-    bgmOn = false; 
-    bgmBtn.textContent="🔇 ♪ BGM OFF"; // OFF状態のテキストに統一
+  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
+  if (bgmSlider){
+    const now = Number(bgmSlider.value||"0");
+    const next = now > 0 ? 0 : 50;
+    bgmSlider.value = next;
+    onBgmSliderChange(next);
+  } else {
+    bgmOn = !bgmOn;
+    store.set("bgmOn", bgmOn);
+    updateBgmIcon(bgmOn ? store.get("bgmVol", BGM_DEFAULT_VOL) : 0);
+    if (bgmOn){
+      pauseAllBGM(); currentBGM().currentTime = 0;
+      currentBGM().play().catch(()=>{});
+    } else {
+      pauseAllBGM();
+    }
   }
-  store.set("bgmOn", bgmOn);
-  /* インデックスメニュー内のボタンをアクティブ/非アクティブで装飾 */
-  bgmBtn.classList.toggle('active', bgmOn);
 }
 
 function selectBGM(which){
@@ -607,30 +995,28 @@ function selectBGM(which){
   activeBGM = (which===2)?bgm2:bgm1;
   store.set("activeBGM", which);
   setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
-  activeBGM.currentTime = 0;
+  try{ activeBGM.currentTime = 0; }catch(_){}
 
-  updateBGMSelectButton(); // 表示更新（色/ラベル）
+  updateBGMSelectButton(); // 表示更新（ラベル/色）
 
   if(bgmOn){ 
     currentBGM().play().then(()=>{ 
-      bgmBtn.textContent="🔊 ♪ BGM ON"; // ★修正：ON状態のテキストに統一
-      bgmBtn.classList.add('active'); 
+      updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); 
     }).catch(()=>{
       // 自動再生失敗時はOFFに戻す
-      bgmOn=false; store.set("bgmOn", false);
-      pauseAllBGM(); 
-      bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
-      bgmBtn.classList.remove('active');
+      bgmOn=false; 
+      store.set("bgmOn", false);
+      pauseAllBGM();
+      updateBgmIcon(0);
     }); 
-  }
-  else{ 
+  } else { 
     pauseAllBGM(); 
-    bgmBtn.textContent="🔇 ♪ BGM OFF"; // ★修正：OFF状態のテキストに統一
-    bgmBtn.classList.remove('active');
+    updateBgmIcon(0);
   }
 }
 
 /* 初回ジェスチャでBGM/SE解禁 */
+
 let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
@@ -662,18 +1048,39 @@ function userGesture(){
   }
 }
 (function initAudio(){
-  setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
-  if(!Sound.enabled) seBtn.textContent="🔇 SE OFF";
-  seBtn.classList.toggle('active', Sound.enabled);
+  // BGM初期ボリュームを取得して反映
+  const initBgmVol = store.get("bgmVol", BGM_DEFAULT_VOL);
+  setBGMVol(initBgmVol);
 
-  const which=store.get("activeBGM",1);
+  // SE初期状態：スライダーとアイコンへ反映
+  if (seSlider){
+    if (!Sound.enabled){
+      seSlider.value = 0;
+      updateSeIcon(0);
+    } else {
+      const seVol = Sound.vol || SE_DEFAULT_VOL;
+      seSlider.value = Math.round(seVol * 100);
+      updateSeIcon(seVol);
+    }
+  } else {
+    updateSeIcon(Sound.enabled ? Sound.vol : 0);
+  }
+
+  // BGMスライダーとアイコンへ反映
+  if (bgmSlider){
+    bgmSlider.value = Math.round(initBgmVol * 100);
+    updateBgmIcon(initBgmVol);
+  } else {
+    updateBgmIcon(bgmOn ? initBgmVol : 0);
+  }
+
+const which=store.get("activeBGM",1);
   activeBGM = which===2?bgm2:bgm1;
   updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
 
   if(bgmOn){ 
     currentBGM().play().then(()=>{ 
-      bgmBtn.textContent="♪ BGM OFF";
-      bgmBtn.classList.add('active'); 
+      updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); 
     }).catch(()=>{
       // 自動再生がブロック：ユーザー操作で1回だけ復帰（ON設定時のみ）
       const resumeOnce = ()=>{
@@ -682,8 +1089,7 @@ function userGesture(){
         document.removeEventListener('pointerdown', resumeOnce, true);
         document.removeEventListener('keydown', resumeOnce, true);
         document.removeEventListener('touchstart', resumeOnce, true);
-        bgmBtn.textContent="♪ BGM OFF";
-        bgmBtn.classList.add('active');
+        updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL));
       };
       document.addEventListener('pointerdown', resumeOnce, true);
       document.addEventListener('keydown', resumeOnce, true);
@@ -692,8 +1098,7 @@ function userGesture(){
   }
   else{ 
     pauseAllBGM(); 
-    bgmBtn.textContent="♪ BGM ON"; 
-    bgmBtn.classList.remove('active');
+    updateBgmIcon(0);
   }
 })();
 
@@ -740,6 +1145,7 @@ const DRAG_THRESHOLD = 0.35;
 /* ===== 画像 (省略: 変更なし) ===== */
 const IMG = { 
   "SANZU": new Image(), "MUTSU": new Image(), "HANZO": new Image(), "CHIEKO": new Image(), "KUJAKU": new Image(),
+  "SHURACHAN": new Image(), "REKUSHURA": new Image(),
   "S_BIR": new Image(), "S_NE0": new Image(), "S_SHU": new Image(), "S_REQ": new Image(), "S_UNK": new Image(),
   "J_NEM": new Image(), "J_SHI": new Image(), "J_PRO": new Image(),
   "PATH_SANZU": "images/sanzu.png",
@@ -747,6 +1153,8 @@ const IMG = {
   "PATH_HANZO": "images/hanzo.png",
   "PATH_CHIEKO": "images/chieko.png",
   "PATH_KUJAKU": "images/kujaku.png",
+  "PATH_SHURACHAN": "images/shurachan.png",
+  "PATH_REKUSHURA": "images/requshura.png",
   "PATH_S_BIR": "images/special_bir.png",
   "PATH_S_NE0": "images/special_ne0.png",
   "PATH_S_SHU": "images/special_shu.png",
@@ -802,30 +1210,58 @@ let loaded=0; const keys=Object.keys(IMG).filter(k=>!k.startsWith('PATH_')); con
 
 /* ===== キャラクター図鑑 (省略: 変更なし) ===== */
 const CHARACTERS = [ 
-  { sym: "CHIEKO", name: "美毒丸", tag: "通常", desc: "修羅王丸の最古の式神。基礎的な暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
-  { sym: "SANZU", name: "三途", tag: "通常", desc: "修羅王丸の矛たる式神。基礎的な暗躍を担う。", image: "SANZU", unlock: { key: "initial" } },
-  { sym: "HANZO", name: "ハンゾウ", tag: "通常", desc: "修羅王丸の先陣たる式神。基礎的な暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
-  { sym: "MUTSU", name: "陸奥怪童", tag: "通常", desc: "修羅王丸の盾たる式神。基礎的な暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
-  { sym: "KUJAKU", name: "クジャク", tag: "通常", desc: "修羅王丸の盟約たる式神。基礎的な暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
+  { sym: "CHIEKO", name: "美毒丸", tag: "式神", desc: "修羅王丸の最古の式神。/ 通常の暗躍を担う。", image: "CHIEKO", unlock: { key: "initial" } },
+  { sym: "SANZU", name: "三途", tag: "式神", desc: "修羅王丸の矛たる式神。/ 通常の暗躍を担う。", image: "SANZU", unlock: { key: "initial" } },
+  { sym: "HANZO", name: "ハンゾウ", tag: "式神", desc: "修羅王丸の先陣たる式神。/ 通常の暗躍を担う。", image: "HANZO", unlock: { key: "initial" } },
+  { sym: "MUTSU", name: "陸奥怪童", tag: "式神", desc: "修羅王丸の盾たる式神。/ 通常の暗躍を担う。", image: "MUTSU", unlock: { key: "initial" } },
+  { sym: "KUJAKU", name: "クジャク", tag: "式神", desc: "修羅王丸の盟約たる式神。/ 通常の暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
 
-  { sym: "S_BIR", name: "修羅王丸・ミミック", tag: "特殊", desc: "かつて人と共に在った修羅王丸。縦列を消去する。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
-  { sym: "S_NE0", name: "修羅王丸・ネオレトロ", tag: "特殊", desc: "人の姿を辞めた修羅王丸。縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
-  { sym: "S_SHU", name: "修羅王丸・シンギュラ", tag: "特殊", desc: "ネオレトロを斬り捨て顕現した存在。広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
-  { sym: "S_REQ", name: "修羅王丸・レクイエム", tag: "特殊", desc: "新たな境地を求めて生まれた存在。横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
-  { sym: "S_UNK", name: "修羅王丸・アンノウン", tag: "特殊", desc: "未だ見ぬ先の境地。斜め列を消去する（切り替え可能）。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
+  { sym: "S_BIR", name: "ミミック", tag: "修羅王丸", desc: "かつて人と共に在った修羅王丸。/ 縦列消去。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
+  { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
+  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列を消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
-  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。移動できず、隣接する消去でHPを削る。HP:1。", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。移動できず、隣接する消去でHPを削る。HP:3。", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。移動できず、隣接する消去でHPを削る。HP:5。", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+  { sym: "SHURACHAN", name: "しゅらちゃん", tag: "似絵", desc: "シンギュラの自画像。/ 同種駒を4つ消去で召喚。十字列消去。", image: "SHURACHAN", unlock: { key: "spawn", value: "SHURACHAN" } },
+  { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を盤面から全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
+
+  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+
 ];
-let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false });
+let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false, SHURACHAN: false, REKUSHURA: false });
+// ランクがミミック（0）のときは、以前は呪詛ブロック図鑑を再ロックしていたが、
+// 一度解放した図鑑はリセットしても保持したいので、ここでは何もしない。
+try{
+  let _rankForJusoReset = (typeof store!=='undefined' && store.get) ? store.get("rankIndex",0) : 0;
+  // no-op: unlock 状態は維持される
+}catch(_){}
+
+
+function unlockCharBySpawn(sym){
+  try{
+    if (!unlockedChars) unlockedChars = { initial: true, juso_spawn: false, SHURACHAN: false, REKUSHURA: false };
+    if (!unlockedChars[sym]){
+      unlockedChars[sym] = true;
+      if (typeof store!=='undefined' && store.set){
+        store.set("unlockedChars", unlockedChars);
+      }
+      if (typeof updateCharModalContent==='function'){
+        updateCharModalContent();
+      }
+    }
+  }catch(_){}
+}
 
 function tagClassByChar(ch){ /* (省略: 変更なし) */
-  if (Array.isArray(SPECIALS) && SPECIALS.includes(ch.sym)) return "orange";
-  if (ch.sym === "J_NEM") return "yellow";
-  if (ch.sym === "J_SHI") return "blue";
+  if (Array.isArray(SPECIALS) && SPECIALS.includes(ch.sym)) return "blue";
+  if (ch.sym === "J_NEM") return "red";
+  if (ch.sym === "J_SHI") return "red";
   if (ch.sym === "J_PRO") return "red";
-  return "neutral";
+  if (ch.sym === "SHURACHAN") return "orange";
+  if (ch.sym === "REKUSHURA") return "orange";
+  return "yellow";
 }
 function updateCharModalContent(){ /* (省略: 変更なし) */
   if(!$charList) return; let html="";
@@ -833,6 +1269,11 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
     let locked=false, note="";
     if(ch.unlock.key==="rank" && rankIndex<ch.unlock.value){ locked=true; note=`Rank ${ch.unlock.value} で解放`; }
     else if(ch.unlock.key==="juso_spawn" && !unlockedChars.juso_spawn){ locked=true; note=`呪詛ブロックの出現で解放`; }
+    else if(ch.unlock.key==="spawn"){
+      if (!unlockedChars || !unlockedChars[ch.sym]){
+        locked=true; note=`初出現で解放`;
+      }
+    }
     const src = IMG["PATH_"+(ch.image||ch.sym)] || "";
     const tagHtml = `<span class="char-tag ${tagClassByChar(ch)}">${ch.tag}</span>`;
  if(locked){
@@ -856,7 +1297,6 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
   $charList.innerHTML=html;
 }
 
-/* --- ★ここから修正 --- */
 
 let wasPausedBeforeIndex = false; // インデックスを開く前のポーズ状態を保存
 let wasPausedBeforeChildModal = false; // 子モーダル（図鑑/操作説明）を開く前のポーズ状態を保存
@@ -867,7 +1307,7 @@ function openIndexModal(){
   // ★開く：index だけ（なければ push に1回だけフォールバック）
   try {
     if (Sound && Sound.play) {
-      Sound.play('index');           // ← ここだけでOK
+      Sound.play('index');           
     } else if (typeof onClickSE === 'function') {
       onClickSE();                   // フォールバック（1回だけ）
     }
@@ -906,7 +1346,6 @@ function openCharModal(){
   updateCharModalContent(); 
   $charModal.classList.add("open"); 
   $charModal.hidden = false;
-  $indexModal.style.filter = "blur(4px)"; // インデックスをぼかして奥にあるように見せる (オプション)
 }
 function closeCharModal(){
    onClickSE && onClickSE(); try{ window.playSEPush && window.playSEPush(); }catch(e){};
@@ -931,12 +1370,15 @@ function closeCharModal(){
 const HOWTO_IMAGES = [
   "images/howto1.png",
   "images/howto2.png",
-  "images/howto3.png"
+  "images/howto3.png",
+  "images/howto4.png"
+
 ];
 const HOWTO_CAPTIONS = [
   "操作方法1",
   "操作方法2",
-  "操作方法3"
+　"操作方法3",
+  "操作方法4"
 ];
 let howtoIdx = 0;
 
@@ -1079,19 +1521,207 @@ const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
-let slashes=[], particles=[]; // Bのエフェクト要素
+let slashes=[], particles=[], trails=[], auroraBeams=[]; // Bのエフェクト要素
+let flameParts = [];
+// ★連鎖終了の残響（火の粉が上へ舞い上がって収束／SEなし）
+let chainAfterglowEmbers = [];
+// ★上昇パーティクルの「盤面幅いっぱいの光の層」
+let chainAfterglowSheets = [];
+
+ // 連鎖レベル連動の火の粉パーティクル
+let flamePillars = []; // レベル6以上用の画面端・業火の火柱
+let flameRipples = []; // 修羅王丸必殺時の火の粉波紋
+let flameRains = []; // レベル6以上用の火の雨パーティクル
+let bgPulse = null;               // 背景脈動用
+let auroraTriggeredThisMove = false; // この一手でオーロラを出したか
 let vanishMask=null, vanishP=0, animState="idle";
 let drag={active:false,start:null,t:null}, swapPair=null;
 let jusoHP=[], currentObstacleCount=0;
+let pendingShuraItem = null, pendingShuraItemPos = null;
+
 let jusoShake=[]; // 0..1 の減衰パワー
+
+let lastShuraItemKind = null;
+let lastShuraItemMask  = null;
+let lastRekCrossCombo = false; // レク×しゅらの2段階演出フラグ
+let isCascadeMatch = false;    // ドロップ後のカスケードマッチ中かどうか
 
 let isBgmReady = false; // BGMの準備完了フラグ
 
 /* ★ランクMAX到達フラグを追加 (永続化) */
 let hasReachedMaxRank = store.get("hasReachedMaxRank", false);
 
+/* === 連鎖メーター・称号用 === */
+let comboCount = 0;
+let comboLabel = "";
+// === 6連鎖以上：演出の直前に「沈黙フレーム（描画停止）」を挟む（安定優先） ===
+let comboFreezeUntil = 0;           // performance.now() の時刻（ms）
+// 連鎖演出（オーロラ/火柱/火の雨/火の粉等）を freeze 後に開始するための遅延キュー
+let pendingComboAurora = false;
+let pendingComboAuroraDue = 0;
+let pendingComboLevel = 0;
+let pendingComboAnchor = null;
+
+
+// ★連鎖エフェクトの発動位置（直近の消去マスク中心）
+let comboEffectAnchor = { x: null, y: null };
+
+let comboLabelTimer = 0;
+let suppressComboVoice = false; // ランクアップ時に連鎖ボイスを抑制するフラグ
+
+function resetComboForNewMove(){
+  comboCount = 0;
+  auroraTriggeredThisMove = false; // 一手ごとにオーロラ発動フラグをリセット
+  updateComboGauge();
+}
+
+function registerComboStep(){
+  // 連鎖カウントだけを進めてゲージを更新する（演出は最終判定側でまとめて発火）
+  comboCount++;
+  updateComboGauge();
+}
+
+function endComboIfAny(){
+  if (comboCount >= 2){
+    const info = getComboInfo(comboCount);
+    if (info && info.name){
+      // コンボ技名を表示欄に表示
+      if (typeof setComboText === 'function'){
+        try { setComboText(info.name); } catch(_){}
+      }
+      // ステータス欄に技名を出す（任意・デバッグ用）
+      if (typeof updateStatus === 'function'){
+        try { updateStatus('status: ' + info.name); } catch(_){}
+      }
+
+      // ★ボイス再生部分（ランクアップ直後は抑制）
+      if (!suppressComboVoice && info.voiceId){
+        const v = document.getElementById(info.voiceId);
+        if (v){
+          try{
+            v.currentTime = 0;   // 毎回頭から再生
+            v.play().catch(()=>{});
+          }catch(_){}
+        }
+      }
+      // 一度チェックしたらフラグはリセット
+      suppressComboVoice = false;
+    }
+  }
+
+
+  // ★コンボ最終判定時：連鎖数に応じて一度だけ演出を発生させる
+  if (comboCount >= 3){
+    try{
+      // 6連鎖以上：大演出の直前に「沈黙フレーム（約0.1秒）」を挿入し、解放後にまとめて開始
+      if (comboCount >= 6){
+        const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+        comboFreezeUntil = now + 100; // 0.1秒（安全側）
+        pendingComboAurora = true;
+        pendingComboAuroraDue = comboFreezeUntil;
+        pendingComboLevel = comboCount;
+        pendingComboAnchor = (comboEffectAnchor && typeof comboEffectAnchor.x==='number' && typeof comboEffectAnchor.y==='number')
+          ? { x: comboEffectAnchor.x, y: comboEffectAnchor.y }
+          : null;
+      } else {
+        // 通常は force=false でオーロラ生成＋火の粉・火柱・火の雨までまとめて行う
+        triggerAurora(false, comboEffectAnchor);
+      }
+    }catch(_){}
+  }
+  // ★連鎖終了の残響（SEなし）
+  if (comboCount >= 4){
+    try{ spawnChainAfterglowEmbers(comboCount, comboEffectAnchor); }catch(_){ }
+  }
+
+// コンボの片付け
+  comboCount = 0;
+  updateComboGauge();
+}
+
+
+// 連鎖終了の残響：火の粉が上へ舞い上がって収束（SEなし）
+function spawnChainAfterglowEmbers(chainCount, anchor){
+  const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+  const count = (chainCount >= 6) ? 260 : 160; // 6連鎖以上は多め
+  const max = 900;
+  if (chainAfterglowEmbers.length > max) chainAfterglowEmbers.splice(0, chainAfterglowEmbers.length - max);
+
+  // 連鎖4以上：盤面下から幅いっぱいに立ち上がる「光の層」を1枚だけ生成
+  if (chainCount >= 4){
+    const maxSheets = 12;
+    if (chainAfterglowSheets.length > maxSheets) chainAfterglowSheets.splice(0, chainAfterglowSheets.length - maxSheets);
+    const lifeS = (chainCount === 4) ? 240 : ((chainCount >= 6) ? 80 : (chainCount === 5 ? 70 : 60));
+    chainAfterglowSheets.push({
+      life: lifeS, maxLife: lifeS,
+      chain: chainCount
+    });
+  }
+
+
+  for (let i=0;i<count;i++){
+    const ax = (anchor && typeof anchor.x==='number') ? anchor.x : (logicalSize*0.5);
+    const ay = (anchor && typeof anchor.y==='number') ? anchor.y : (logicalSize*0.55);
+    const x = (chainCount >= 4)
+      ? (Math.random() * logicalSize)
+      : Math.max(0, Math.min(logicalSize, ax + (Math.random()-0.5) * tileSize * 4.2));
+    // 連鎖4以上は「盤面下から立ち上がる」見え方に固定
+    const y = (chainCount >= 4)
+      ? (logicalSize - tileSize*(0.25 + Math.random()*1.4*1.5))
+      : Math.max(0, Math.min(logicalSize, ay + tileSize*(0.6 + Math.random()*1.6*1.5)));
+    const vx = (Math.random()-0.5) * ((chainCount === 4) ? 0.95 : 0.55);
+    const vy = (chainCount === 4)
+      ? (-(1.35 + Math.random()*2.10))
+      : (-(0.85 + Math.random()*1.65)); // 上昇
+    const life = (chainCount === 4)
+      ? (240 + Math.random()*20) // 約4秒
+      : ((chainCount >= 6) ? (180 + Math.random()*140) : (140 + Math.random()*110)); // 長め
+    const r0 = (chainCount >= 6) ? (1.25 + Math.random()*2.6) : (1.05 + Math.random()*2.0); // 最大サイズを拡大（バラつきあり）
+    chainAfterglowEmbers.push({
+      x, y, vx, vy,
+      life, maxLife: life,
+      r0,
+      t0: now,
+      chain: chainCount,   // ★連鎖数（3は飛散なし、4以上は突風飛散）
+      exploded: false,     // ★飛散を一度だけ
+      flick: Math.random()*Math.PI*2,
+      reachedCeil: false,
+      explodeAt: now + (chainCount >= 6 ? 520 : 460) // 飛散タイミングを揃える
+    });
+  }
+}
+
+function updateComboGauge(){
+  const bar = document.getElementById("comboGaugeFill");
+  if (!bar) return;
+  const maxStep = 6;
+  const step = Math.min(Math.max(comboCount, 0), maxStep);
+  const pct = (step / maxStep) * 100;
+  bar.style.width = pct + "%";
+}
+
+function getComboInfo(n){
+  if (n < 3) return { name:"", voiceId:null };
+  if (n === 3) return { name:"連鎖×3「慟哭剣・宵闇」", voiceId:"vo_combo3" };
+  if (n === 4) return { name:"連鎖×4「慟哭剣・因果廻天」", voiceId:"vo_combo4" };
+  if (n === 5) return { name:"連鎖×5「慟哭剣・地之叢雲」", voiceId:"vo_combo5" };
+  return { name:`連鎖×${n}「慟哭剣」`, voiceId:"vo_comboX" };
+}
+
+function getTitleByScore(s){
+  if (s < 1000) return "称号：名も無き欠片(1/8)";
+  if (s < 5000) return "称号：影の見習い(2/8)";
+  if (s < 20000) return "称号：業火の丁稚(3/8)";
+  if (s < 50000) return "称号：比良坂の防人(4/8)";
+  if (s < 100000) return "称号：黄昏の審問官(5/8)";
+  if (s < 300000) return "称号：血煙の傍観者(6/8)";
+  if (s < 1000000) return "称号：無明の支配者(7/8)";
+  return "称号：永遠の観測者(MAX)";
+}
+
+
 /* === 最終ランク：特殊ブロック選択  === */
-let selectedSpecialOverride = null; // null時は通常のランク依存
+let selectedSpecialOverride = store.get("selectedSpecialOverride", null); // null時は通常のランク依存
 function voiceForSpecial(sym){ /* (省略: 変更なし) */
   if(sym==="S_BIR") return document.getElementById("vo_rank0");
   if(sym==="S_NE0") return document.getElementById("vo_rank1");
@@ -1121,6 +1751,7 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
     btn.addEventListener('click', ()=>{
       if(!hasReachedMaxRank) return; // ★チェックをhasReachedMaxRankに変更
       selectedSpecialOverride = sym;
+      try{ store.set("selectedSpecialOverride", selectedSpecialOverride); }catch(_){}
       [...row.children].forEach(el=>el.classList.remove('active'));
       btn.classList.add('active');
 
@@ -1131,6 +1762,18 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
     });
     row.appendChild(btn);
   });
+
+  // ★再読込時：保存されている選択状態をボタンに反映
+  if (selectedSpecialOverride){
+    try{
+      [...row.children].forEach(el=>{
+        const imgEl = el.querySelector('img');
+        if (imgEl && imgEl.alt === selectedSpecialOverride){
+          el.classList.add('active');
+        }
+      });
+    }catch(_){}
+  }
   row.dataset.built="1";
 }
 /* ===== RankMAX (Rank 5) の名称定義 ===== */
@@ -1144,7 +1787,7 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 // rankIndex 5: 永遠の焦土 (Rank MAX)
 const RANK_TITLES = [
   "ミミック", // rankIndex = 0 or 1 (初期値/Rank 1として使用する想定)
-  "ネオレトロ", // rankIndex = 1ｓ
+  "ネオレトロ", // rankIndex = 1
   "シンギュラ", // rankIndex = 2
   "レクイエム", // rankIndex = 3
   "アンノウン", // rankIndex = 4 (MAX_RANK_INDEXに相当)
@@ -1158,6 +1801,49 @@ function getRankName(index) {
     return `Rank ${index}`;
   }
   return RANK_TITLES[index];
+}
+
+// コンボ／シャッフル案内テキスト用の表示関数
+function setComboText(msg){
+  var el = document.getElementById("comboTextLabel");
+  if (!el) return;
+
+  // 旧タイマー停止
+  if (window.comboTextTimerId){
+    try { clearTimeout(window.comboTextTimerId); } catch(_){}
+    window.comboTextTimerId = null;
+  }
+
+  // テキストとスタイルを一旦リセット
+  el.textContent = msg || "";
+  el.style.fontFamily = '"源真ゴシック Heavy","Yu Gothic","Meiryo",system-ui,sans-serif';
+  el.style.fontWeight = "900";
+  el.style.color      = "#111111";
+  el.style.textShadow =
+    "-1px -1px 0 #e64545,"+
+    " 1px -1px 0 #e64545,"+
+    "-1px  1px 0 #e64545,"+
+    " 1px  1px 0 #e64545";
+
+  if (!msg){
+    return;
+  }
+
+  // 盤面シャッフル時だけ黄色太字に変更
+  var duration = 5000; // 表示時間（ms）
+  if (msg === "盤面をシャッフルしました。"){
+    el.style.color      = "#ffd966"; // 少し柔らかいゴールド
+    el.style.textShadow = "0 0 4px rgba(0,0,0,0.7)";
+    duration = 5000;
+  }
+
+  window.comboTextTimerId = setTimeout(function(){
+    var el2 = document.getElementById("comboTextLabel");
+    if (el2){
+      el2.textContent = "";
+    }
+    window.comboTextTimerId = null;
+  }, duration);
 }
 
 function updateStatus(text){ if($status) $status.textContent=text; }
@@ -1188,12 +1874,15 @@ function updateScoresUI(){
       /* ランクMAXでなければ、オーバーライドをクリアし、ボタンの選択を外す */
       if(rankIndex!==MAX_RANK_INDEX) { 
         selectedSpecialOverride=null; 
+        try{ store.set("selectedSpecialOverride", selectedSpecialOverride); }catch(_){}
         [...selRow.children].forEach(el=>el.classList.remove('active'));
       }
     }else{
       selRow.style.display='none';
     }
   }
+  const titleEl = document.getElementById("titleLabel");
+  if (titleEl) titleEl.textContent = getTitleByScore(score);
   // 永続
   store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
 }
@@ -1202,7 +1891,11 @@ function updateScoresUI(){
 function get(r,c){ return (r>=0 && r<size && c>=0 && c<size) ? board[r][c] : null; }
 function set(r,c,v){ if(r>=0 && r<size && c>=0 && c<size) board[r][c]=v; }
 function swap(r1,c1,r2,c2){ [board[r1][c1],board[r2][c2]]=[board[r2][c2],board[r1][c1]]; }
-function getInitialBlock(){ return NORMALS[Math.floor(Math.random()*NORMALS.length)]; }
+function getInitialBlock(){
+  // 通常駒のみランダム生成（しゅらちゃん／レクしゅらはマッチ由来のアイテム専用）
+  const base = NORMALS;
+  return base[Math.floor(Math.random()*base.length)];
+}
 
 function initBoard(){ /* (省略: 変更なし) */
   board = Array.from({length:size},()=>Array(size).fill(0));
@@ -1216,6 +1909,7 @@ function initBoard(){ /* (省略: 変更なし) */
       do{ b=getInitialBlock(); }
       while((c>=2 && get(r,c-1)===b && get(r,c-2)===b) || (r>=2 && get(r-1,c)===b && get(r-2,c)===b));
       set(r,c,b);
+      if (b==="SHURACHAN" || b==="REKUSHURA"){ unlockCharBySpawn(b); }
     }
   }
   currentObstacleCount=0;
@@ -1279,7 +1973,7 @@ function togglePause(){
 let lastMatchVH={v:false,h:false};
 function findMatches(checkOnly=true){ /* (省略: 変更なし) */
   lastMatchVH={v:false,h:false};
-  const matches=new Set(); const isBlocked=(b)=> JUSOS.includes(b) || b===null;
+  const matches=new Set(); const isBlocked=(b)=> JUSOS.includes(b) || b===null || b==="SHURACHAN" || b==="REKUSHURA";
   // 縦
   for(let c=0;c<size;c++) for(let r=0;r<=size-3;r++){
     const b=get(r,c); if(isBlocked(b)) continue;
@@ -1295,6 +1989,28 @@ function findMatches(checkOnly=true){ /* (省略: 変更なし) */
 
   if(checkOnly) return matches.size>0;
   if(matches.size>0){
+    // 通常マッチなのでアイテム専用フラグはクリア
+    lastShuraItemKind = null;
+    lastShuraItemMask  = null;
+
+    // ★カスケード時：4個/5個マッチでも しゅらちゃん／レクしゅら を生成予約
+    if (isCascadeMatch){
+      let bestSize = 0;
+      let bestPos = null;
+      for (const key of matches){
+        const [mr, mc] = key.split(",").map(Number);
+        const sizeAt = getMatchSizeAt(mr, mc);
+        if (sizeAt > bestSize){
+          bestSize = sizeAt;
+          bestPos = { r: mr, c: mc };
+        }
+      }
+      if (bestSize >= 4 && bestPos){
+        pendingShuraItemPos = bestPos;
+        pendingShuraItem = (bestSize >= 5) ? "REKUSHURA" : "SHURACHAN";
+      }
+    }
+
     vanishMask = matches; animState="vanish"; vanishP=0;
     // 消去SE（A）
     Sound.play('pop',1.0);
@@ -1312,21 +2028,30 @@ function findMatches(checkOnly=true){ /* (省略: 変更なし) */
 function updateRank(){ /* (省略: 変更なし) */
   if(rankIndex<MAX_RANK_INDEX && rankProgress>=RANK_THRESH[rankIndex]){
     rankProgress=0; rankIndex++;
+    // ランクアップしたので、直後のコンボ技ボイスを抑制
+    if (typeof suppressComboVoice !== 'undefined') {
+      suppressComboVoice = true;
+    }
     /* ensure Unknown gate resets */
-    try{ 
-      if (typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX){ 
-        if (typeof hasReachedMaxRank!=='undefined'){ hasReachedMaxRank = false; try{ store.set('hasReachedMaxRank', false); }catch(_){} }
-        if (typeof unknownStageProgress==='undefined' || typeof unknownStageProgress!=='number') unknownStageProgress = 0; 
-        else unknownStageProgress = 0;
-        try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', 0); }catch(_){}
-      } 
+    try{
+      if (typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX){
+        // ランクMAXインデックスに到達した瞬間、
+        // まだ一度もMAX解放していない場合だけ 闘値カウンタをリセットする
+        if (typeof hasReachedMaxRank!=='undefined' && !hasReachedMaxRank){
+          if (typeof unknownStageProgress!=='number') unknownStageProgress = 0;
+          else unknownStageProgress = 0;
+          try{
+            if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', 0);
+          }catch(_){}
+        }
+        // すでに hasReachedMaxRank が true の場合は、何もリセットしない（アイコンを消さない）
+      }
     }catch(_){}
-
-    const v = document.getElementById(`vo_rank${Math.min(rankIndex,4)}`);
+const v = document.getElementById(`vo_rank${Math.min(rankIndex,4)}`);
     if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
     Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
   }
-  if(rankIndex>=1 && !unlockedChars.juso_spawn){ unlockedChars.juso_spawn=true; store.set("unlockedChars", unlockedChars); }
+  // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
   updateScoresUI();
 }
 
@@ -1372,38 +2097,66 @@ function applySpecialGimmicks(baseMatches){ /* (省略: 変更なし) */
 
 function resolveVanishAndDrop(){ /* (省略: 変更なし) */
   if(!vanishMask) return;
+  registerComboStep();
  // ★同一 vanish サイクル中に同じお邪魔へ複数回ダメージを入れないためのメモ
   const damagedThisVanish = new Set();
+
+  // ★しゅらちゃん十字による vanish かどうかを判定
+  const isShuraCrossVanish = (lastShuraItemKind === "SHURACHAN" && lastShuraItemMask && lastShuraItemMask.size>0);
+
   const specialsHit = new Set();
-  vanishMask.forEach(pos=>{
-    const [r,c] = pos.split(',').map(Number);
-    const b = get(r,c);
-    if (b && SPECIALS.includes(b)) specialsHit.add(b);
-  });
-  specialsHit.forEach(sym=>{
-    if (sym==="S_BIR" || sym==="S_NE0")      Sound.play('vertical', 0.9);
-    else if (sym==="S_REQ")                  Sound.play('horizontal', 0.9);
-    else if (sym==="S_SHU")                  Sound.play('circle', 1.0);
-    else if (sym==="S_UNK")                  Sound.play('cross', 1.0);
-  });
+  if (!isShuraCrossVanish){
+    vanishMask.forEach(pos=>{
+      const [r,c] = pos.split(',').map(Number);
+      const b = get(r,c);
+      if (b && SPECIALS.includes(b)) specialsHit.add(b);
+    });
+    specialsHit.forEach(sym=>{
+      // 通常消去と同程度の音量に統一
+      if (sym==="S_BIR" || sym==="S_NE0")      Sound.play('vertical', 0.9);
+      else if (sym==="S_REQ")                  Sound.play('horizontal', 0.9);
+      else if (sym==="S_SHU")                  Sound.play('circle', 0.9);
+      else if (sym==="S_UNK")                  Sound.play('cross', 0.9);
+    });
 
-  /* === Unknown 闘値インクリメント（MAX直前のみ） === */
-  try{
-    if (specialsHit && specialsHit.has && specialsHit.has("S_UNK")){
-      if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
-        if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
-        unknownStageProgress += 1;
-        try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
-        try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
-        try{ if (typeof maybeReachMax==='function') maybeReachMax(); }catch(_){}
-      }
+    // ★レベル3：修羅王丸の消去スキル発動時（S_BIR/S_NE0/S_SHU/S_REQ/S_UNK）に
+    // 残光（しゅら演出）＋オーロラ＋背景脈動を一斉発動
+    if (specialsHit && specialsHit.size){
+      try {
+        triggerAurora(true);   // レベル3側はフル強度
+        triggerBgPulse();
+      } catch(_){}
     }
-  }catch(_){}
 
+    /* === Unknown 闘値インクリメント（MAX直前のみ） === */
+    try{
+      if (specialsHit && specialsHit.has && specialsHit.has("S_UNK")){
+        if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
+          if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
+          unknownStageProgress += 1;
+          try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
+          try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+          try{ if (typeof maybeReachMax==='function') maybeReachMax(); }catch(_){}
+        }
+      }
+    }catch(_){}
+  }
 
-  const extra = applySpecialGimmicks(vanishMask);
+  // ★しゅらちゃん十字由来の vanish の場合、SPECIALS のスキルは発動させない
+  const extra = isShuraCrossVanish ? new Set() : applySpecialGimmicks(vanishMask);
   extra.forEach(p=> vanishMask.add(p));
-  if (extra.size) { createSlashEffects(extra); createParticles(extra); }
+
+  const safeMask = new Set(vanishMask);
+
+  if (lastShuraItemKind && safeMask.size > 0){
+    try{
+      createShuraItemBurstEffects(safeMask, lastShuraItemKind);
+      createSlashEffects(safeMask);
+    }catch(_){}
+  } else if (extra.size) {
+    createSlashEffects(extra);
+    createParticles(extra);
+  }
 
   vanishMask.forEach(pos=>{
     const [r,c]=pos.split(',').map(Number);
@@ -1414,18 +2167,19 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
         score += SPECIAL_POINTS[b];
       }
     }
+    // 周囲の呪詛ブロックへダメージ
     for(let dr=-1; dr<=1; dr++){
       for(let dc=-1; dc<=1; dc++){
         if(!dr && !dc) continue;
         const tr=r+dr, tc=c+dc;
-        if(JUSOS.includes(get(tr,tc)) && jusoHP[tr][tc]>0){
-        // ★同じ座標にこのサイクルで既に当てていないかチェック
-        const key = tr + ',' + tc;
-        if (!damagedThisVanish.has(key)) {
-        jusoHP[tr][tc]--;
-        damagedThisVanish.add(key);
-        triggerJusoShake(tr, tc, 1.0);
-        }
+        if(JUSOS.includes(get(tr,tc)) && jusoHP[tr] && jusoHP[tr][tc]>0){
+          // ★同じ座標にこのサイクルで既に当てていないかチェック
+          const key = tr + ',' + tc;
+          if (!damagedThisVanish.has(key)) {
+            jusoHP[tr][tc]--;
+            damagedThisVanish.add(key);
+            triggerJusoShake(tr, tc, 1.0);
+          }
           if (jusoHP[tr][tc]===0){
             // ★このセルは「消去によるnull化」だとマークする
             (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
@@ -1439,6 +2193,43 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
         }
       }
     }
+
+    // しゅらちゃん／レクしゅら：追加で呪詛を削る（盤面全体から）
+    if (b==="SHURACHAN" || b==="REKUSHURA"){
+      try{
+        const extraHits = (b==="SHURACHAN") ? 1 : 3;
+        const candidates = [];
+        for(let rr=0; rr<size; rr++){
+          for(let cc=0; cc<size; cc++){
+            const bb = get(rr,cc);
+            if(JUSOS.includes(bb) && jusoHP[rr] && jusoHP[rr][cc]>0){
+              const key2 = rr + ',' + cc;
+              if (!damagedThisVanish.has(key2)){
+                candidates.push({rr,cc,key:key2});
+              }
+            }
+          }
+        }
+        for(let n=0; n<extraHits && candidates.length>0; n++){
+          const idxPick = Math.floor(Math.random()*candidates.length);
+          const picked = candidates.splice(idxPick,1)[0];
+          const rr = picked.rr, cc = picked.cc, key = picked.key;
+          damagedThisVanish.add(key);
+          jusoHP[rr][cc]--;
+          triggerJusoShake(rr,cc,1.0);
+          if (jusoHP[rr][cc] <= 0){
+            jusoHP[rr][cc] = 0;
+            (window.__jusoEraseSet ||= new Set()).add(rr + ',' + cc);
+            set(rr,cc,null);
+            score += 100;
+            Sound.play('vertical');
+          } else {
+            Sound.play('rumble');
+          }
+        }
+      }catch(_){}
+    }
+
     if (JUSOS.includes(b)) { jusoHP[r][c] = 0; }
     set(r,c,null);
   });
@@ -1481,6 +2272,33 @@ const BOUNCE  = 0.25;
 const VEL_EPS = 0.6;
 
 function prepareDrop(){ /* (省略: 変更なし) */
+
+  // ★しゅらちゃん／レクしゅら：4個/5個マッチによるアイテム出現（移動駒の最終位置）
+  if (pendingShuraItem && pendingShuraItemPos){
+    try{
+      const sr = pendingShuraItemPos.r;
+      const sc = pendingShuraItemPos.c;
+      if (sr>=0 && sr<size && sc>=0 && sc<size){
+        if (get(sr,sc)===null){
+          set(sr,sc,pendingShuraItem);
+          if (!jusoHP[sr]) jusoHP[sr] = [];
+          jusoHP[sr][sc] = 0;
+          unlockCharBySpawn(pendingShuraItem);
+          // ★アイテム出現時のポップな演出
+          try{
+            createShuraItemParticles(pendingShuraItem, sr, sc);
+          }catch(_){}
+        }
+      }
+    }catch(_){}
+    pendingShuraItem = null;
+    pendingShuraItemPos = null;
+  }
+
+  // 通常ドロップでは専用フラグをリセット
+  lastShuraItemKind = null;
+  if (lastShuraItemMask) lastShuraItemMask = null;
+
   for(let c=0;c<size;c++){
     let empty=size-1;
     for(let r=size-1;r>=0;r--){
@@ -1515,6 +2333,7 @@ function prepareDrop(){ /* (省略: 変更なし) */
         Sound.play('shine', 0.7);
       }
       set(r,c,nb);
+      if (nb==="SHURACHAN" || nb==="REKUSHURA"){ unlockCharBySpawn(nb); }
       if (!jusoHP[r]) jusoHP[r] = [];
       jusoHP[r][c] = 0;
       if(!yAnim[r]) yAnim[r]=[];
@@ -1545,6 +2364,17 @@ function maybeSpawnObstacles(){ /* (省略: 変更なし) */
     const pick = pool[Math.floor(Math.random()*pool.length)];
     set(r,c,pick); if(!jusoHP[r]) jusoHP[r]=[]; jusoHP[r][c]=(pick==="J_NEM"?1:(pick==="J_SHI"?3:5)); k++;
   }
+  // 呪詛ブロックが実際に盤面へ出現したタイミングで図鑑を解放
+  try{
+    if (k>0 && typeof unlockedChars!=='undefined'){
+      if (!unlockedChars.juso_spawn){
+        unlockedChars.juso_spawn = true;
+        if (typeof store!=='undefined' && store.set){
+          store.set("unlockedChars", unlockedChars);
+        }
+      }
+    }
+  }catch(_){}
 }
 
 /* 斬撃＆粒子エフェクト (省略: 変更なし) */
@@ -1575,34 +2405,563 @@ function createParticles(matches){ /* (省略: 変更なし) */
 
 /* 描画 (省略: 変更なし) */
 const SWAP_ANIM_TIME=0.15*60, VANISH_ANIM_TIME=0.25*60;
-function drawSlashes(){ /* (省略: 変更なし) */
+function drawSlashes(){ /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字両対応 */
   if(!slashes.length) return;
   ctx.save();
-  ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
   ctx.globalCompositeOperation='lighter';
   for(const s of slashes){
-    const t=Math.min(1,s.t); const len=tileSize*(1+t*1.2); const w=Math.max(2,6-t*5);
-    ctx.lineWidth=w; ctx.beginPath();
-    if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-    else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-    ctx.stroke(); s.t+=0.12;
+    const t=Math.min(1,s.t);
+    const len=tileSize*(1+t*1.2);
+    let w=Math.max(2,6-t*5);
+
+    if (s.kind === 'shuraCross'){
+      // しゅらちゃん／レクしゅら専用：水色グロウ十字
+      const alpha = 0.75 * (1 - t);
+      const outerW = w * 2.0;
+      // 外側の青寄りグロウ
+      ctx.strokeStyle = `rgba(60,150,255,${alpha * 0.6})`;
+      ctx.lineWidth = outerW;
+      ctx.beginPath();
+      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
+      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
+      ctx.stroke();
+      // 内側の鮮烈なアクア系
+      ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
+      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
+      ctx.stroke();
+    } else {
+      // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
+      ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
+      ctx.lineWidth=w;
+      ctx.beginPath();
+      if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+      else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+      ctx.stroke();
+    }
+    s.t+=0.12;
   }
-  slashes=slashes.filter(s=>s.t<1.0); ctx.restore();
+  slashes=slashes.filter(s=>s.t<1.0);
+  ctx.restore();
 }
-function drawParticles(){ /* (省略: 変更なし) */
+
+
+function drawFlames(){
+  if (!flameParts.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  for (const f of flameParts){
+    const t = f.life / f.maxLife;
+    const a = 1.05 * (1 - t * 0.75);      // 光をやや強め＋減衰をゆっくりに
+    const grow = 1 - t * 0.35;            // ゆっくり小さくなる
+
+    // 色味：全体的に赤寄り、エッジの赤を強める
+    let r, g, b;
+    if (f.hell){
+      // 業火：深い赤〜マゼンタ寄り
+      r = 248 + Math.random()*7;
+      g = 50 + Math.random()*30;
+      b = 70 + Math.random()*50;
+    } else {
+      // 通常火花：赤みの強いオレンジ〜黄色
+      r = 255;
+      g = 140 + Math.random()*50;
+      b = 25 + Math.random()*25;
+    }
+    // 連鎖3〜5の火花は「上昇パーティクル同等」の発光感（白芯→黄白→橙→透明）にする
+    if (!f.hell && (f.level >= 3 && f.level <= 5)){
+      const rr = f.size * grow * 2.4; // v3: サイズ縮小(約0.7倍)
+      const gg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, rr);
+      gg.addColorStop(0.00, `rgba(255,255,250,${Math.min(1, a*1.05)})`);
+      gg.addColorStop(0.20, `rgba(255,245,205,${Math.min(1, a*0.95)})`);
+      gg.addColorStop(0.55, `rgba(255,175,80,${Math.min(1, a*0.70)})`);
+      gg.addColorStop(1.00, `rgba(30,5,0,0)`);
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, rr, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = `rgba(${r|0},${g|0},${b|0},${a})`;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.size * grow, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+// 四方八方に散りつつ、ふわふわと長く漂うモーション
+    f.x += f.vx;
+    f.y += f.vy;
+
+    // 徐々に減速（ふわふわ感）
+    f.vx *= 0.97;
+    f.vy *= 0.97;
+
+    // わずかに上方向へ流れるドリフト
+    f.y -= tileSize * 0.002;
+
+    // 揺らぎ
+    f.x += Math.sin(f.life * 0.18) * 0.18;
+    f.y += Math.cos(f.life * 0.14) * 0.14;
+
+    f.life++;
+  }
+  flameParts = flameParts.filter(f => f.life < f.maxLife);
+  ctx.restore();
+}
+
+
+
+function drawFlamePillars(){
+  if (!flamePillars.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of flamePillars){
+    const t = p.life / p.maxLife;
+    const alpha = 0.55 * (1 - t);
+    const height = p.maxHeight * (0.4 + 0.6 * (1 - t));
+    const baseY = logicalSize;
+    const topY = baseY - height;
+
+    const grad = ctx.createLinearGradient(p.x, topY, p.x, baseY);
+    grad.addColorStop(0.0, `rgba(255, 220, 160, ${alpha * 0.0})`);
+    grad.addColorStop(0.3, `rgba(255, 200, 120, ${alpha * 0.6})`);
+    grad.addColorStop(0.7, `rgba(255, 120, 60, ${alpha * 0.9})`);
+    grad.addColorStop(1.0, `rgba(220, 40, 20, ${alpha})`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.rect(p.x - p.width/2, topY, p.width, height);
+    ctx.fill();
+
+    p.life++;
+  }
+  flamePillars = flamePillars.filter(p => p.life < p.maxLife);
+  ctx.restore();
+}
+
+function drawFlameRipples(){
+  if (!flameRipples.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const r of flameRipples){
+    const t = r.life / r.maxLife;
+    const radius = r.radius + r.maxRadius * t;
+    const alpha = 0.6 * (1 - t);
+    if (alpha <= 0) { r.life = r.maxLife; continue; }
+
+    ctx.strokeStyle = `rgba(255, 140, 60, ${alpha})`;
+    ctx.lineWidth = tileSize * (0.10 + 0.06 * (1 - t));
+    ctx.beginPath();
+    ctx.arc(r.cx, r.cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    r.life++;
+  }
+  flameRipples = flameRipples.filter(r => r.life < r.maxLife);
+  ctx.restore();
+}
+
+
+
+function drawFireRains(){
+  if (!flameRains.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const f of flameRains){
+    const t = f.life / f.maxLife;
+    const alpha = 0.9 * (1 - t);
+    const len = f.length * (0.8 + 0.2 * (1 - t));
+
+    const a = (f.hell ? alpha * 0.95 : alpha);
+    // 外側（色）＋内側（白芯）で「強い光」を作る
+    const x2 = f.x + f.vx * 0.4;
+    const y2 = f.y + len;
+    ctx.beginPath();
+    ctx.moveTo(f.x, f.y);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = `rgba(${f.r|0},${f.g|0},${f.b|0},${a*0.75})`;
+    ctx.lineWidth = f.width * 1.7;
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${a})`;
+    ctx.lineWidth = Math.max(0.6, f.width * 0.65);
+    ctx.stroke();
+
+    f.x += f.vx;
+    f.y += f.vy;
+    f.life++;
+  }
+  flameRains = flameRains.filter(f => f.life < f.maxLife && f.y < logicalSize + tileSize);
+  ctx.restore();
+}
+
+function drawParticles(){ /* (しゅらちゃん／レクしゅら用の★パーティクル対応版) */
   if(!particles.length) return;
   ctx.save();
   ctx.globalCompositeOperation='lighter';
   for(const p of particles){
-    const t=p.life/p.maxLife;
+    const t = p.life / p.maxLife;
     const alpha = isKanki ? (0.8*(1-t)) : (0.9*(1-t));
-    ctx.fillStyle = isKanki ? `rgba(180,220,255,${alpha})` : `rgba(220,40,40,${alpha})`;
+    let col = null;
+    if (p.color){
+      col = p.color;
+      ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},${alpha})`;
+      ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${alpha})`;
+    } else {
+      ctx.fillStyle = isKanki ? `rgba(180,220,255,${alpha})` : `rgba(220,40,40,${alpha})`;
+      ctx.strokeStyle = ctx.fillStyle;
+    }
     const rad = Math.max(1, 3 - 2*t);
-    ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI*2); ctx.fill();
+    // ★しゅらちゃん／レクしゅら由来のパーティクルは小さな★型で描画
+    if (p.kind === "shura" || p.kind === "rekushura"){
+      const sz = rad * 1.7 + 1.5; // 一回り大きな★に
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(p.x,     p.y - sz);
+      ctx.lineTo(p.x,     p.y + sz);
+      ctx.moveTo(p.x - sz, p.y);
+      ctx.lineTo(p.x + sz, p.y);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rad, 0, Math.PI*2);
+      ctx.fill();
+    }
     p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life++;
   }
   particles=particles.filter(p=>p.life<p.maxLife);
   ctx.restore();
+}
+
+
+function drawTrails(){ /* レベル1：しゅらちゃん／レクしゅら用の残光の尾（v2の約半分の強さ） */
+  if(!trails.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(const tr of trails){
+    const t = tr.life / tr.maxLife;
+    const alpha = 0.35 * (1 - t);
+    const len = tr.length * (1 + 0.10*Math.sin(tr.life*0.25));
+    const baseW = tileSize * 0.10;
+    const w = baseW * (1 - t);
+    if (w <= 0.1){ tr.life = tr.maxLife; continue; }
+    ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    const steps = 10;
+    for(let i=0;i<=steps;i++){
+      const u = (i/steps - 0.5);
+      let px = tr.x, py = tr.y;
+      if (tr.dir === 'h') px += u * len;
+      else               py += u * len;
+      const wobble = Math.sin(tr.phase + u*6 + tr.life*0.2) * tileSize*0.08 * (1-t);
+      if (tr.dir === 'h') py += wobble;
+      else               px += wobble;
+      if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    tr.life++;
+  }
+  trails = trails.filter(tr => tr.life < tr.maxLife);
+  ctx.restore();
+}
+
+function triggerAurora(force, anchor, chainLevelOverride){ /* レベル2/3用オーロラ生成（元の約3分の2の強さ） */
+  const centerX = (anchor && typeof anchor.x==='number') ? anchor.x : (logicalSize/2);
+  const centerY = (anchor && typeof anchor.y==='number') ? anchor.y : (logicalSize/2);
+  const baseLen = Math.sqrt(logicalSize*logicalSize*2) * 1.2;
+  const strength = force ? 1.0 : 0.8; // レベル2: 0.8, レベル3: 1.0
+
+  // レベル2（force=false）：片側の斜めビームのみ
+  // レベル3（force=true）：左右反対斜めの2方向に伸びる「X」字ビーム
+  const baseAngles = force ? [-Math.PI/4, Math.PI/4] : [-Math.PI/4];
+  const beamsPerDir = force ? 1 : 2;
+
+  const newBeams = [];
+
+  for(const baseAng of baseAngles){
+    for(let i=0;i<beamsPerDir;i++){
+      const ang = baseAng + (Math.random()*0.25 - 0.125);
+      const beam = {
+        angle: ang,
+        cx: centerX,
+        cy: centerY,
+        length: baseLen * (0.9 + Math.random()*0.3),
+        width: tileSize * (1.2 + Math.random()*0.4) * strength,
+        life: 0,
+        maxLife: 22 + (i*4),
+        strength
+      };
+      auroraBeams.push(beam);
+      newBeams.push(beam);
+    }
+  }
+  auroraTriggeredThisMove = true;
+
+  // ★連鎖レベルに応じた火の粉生成（3〜6以上）。オーロラライン上から発生。
+  try{
+    const rawLevel = (typeof chainLevelOverride==='number' && isFinite(chainLevelOverride)) ? chainLevelOverride : (comboCount || 3);
+    const chainLevel = Math.max(3, Math.min(6, rawLevel)); // 3〜6に丸める
+    // 6連鎖（慟哭剣・敵國降伏 相当）では、オーロラビーム自体も地獄寄りの色にする
+    if (chainLevel >= 6){
+      for (const b of newBeams){
+        if (b) b.hell = true;
+      }
+    }
+    spawnFlamesFromAurora(newBeams, chainLevel);
+    // 修羅王丸必殺（force=true）のときだけ、画面全体に火の粉の波紋を追加
+    if (force){
+      spawnFlameRipples();
+    }
+  }catch(_){}
+}
+
+/**
+ * 連鎖レベルに応じて、「焚き火の灰」が舞う火の粉＋6連鎖以上で業火を混ぜる。
+ * 火の粉はオーロラビームのライン上から発生させる。
+ */
+
+function spawnFlamesFromAurora(beams, level){
+  if (!beams || !beams.length) return;
+  const MAX_FLAME_PARTS = 220;
+  if (flameParts.length >= MAX_FLAME_PARTS) return;
+
+  // 3:8 / 4:12 / 5:16 / 6:20 + 業火ボーナス → 全体を3倍
+  const baseCount = (level === 3) ? 14 : (8 + (level - 3) * 4);
+  const extraHell = (level >= 6) ? 6 : 0;
+  const totalBase = baseCount + extraHell;
+  const totalCount = totalBase * 3; // 見た目を派手にするため3倍
+
+  const perBeam = Math.max(1, Math.floor(totalCount / beams.length));
+
+  for (const b of beams){
+    const dirx = Math.cos(b.angle);
+    const diry = Math.sin(b.angle);
+
+    for (let i = 0; i < perBeam; i++){
+      // ビームの長さの中ほど ±50% にばら撒く（発生位置はオーロラの軌跡上）
+      const u = (Math.random() - 0.5) * b.length;
+      const sx = b.cx + dirx * u;
+      const sy = b.cy + diry * u;
+
+      // 四方八方に散るが、全体としてゆっくりめに舞う
+      const speed = tileSize * 0.12 * (0.6 + Math.random()*0.8);
+      const ang = Math.random() * Math.PI * 2;
+      const vx = Math.cos(ang) * speed;
+      const vy = Math.sin(ang) * speed * 0.8;
+
+      const isHell = (level >= 6) && (Math.random() < 0.35); // 一部を「業火」扱い
+
+      // サイズを大・中・小で混在させる（大サイズは現状維持）
+      const rTier = Math.random();
+      let baseSize, jitter;
+      if (rTier < 0.25){
+        // 小さめの火花
+        baseSize = isHell ? 2.4 : 1.8;
+        jitter   = isHell ? 1.1 : 0.9;
+      } else if (rTier < 0.75){
+        // 中くらいの火花
+        baseSize = isHell ? 3.6 : 2.6;
+        jitter   = isHell ? 2.0 : 1.6;
+      } else {
+        // 大きい火花（現状のサイズ感を維持）
+        baseSize = isHell ? 4.5 : 3.2;
+        jitter   = isHell ? 3.5 : 2.5;
+      }
+
+      flameParts.push({
+        x: sx,
+        y: sy,
+        vx,
+        vy,
+        life: 0,
+        maxLife: isHell ? (55 + Math.random()*25) : (42 + Math.random()*18), // 少し長めに残す
+        size: baseSize + Math.random()*jitter,
+        hell: isHell,
+        level: level
+      });
+    }
+  }
+
+  // レベル6以上では画面端に業火の火柱＋火の雨を追加
+  if (level >= 6){
+    spawnFirePillars(level);
+    spawnFireRain(level);
+  }
+}
+
+
+
+function spawnFirePillars(level){
+  const colsPerSide = 2 + (level > 6 ? 1 : 0); // レベル6で2本/側、7以上なら3本/側
+  const marginX = tileSize * 0.6;
+  const pitch = tileSize * 0.9;
+  const usableHeight = logicalSize * 0.65;
+
+  for (const side of [-1, 1]){
+    for (let i = 0; i < colsPerSide; i++){
+      const offset = marginX + pitch * i;
+      const x = (side < 0) ? offset : (logicalSize - offset);
+      const maxHeight = usableHeight * (0.7 + Math.random()*0.3);
+      const width = tileSize * (0.5 + Math.random()*0.4);
+      flamePillars.push({
+        x,
+        width,
+        maxHeight,
+        life: 0,
+        maxLife: 50 + Math.random()*20
+      });
+    }
+  }
+}
+
+function spawnFlameRipples(){
+  const centerX = logicalSize / 2;
+  const centerY = logicalSize / 2;
+  const layers = 3;
+  for (let i = 0; i < layers; i++){
+    flameRipples.push({
+      cx: centerX,
+      cy: centerY,
+      radius: tileSize * 0.4 * i,
+      maxRadius: logicalSize * (0.55 + i * 0.12),
+      life: 0,
+      maxLife: 45 + i * 8
+    });
+  }
+}
+
+// レベル6以上専用：画面全体に「火の雨」を降らせる
+function spawnFireRain(level){
+  const MAX_RAIN = 220;
+  if (flameRains.length >= MAX_RAIN) return;
+
+  const count = 90 + Math.max(0, level - 6) * 20; // だいたい90本前後
+
+  for (let i = 0; i < count; i++){
+    const x = Math.random() * logicalSize;
+    const y = -tileSize * (0.5 + Math.random() * 3.0); // 画面上部の外から降ってくる
+    const vy = tileSize * (0.25 + Math.random() * 0.25);
+    const vx = tileSize * (Math.random() * 0.10 - 0.05); // わずかに斜め
+    const length = tileSize * (0.6 + Math.random() * 0.6);
+    const width  = tileSize * (0.04 + Math.random() * 0.03);
+
+    // 6連鎖以上（慟哭剣・敵國降伏）では「光らない赤黒」を強制
+    const isHell = (level >= 6);
+    let r, g, b;
+    if (isHell){
+      // 地獄火（強い光芯＋赤橙の縁）
+      r = 255;
+      g = 80  + Math.random()*90;
+      b = 20  + Math.random()*40;
+    } else {
+      // 通常（従来の炎色）
+      r = 255;
+      g = 160 + Math.random()*60;
+      b = 60  + Math.random()*40;
+    }
+
+    flameRains.push({
+      x, y, vx, vy,
+      life: 0,
+      // 降っている時間を従来の約1.5倍に延長
+      maxLife: 60 + Math.random()*25,
+      length,
+      width,
+      r, g, b,
+      hell: isHell
+    });
+  }
+}
+function drawAurora(){
+  if(!auroraBeams.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(const b of auroraBeams){
+    const t = b.life / b.maxLife;
+    const alphaBase = 0.40 * b.strength; // 元の約3分の2程度を想定
+    const alpha = alphaBase * (1 - t);
+    if (alpha <= 0){ b.life = b.maxLife; continue; }
+    ctx.save();
+    ctx.translate(b.cx, b.cy);
+    ctx.rotate(b.angle);
+    const grad = ctx.createLinearGradient(-b.length/2, 0, b.length/2, 0);
+
+    const isHellAurora = !!b.hell; // 6連鎖以上で付与されるフラグ
+
+    if (isHellAurora){
+      // 地獄味の強い赤黒系オーロラの柱
+      grad.addColorStop(0.0, `rgba(0,0,0,0)`);
+      grad.addColorStop(0.25, `rgba(120,0,0,${alpha * 0.7})`);
+      grad.addColorStop(0.6, `rgba(210,20,20,${alpha})`);
+      grad.addColorStop(1.0, `rgba(0,0,0,0)`);
+    } else if (isKanki){
+      // 歓喜モード時：中心の白さを少し抑え、盤面が見えるようにアルファを控えめにする
+      const aK = alpha * 0.6;
+      grad.addColorStop(0, `rgba(120,255,255,0)`);
+      grad.addColorStop(0.5, `rgba(220,240,255,${aK})`);
+      grad.addColorStop(1, `rgba(255,180,220,0)`);
+    } else {
+      grad.addColorStop(0, `rgba(40,0,80,0)`);
+      grad.addColorStop(0.5, `rgba(140,40,160,${alpha})`);
+      grad.addColorStop(1, `rgba(220,40,80,0)`);
+    }
+    ctx.fillStyle = grad;
+    const width = b.width * (1 + 0.25*Math.sin(b.life*0.25));
+    ctx.fillRect(-b.length/2, -width/2, b.length, width);
+    ctx.restore();
+    b.life++;
+  }
+  auroraBeams = auroraBeams.filter(b => b.life < b.maxLife);
+  ctx.restore();
+}
+
+function getPulseMode(){
+  // isKanki が true = 歓喜, false = 焦土, それ以外に Jubille/超越があればそちらを優先
+  try{
+    const w = window || {};
+    const jub = !!(w.isJubilee || (''+(w.currentMode||'')).toLowerCase().includes('jubilee'));
+    if (jub) return 'choetsu';
+  }catch(_){}
+  return isKanki ? 'kanki' : 'shodo';
+}
+
+function triggerBgPulse(){
+  // 背景脈動は「発動しているのが分かる」程度にやや強め
+  bgPulse = { mode: getPulseMode(), life: 0, maxLife: 70 };
+}
+
+function drawBgPulse(){
+  if (!bgPulse) return;
+  const t = bgPulse.life / bgPulse.maxLife;
+  const alpha = 0.9 * (1 - t);
+  if (alpha <= 0){
+    bgPulse = null;
+    return;
+  }
+  const cx = logicalSize/2;
+  const cy = logicalSize/2;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  if (bgPulse.mode === 'kanki'){
+    const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,logicalSize*0.85);
+    grad.addColorStop(0, `rgba(230,255,255,${alpha})`);
+    grad.addColorStop(1, `rgba(0,0,0,0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,logicalSize,logicalSize);
+  } else if (bgPulse.mode === 'shodo'){
+    const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,logicalSize*0.9);
+    grad.addColorStop(0, `rgba(160,0,0,${alpha*0.9})`);
+    grad.addColorStop(1, `rgba(0,0,0,0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,logicalSize,logicalSize);
+  } else { // choetsu
+    ctx.fillStyle = `rgba(255,255,255,${alpha*0.7})`;
+    ctx.fillRect(0,0,logicalSize,logicalSize);
+  }
+  ctx.restore();
+  bgPulse.life++;
+  if (bgPulse.life >= bgPulse.maxLife) bgPulse = null;
 }
 
 function drawBlock(r,c,x,y,a=1){ /* (省略: 変更なし) */
@@ -1622,13 +2981,179 @@ function drawBlock(r,c,x,y,a=1){ /* (省略: 変更なし) */
   if(img&&img.complete) ctx.drawImage(img,x+off,y+off,s,s);
   else{ ctx.fillStyle='#444'; ctx.fillRect(x,y,tileSize,tileSize); }
   if (JUSOS.includes(b) && jusoHP[r][c] > 0) {
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    const hpText = String(jusoHP[r][c]);
     ctx.font = `bold ${tileSize * 0.3}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     const pad = tileSize * 0.08;
-    ctx.fillText(jusoHP[r][c], x + tileSize - pad, y + tileSize - pad);
+    const tx = x + tileSize - pad;
+    const ty = y + tileSize - pad;
+    ctx.lineWidth = tileSize * 0.08;
+    ctx.strokeStyle = '#993333';
+    ctx.strokeText(hpText, tx, ty);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(hpText, tx, ty);
   }
+  ctx.restore();
+}
+
+function decayJusoShake(){
+  if(!jusoShake || !jusoShake.length) return;
+  // 毎フレームゆっくり減衰
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      const v = jusoShake[r][c];
+      if(v>0.001){ jusoShake[r][c] = v * 0.88; if(jusoShake[r][c]<0.001) jusoShake[r][c]=0; }
+    }
+  }
+}
+
+
+function drawChainAfterglowEmbers(){
+  if (!chainAfterglowEmbers || chainAfterglowEmbers.length===0) return;
+
+  ctx.save();
+
+  const now = performance.now();
+
+  // 盤面幅いっぱいの上昇「光の層」（連鎖4以上）
+  if (chainAfterglowSheets && chainAfterglowSheets.length){
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i=chainAfterglowSheets.length-1;i>=0;i--){
+      const s = chainAfterglowSheets[i];
+      s.life -= 1;
+      const tS = 1 - (s.life / s.maxLife); // 0→1
+      const yCeil = logicalSize * 0.30; // 上昇最上値：盤面70%（上端から30%）
+      const pRise = Math.min(1, tS / 0.55); // 上昇は寿命前半で完了させる
+      const y0 = logicalSize - (pRise * (logicalSize - yCeil));
+      const h  = logicalSize * 0.55;
+
+      // 白飛び防止：連鎖4は控えめ、5で中、6+で強め（ただし上限あり）
+      const aMax = (s.chain >= 6) ? 0.26 : (s.chain === 5 ? 0.22 : 0.18);
+      let aS = aMax * Math.pow(1 - tS, 1.35);
+      if (aS < 0) aS = 0;
+
+      const g = ctx.createLinearGradient(0, y0+h, 0, y0);
+      g.addColorStop(0, `rgba(255,255,255,0)`);
+      g.addColorStop(0.35, `rgba(255,255,255,${aS*0.35})`);
+      g.addColorStop(0.65, `rgba(255,255,255,${aS})`);
+      g.addColorStop(1, `rgba(255,255,255,0)`);
+
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y0, logicalSize, h);
+
+      if (s.life <= 0){
+        chainAfterglowSheets.splice(i,1);
+      }
+    }
+    ctx.restore();
+  }
+
+  // 火の粉は発光させる（他演出に影響しないようローカルに限定）
+  ctx.globalCompositeOperation = "lighter";
+
+  const cx = logicalSize*0.5;
+  const cy = logicalSize*0.48;
+
+  for (let i=chainAfterglowEmbers.length-1;i>=0;i--){
+    const e = chainAfterglowEmbers[i];
+    e.life -= 1;
+    const t = 1 - (e.life / e.maxLife); // 0→1
+
+    // ④ 連鎖4：後半の飛散なし（上昇→後半フェードアウト）
+    if (e.chain === 4){
+      // 速度・向きは元の上昇挙動のまま（ここでは追加の力を与えない）
+    } else if (e.chain >= 5){
+      // ⑤ 連鎖5以上：上昇 → 溜め → 中央突風で放射状に一斉飛散
+      // 溜め（速度を殺して静止に近づける）
+      if (!e.exploded && now >= (e.explodeAt - 120) && now < e.explodeAt){
+        e.vx *= 0.25;
+        e.vy *= 0.25;
+      }
+
+      // 飛散（1回だけ）。上方向も不足しないように上向きバイアスを入れる
+      if (!e.exploded && now >= e.explodeAt){
+        e.exploded = true;
+
+                // ⑤/⑥ 連鎖5以上：上昇→後半は放射状に飛散（元の挙動）
+        if (e.chain >= 5){
+          const ang = Math.random() * Math.PI * 2;
+          const mag = 3.8 + Math.random()*3.2;
+          e.vx = Math.cos(ang) * mag;
+          e.vy = Math.sin(ang) * mag;
+          // “中央からの突風”感：全体を少し上
+          e.vy -= 0.8;
+        }
+
+      }
+    }
+
+    // 共通：物理
+    e.vy += 0.006;         // わずかな重力
+    e.vx *= (e.chain === 4 ? 0.992 : 0.985);         // 空気抵抗（連鎖4はふわふわ広め）
+    e.vy *= 0.990;
+
+    e.x += e.vx;
+    e.y += e.vy;
+
+    // 上昇最上値：盤面70%（上端から30%）に確実に到達させる
+    const yCeil = logicalSize * 0.30;
+    if (!e.reachedCeil){
+      // 上昇が失速しても、天井到達までは上向きを保証
+      if (e.chain === 4){
+        if (e.vy > -0.95) e.vy = -0.95 - Math.random()*0.55;
+      } else {
+        if (e.vy > -0.55) e.vy = -0.55 - Math.random()*0.45;
+      }
+      if (e.y <= yCeil){
+        e.reachedCeil = true;
+        e.y = yCeil;
+      }
+    }
+
+    // “透けない火花感”：序盤を強く、後半は素早く落とす
+    let a = (t < 0.55) ? (0.95 - 0.25*t) : (0.60 * (1 - (t-0.55)/0.45));
+    // チラチラ（輝度ゆらぎ）
+    a *= (0.78 + 0.22*Math.sin(e.flick + t*18.0));
+    if (a < 0) a = 0;
+
+    // 連鎖4は「回転・縮小」させず、後半だけ素直にフェードアウト
+    if (e.chain === 4){
+      // 連鎖4は盤面を白飛びで覆わないよう、明度を抑えて後半のみ素直にフェードアウト
+      a = (t < 0.60) ? 0.40 : (0.40 * (1 - (t-0.60)/0.40));
+      if (a < 0) a = 0;
+    }
+
+
+    // 盤面幅まで広げる上昇パーティクルは、白飛びを避けるため連鎖5以上に限定
+    const r = (e.chain === 3) ? e.r0 : (e.r0 * (t < 0.18 ? (1.25 - t*1.2) : (1.0 - (t-0.18)*0.35))); // ③/④用（3は縮小させない）
+    const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r*3.0);
+
+    if (e.chain >= 6){
+      // 連鎖6以上：白芯→青白→赤→透明（強い光と地獄感）
+      g.addColorStop(0.0, `rgba(255,255,255,${Math.min(1,a*1.0)})`);
+      g.addColorStop(0.22,`rgba(210,245,255,${Math.min(1,a*0.95)})`);
+      g.addColorStop(0.55,`rgba(255,70,40,${Math.min(1,a*0.75)})`);
+      g.addColorStop(1.0, `rgba(0,0,0,0)`);
+    } else {
+      // 白芯→黄白→橙→透明（外周を早く透明へ落として“色水化”回避）
+      g.addColorStop(0.0, `rgba(255,255,245,${Math.min(1,a*1.0)})`);
+      g.addColorStop(0.22,`rgba(255,240,190,${Math.min(1,a*0.95)})`);
+      g.addColorStop(0.55,`rgba(255,165,70,${Math.min(1,a*0.70)})`);
+      g.addColorStop(1.0, `rgba(30,5,0,0)`);
+    }
+
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, r*2.2, 0, Math.PI*2);
+    ctx.fill();
+
+    if (e.life <= 0 || e.y < -40 || e.x < -60 || e.x > logicalSize+60){
+      chainAfterglowEmbers.splice(i,1);
+    }
+  }
+
   ctx.restore();
 }
 
@@ -1656,10 +3181,23 @@ function drawGame(){ /* (省略: 変更なし) */
     }
     drawBlock(r,c,x,y+ty,a);
   }
-  drawSlashes();
-  drawParticles();
-
-  if(animState==="swap" && swapPair){
+  // 背景脈動 → 斬撃 → 残光の尾 → 火柱 → 火の雨 → 波紋 → オーロラ → パーティクル の順で前景エフェクトを描画
+  // 6連鎖以上の沈黙フレーム中は、前景エフェクトを描かず（=更新も止まり）盤面の視認性と安定性を優先
+  const __now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+  const __freeze = (__now < comboFreezeUntil);
+  if (!__freeze){
+    drawBgPulse();
+    drawSlashes();
+    drawTrails();
+    drawFlames();
+    drawFlamePillars();
+    drawFireRains();
+    drawChainAfterglowEmbers(); // ★連鎖終了の残響
+    drawFlameRipples();
+    drawAurora();
+    drawParticles();
+  }
+if(animState==="swap" && swapPair){
     const {p1,p2,p,back}=swapPair; const prog=Math.min(1,p/(SWAP_ANIM_TIME)), e=Math.sin(prog*Math.PI/2);
     let x1=p1.c*tileSize+(back?(p2.c-p1.c)*tileSize*(1-e):(p2.c-p1.c)*tileSize*e);
     let y1=p1.r*tileSize+(back?(p2.r-p1.r)*tileSize*(1-e):(p2.r-p1.r)*tileSize*e);
@@ -1684,23 +3222,418 @@ function canSwapAndMatch(r1,c1,r2,c2){ /* (省略: 変更なし) */
   return has;
 }
 function swapAndStart(r1,c1,r2,c2){ /* (省略: 変更なし) */
+  resetComboForNewMove();
   swapPair={p1:{r:r1,c:c1},p2:{r:r2,c:c2},p:0,back:false};
   animState="swap";
   userGesture();
 }
+
+/* ★しゅらちゃん／レクしゅら用ヘルパー */
+
+// 指定マスを中心とした「そのマスを含むマッチの消去個数」を返す
+// 直線 4,5 だけでなく L字 / T字 (合計5) も検出するため、縦横を合算する。
+function getMatchSizeAt(r,c){
+  const sym = get(r,c);
+  if (!sym || JUSOS.includes(sym) || sym==="SHURACHAN" || sym==="REKUSHURA") return 0;
+
+  let up=0, down=0, left=0, right=0;
+  for(let rr=r-1; rr>=0   && get(rr,c)===sym; rr--) up++;
+  for(let rr=r+1; rr<size && get(rr,c)===sym; rr++) down++;
+  for(let cc=c-1; cc>=0   && get(r,cc)===sym; cc--) left++;
+  for(let cc=c+1; cc<size && get(r,cc)===sym; cc++) right++;
+
+  const lenV = up + 1 + down;
+  const lenH = left + 1 + right;
+  let total = 0;
+  if (lenV>=3) total += lenV;
+  if (lenH>=3) total += lenH;
+  if (lenV>=3 && lenH>=3) total -= 1; // 中心を二重カウントしない
+
+  return total;
+}
+
+// レクしゅら or しゅらちゃんと「通常駒」をスワップしたときの基本マスク
+function buildShuraItemMask(sym, r, c, targetSym){
+  if (!targetSym || JUSOS.includes(targetSym) || targetSym==="SHURACHAN" || targetSym==="REKUSHURA") return null;
+
+  const mask = new Set();
+
+  if (sym==="SHURACHAN"){
+    // 十字全消し（行＋列）＋巻き込まれた しゅらちゃん も連鎖発動
+    const queue = [];
+    const visited = new Set();
+    const startKey = r + "," + c;
+    queue.push(startKey);
+    while (queue.length){
+      const key = queue.shift();
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const parts = key.split(",");
+      const cr = parseInt(parts[0], 10);
+      const cc0 = parseInt(parts[1], 10);
+      // 横方向
+      for (let cc=0; cc<size; cc++){
+        const k = cr + "," + cc;
+        mask.add(k);
+        const symAt = get(cr, cc);
+        if (symAt === "SHURACHAN" && !visited.has(k)) queue.push(k);
+      }
+      // 縦方向
+      for (let rr=0; rr<size; rr++){
+        const k = rr + "," + cc0;
+        mask.add(k);
+        const symAt = get(rr, cc0);
+        if (symAt === "SHURACHAN" && !visited.has(k)) queue.push(k);
+      }
+    }
+  } else if (sym==="REKUSHURA"){
+    // 相手の駒と同じ種類を盤面から全て消去＋アイテム本体
+    for(let rr=0; rr<size; rr++){
+      for(let cc=0; cc<size; cc++){
+        if(get(rr,cc)===targetSym){
+          mask.add(rr + "," + cc);
+        }
+      }
+    }
+    mask.add(r + "," + c);
+  } else {
+    return null;
+  }
+
+  if (mask.size===0) return null;
+  return mask;
+}
+
+// 消去マスク（"r,c" の Set）から、連鎖演出の中心座標（盤面座標）を算出
+function computeMaskCenter(mask){
+  try{
+    if(!mask || mask.size===0) return { x: logicalSize/2, y: logicalSize/2 };
+    let sx=0, sy=0, n=0;
+    mask.forEach(pos=>{
+      const parts = (''+pos).split(',');
+      if(parts.length!==2) return;
+      const r = Number(parts[0]), c = Number(parts[1]);
+      if (isNaN(r) || isNaN(c)) return;
+      sx += c*tileSize + tileSize/2;
+      sy += r*tileSize + tileSize/2;
+      n++;
+    });
+    if(!n) return { x: logicalSize/2, y: logicalSize/2 };
+    return { x: sx/n, y: sy/n };
+  }catch(_){
+    return { x: logicalSize/2, y: logicalSize/2 };
+  }
+}
+
+
+// しゅらちゃん／レクしゅら専用パーティクル（軽量）
+function createShuraItemParticles(kind, r, c){
+  const cx = c*tileSize + tileSize/2;
+  const cy = r*tileSize + tileSize/2;
+  const count = 12; // 通常より少なめで軽量化
+  let palette;
+  if (kind==="SHURACHAN"){
+    // 水色＋赤
+    palette = [
+      {r:120, g:200, b:255},
+      {r:255, g:80,  b:140}
+    ];
+  } else {
+    // 青＋赤
+    palette = [
+      {r:80,  g:120, b:255},
+      {r:255, g:80,  b:140}
+    ];
+  }
+  for(let i=0;i<count;i++){
+    const ang = Math.random()*Math.PI*2;
+    const spd = tileSize*(0.10 + Math.random()*0.06);
+    const vx  = Math.cos(ang)*spd;
+    const vy  = Math.sin(ang)*spd;
+    const col = palette[Math.floor(Math.random()*palette.length)];
+    particles.push({
+      x: cx,
+      y: cy,
+      vx,
+      vy,
+      life: 0,
+      maxLife: 22,
+      color: col,
+      kind: (kind==="SHURACHAN" ? "shura" : "rekushura")
+    });
+  }
+}
+
 function gameLoop(){ /* (省略: 変更なし) */
   if(paused) return;
+  // === 6連鎖以上：沈黙フレーム後に連鎖演出を開始（安定優先） ===
+  try{
+    const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+    if (pendingComboAurora && now >= pendingComboAuroraDue){
+      pendingComboAurora = false;
+      pendingComboAuroraDue = 0;
+      triggerAurora(false, pendingComboAnchor || comboEffectAnchor, pendingComboLevel || 6);
+      pendingComboLevel = 0;
+      pendingComboAnchor = null;
+    }
+  }catch(_){}
   drawGame();
   switch(animState){
     case "swap":
       if(swapPair){
         swapPair.p++;
         if(swapPair.p>=SWAP_ANIM_TIME){
-          const {p1,p2,back}=swapPair;
+       
+
+function createShuraItemBurstEffects(mask, kind){
+  if (!mask || !kind) return;
+  const palette = (kind==="SHURACHAN")
+    ? [{r:120,g:200,b:255},{r:255,g:80,b:140}]
+    : [{r:80,g:120,b:255},{r:255,g:80,b:140}];
+
+  // しゅらちゃん／レクしゅらの消去範囲すべてに★パーティクル＋水色グロウ十字＋残光の尾
+  mask.forEach(pos=>{
+    const parts = pos.split(',');
+    if (parts.length!==2) return;
+    const r = Number(parts[0]), c = Number(parts[1]);
+    if (isNaN(r) || isNaN(c)) return;
+    const cx = c*tileSize + tileSize/2;
+    const cy = r*tileSize + tileSize/2;
+
+    // 水色グロウの十字（しゅらちゃん／レクしゅら専用）
+    slashes.push({x:cx,y:cy,dir:'h',t:0,kind:'shuraCross'});
+    slashes.push({x:cx,y:cy,dir:'v',t:0,kind:'shuraCross'});
+
+    // ★レベル1：しゅらちゃん／レクしゅらの十字から残光トレイルを生成（v2の約半分）
+    const trailLen = tileSize * 1.2;
+    const trailLife = 30; // 表示時間を少し延長
+    const baseTrail = { x: cx, y: cy, length: trailLen, life: 0, maxLife: trailLife, phase: Math.random()*Math.PI*2 };
+    trails.push(Object.assign({ dir: 'h' }, baseTrail));
+    trails.push(Object.assign({ dir: 'v' }, baseTrail));
+
+    // 可愛い★パーティクル（控えめな数で負荷軽減）
+    const baseCount = 4;
+    for(let i=0;i<baseCount;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = tileSize*(0.07 + Math.random()*0.05);
+      const vx  = Math.cos(ang)*spd;
+      const vy  = Math.sin(ang)*spd;
+      const col = palette[Math.floor(Math.random()*palette.length)];
+      particles.push({
+        x: cx,
+        y: cy,
+        vx,
+        vy,
+        life: 0,
+        maxLife: 20,
+        color: col,
+        kind: (kind==="SHURACHAN" ? "shura" : "rekushura")
+      });
+    }
+  });
+}
+
+   const {p1,p2,back}=swapPair;
           if(!back){
             swap(p1.r,p1.c,p2.r,p2.c);
-            if(findMatches(true)){ findMatches(false); swapPair=null; animState="vanish"; }
-            else{ swap(p1.r,p1.c,p2.r,p2.c); swapPair.p=0; swapPair.back=true; }
+
+            const b1 = get(p1.r,p1.c);
+            const b2 = get(p2.r,p2.c);
+            const isItem1 = (b1==="SHURACHAN" || b1==="REKUSHURA");
+            const isItem2 = (b2==="SHURACHAN" || b2==="REKUSHURA");
+
+            // ★お邪魔とアイテムのスワップは無効（元に戻す）
+            if ((isItem1 || isItem2) && (JUSOS.includes(b1) || JUSOS.includes(b2))){
+              swap(p1.r,p1.c,p2.r,p2.c);
+              swapPair.p=0;
+              swapPair.back=true;
+            } else if (isItem1 || isItem2){
+              // ★アイテム同士／アイテム＋通常駒のスワップ
+              let mask = null;
+              let particleKind = null;
+              lastRekCrossCombo = false;
+              // しゅら×しゅら → 両方の位置で十字（合成）
+              if (b1==="SHURACHAN" && b2==="SHURACHAN"){
+                mask = new Set();
+                const addCross = (rr,cc)=>{
+                  for(let x=0;x<size;x++) mask.add(rr + "," + x);
+                  for(let y=0;y<size;y++) mask.add(y + "," + cc);
+                };
+                addCross(p1.r,p1.c);
+                addCross(p2.r,p2.c);
+                particleKind = "SHURACHAN";
+              }
+              // レク×レク → 盤面の「全種類」を一斉リフレッシュ（全消去）
+              else if (b1==="REKUSHURA" && b2==="REKUSHURA"){
+                lastRekCrossCombo = false;
+                mask = new Set();
+                // 盤面上の null でない全ての駒を一度に消去
+                for(let rr=0; rr<size; rr++){
+                  for(let cc=0; cc<size; cc++){
+                    if (get(rr,cc) !== null){
+                      mask.add(rr + "," + cc);
+                    }
+                  }
+                }
+                // 全消去 → その後の落下＆自然連鎖で「盤面リフレッシュ」演出
+                particleKind = "REKUSHURA";
+              }
+              // レク×しゅら or しゅら×レク → 「十字消去 → 消えた色の全消去（2段階演出）」
+              else if ((b1==="REKUSHURA" && b2==="SHURACHAN") || (b2==="REKUSHURA" && b1==="SHURACHAN")){
+                mask = new Set();
+                lastRekCrossCombo = true;
+                const crossMask = new Set();
+                const shuraPos = (b1 === "SHURACHAN") ? p1 : p2;
+                const triggerSyms = new Set();
+
+                // 1) 十字消去（しゅらちゃん基準：巻き込まれた しゅらちゃん も連鎖発動）
+                const queue = [];
+                const visited = new Set();
+                const startKey = shuraPos.r + "," + shuraPos.c;
+                queue.push(startKey);
+                while (queue.length){
+                  const key = queue.shift();
+                  if (visited.has(key)) continue;
+                  visited.add(key);
+                  const parts = key.split(",");
+                  const cr = parseInt(parts[0], 10);
+                  const cc0 = parseInt(parts[1], 10);
+                  // 横方向
+                  for (let x=0; x<size; x++){
+                    const k = cr + "," + x;
+                    mask.add(k);
+                    crossMask.add(k);
+                    const sym = get(cr, x);
+                    if (NORMALS.includes(sym)) triggerSyms.add(sym);
+                    if (sym === "SHURACHAN" && !visited.has(k)) queue.push(k);
+                  }
+                  // 縦方向
+                  for (let y=0; y<size; y++){
+                    const k = y + "," + cc0;
+                    mask.add(k);
+                    crossMask.add(k);
+                    const sym = get(y, cc0);
+                    if (NORMALS.includes(sym)) triggerSyms.add(sym);
+                    if (sym === "SHURACHAN" && !visited.has(k)) queue.push(k);
+                  }
+                }
+
+                // ★第1段階演出：十字だけ先に光らせる（しゅらちゃんカラー）
+                try{
+                  if (crossMask && crossMask.size > 0){
+                    createShuraItemBurstEffects(crossMask, "SHURACHAN");
+                  }
+                }catch(_){}
+
+                // 2) 十字で消えた「通常駒の色」をトリガーとして、盤面から同種を全消去
+                if (triggerSyms.size > 0){
+                  for(let rr=0; rr<size; rr++){
+                    for(let cc=0; cc<size; cc++){
+                      const sym = get(rr, cc);
+                      if (triggerSyms.has(sym)){
+                        mask.add(rr + "," + cc);
+                      }
+                    }
+                  }
+                }
+
+                // レクしゅら＆しゅらちゃん自身も確実に消す
+                mask.add(p1.r + "," + p1.c);
+                mask.add(p2.r + "," + p2.c);
+
+                particleKind = "REKUSHURA";
+              }
+              // アイテム＋通常駒（片側のみアイテム）
+              else{
+                let itemSym, itemPos, targetSym;
+                if (isItem1 && !isItem2){
+                  itemSym = b1; itemPos = p1; targetSym = b2;
+                } else if (isItem2 && !isItem1){
+                  itemSym = b2; itemPos = p2; targetSym = b1;
+                }
+                if (itemSym){
+                  mask = buildShuraItemMask(itemSym, itemPos.r, itemPos.c, targetSym);
+                  particleKind = itemSym;
+                }
+              }
+
+              if (mask && mask.size>0){
+                vanishMask = mask;
+                // ★連鎖演出の中心を「今回の消去範囲」に追従
+                try{ comboEffectAnchor = computeMaskCenter(mask); }catch(_){ comboEffectAnchor = { x: logicalSize/2, y: logicalSize/2 }; }
+// ★しゅらちゃん／レクしゅら専用の消去フラグを記録
+                lastShuraItemKind = particleKind || "SHURACHAN";
+                lastShuraItemMask  = new Set(mask);
+                swapPair = null;
+                animState = "vanish";
+                vanishP = 0;
+                try{
+                  // パーティクルは代表1点（スワップ後の中央付近）からのみ発生させて軽量化
+                  const centerR = Math.floor((p1.r + p2.r)/2);
+                  const centerC = Math.floor((p1.c + p2.c)/2);
+                  createShuraItemParticles(lastShuraItemKind, centerR, centerC);
+                  // ★消去範囲全体にも星パーティクル＋白十字（2段階演出対応）
+                  const isRekCross = (lastShuraItemKind === "REKUSHURA" && lastRekCrossCombo);
+                  if (isRekCross){
+                    // 十字はすでに crossMask で先に光らせているので、全体演出は少し遅らせる
+                    setTimeout(()=>{
+                      try{
+                        createShuraItemBurstEffects(lastShuraItemMask, lastShuraItemKind);
+                      }catch(_){}
+                    }, 420);
+                  } else {
+                    try{
+                      createShuraItemBurstEffects(lastShuraItemMask, lastShuraItemKind);
+                    }catch(_){}
+                  }
+                  // ★レクしゅら系バースト時は専用ジングル（itemskill）を優先
+                  try{
+                    let seName = 'item';
+                    if (lastShuraItemKind === "REKUSHURA"){
+                      seName = 'itemskill';
+                    }
+                    Sound.play(seName,1.0);
+                  }catch(_){ }
+                }catch(_){}
+              } else {
+                // 無効なスワップだったので元に戻す
+                swap(p1.r,p1.c,p2.r,p2.c);
+                swapPair.p=0;
+                swapPair.back=true;
+              }
+            } else {
+              // ★通常スワップ：4個/5個マッチによるアイテム生成予約
+              let bestSize = 0;
+              let bestPos = null;
+              const size1 = getMatchSizeAt(p1.r,p1.c);
+              if (size1>bestSize){ bestSize=size1; bestPos=p1; }
+              const size2 = getMatchSizeAt(p2.r,p2.c);
+              if (size2>bestSize){ bestSize=size2; bestPos=p2; }
+
+              const hasMatch = findMatches(true);
+              if (hasMatch){
+                // マッチが成立したときのみアイテム生成を予約
+                pendingShuraItem    = null;
+                pendingShuraItemPos = null;
+                if (bestSize>=5){
+                  pendingShuraItem    = "REKUSHURA";
+                  pendingShuraItemPos = { r: bestPos.r, c: bestPos.c };
+                } else if (bestSize>=4){
+                  pendingShuraItem    = "SHURACHAN";
+                  pendingShuraItemPos = { r: bestPos.r, c: bestPos.c };
+                }
+                findMatches(false);
+                swapPair=null;
+                animState="vanish";
+              } else {
+                // マッチ不成立：アイテム予約も無効
+                pendingShuraItem    = null;
+                pendingShuraItemPos = null;
+                swap(p1.r,p1.c,p2.r,p2.c);
+                swapPair.p=0;
+                swapPair.back=true;
+              }
+            }
           }else{ swapPair=null; animState="idle"; }
         }
       }
@@ -1725,8 +3658,13 @@ function gameLoop(){ /* (省略: 変更なし) */
         }
       }
       if(done){
-        if(findMatches(true)){ findMatches(false); animState="vanish"; }
-        else { animState="idle"; }
+        if(findMatches(true)){
+          isCascadeMatch = true;
+          findMatches(false);
+          isCascadeMatch = false;
+          animState="vanish";
+        }
+        else { animState="idle"; endComboIfAny(); }
       }
       break;
   }
@@ -1742,13 +3680,88 @@ function hasPossibleMoves(){ /* (省略: 変更なし) */
   return false;
 }
 function shuffleBoard(){ /* (省略: 変更なし) */
+  // ★シャッフル前に、呪詛ブロックを少しだけ削って詰まりを緩和する
+  try{
+    if (Array.isArray(board) && Array.isArray(jusoHP) && Array.isArray(JUSOS)){
+      const candidates = [];
+      for(let r=0;r<size;r++){
+        for(let c=0;c<size;c++){
+          const b = board[r][c];
+          if (JUSOS.includes(b) && jusoHP[r] && jusoHP[r][c] > 0){
+            candidates.push({r,c});
+          }
+        }
+      }
+      if (candidates.length > 0){
+        const pick = candidates[Math.floor(Math.random()*candidates.length)];
+        const rr = pick.r, cc = pick.c;
+        if (jusoHP[rr][cc] > 0){
+          jusoHP[rr][cc]--;
+          if (jusoHP[rr][cc] <= 0){
+            jusoHP[rr][cc] = 0;
+            (window.__jusoEraseSet ||= new Set()).add(rr + ',' + cc);
+            set(rr,cc,null);
+          }
+        }
+      }
+    }
+  }catch(_){}
+
   const maxTries=300; let tries=0;
   do{
-    const flat=board.flat(); for(let i=flat.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [flat[i],flat[j]]=[flat[j],flat[i]]; }
-    for(let r=0,k=0;r<size;r++) for(let c=0;c<size;c++,k++) board[r][c]=flat[k];
+    // 盤面と呪詛ブロックHP・シェイクをまとめてシャッフルする
+    const flatCells = [];
+    for(let r=0;r<size;r++){
+      for(let c=0;c<size;c++){
+        flatCells.push({
+          b: board[r][c],
+          hp: (jusoHP && jusoHP[r]) ? jusoHP[r][c] || 0 : 0,
+          shake: (jusoShake && jusoShake[r]) ? jusoShake[r][c] || 0 : 0
+        });
+      }
+    }
+    for(let i=flatCells.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      const tmp = flatCells[i];
+      flatCells[i] = flatCells[j];
+      flatCells[j] = tmp;
+    }
+    for(let r=0,k=0;r<size;r++){
+      for(let c=0;c<size;c++,k++){
+        const cell = flatCells[k];
+        board[r][c] = cell.b;
+        if (!jusoHP[r]) jusoHP[r] = [];
+        if (!jusoShake[r]) jusoShake[r] = [];
+        jusoHP[r][c] = cell.hp;
+        jusoShake[r][c] = cell.shake;
+      }
+    }
+    // JUSO以外のマスにはHPを残さず、JUSOには最低HPを再設定
+    try{
+      if (jusoHP && JUSOS){
+        for(let r=0;r<size;r++){
+          if (!jusoHP[r]) jusoHP[r] = [];
+          for(let c=0;c<size;c++){
+            const b = board[r][c];
+            if (!JUSOS.includes(b)){
+              // 非呪詛マスにはHPを残さない
+              jusoHP[r][c] = 0;
+            } else {
+              // 呪詛マスなのにHPが欠落していた場合はデフォルト値を復元
+              if (!jusoHP[r][c] || jusoHP[r][c] <= 0){
+                jusoHP[r][c] = (b==="J_NEM"?1:(b==="J_SHI"?3:5));
+              }
+            }
+          }
+        }
+      }
+    }catch(_){}
     tries++;
   }while((findMatches(true)||!hasPossibleMoves()) && tries<maxTries);
   updateStatus("status: 盤面をシャッフルしました。");
+  if (typeof setComboText === 'function'){
+    try { setComboText("盤面をシャッフルしました。"); } catch(_){}
+  }
   animState="drop"; prepareDrop();
 }
 
@@ -1803,6 +3816,156 @@ window.addEventListener('beforeunload', ()=>{ /* (省略: 変更なし) */
 });
 
 startUp();
+
+/* === ALL MAX UNLOCK (click title when MAX reached) === */
+const ALLMAX_PASSCODE = "chiekoh"; // changeable later
+const ALLMAX_UNLOCK_KEY = "allmaxUnlocked";
+
+(function(){
+  function qs(id){ return document.getElementById(id); }
+
+  function openAllMax(){
+    const overlay = qs("allmaxOverlay");
+    const input   = qs("allmaxInput");
+    const error   = qs("allmaxError");
+    const img     = qs("allmaxImage");
+    const area    = qs("allmaxInputArea");
+    if (!overlay || !input || !error || !img || !area) return;
+
+    overlay.style.display = "flex";
+    overlay.setAttribute("aria-hidden","false");
+    error.style.display = "none";
+    area.style.display = "flex";
+    img.style.display = "none";
+    // 隠し画像：開くたびに src を消しておく（パス通過までロードしない）
+    img.removeAttribute("src");
+    input.value = "";
+    // 永続アンロック済みなら入力不要で画像を表示
+    try{
+      if (localStorage.getItem(ALLMAX_UNLOCK_KEY) === "1"){
+        // 正解時と同じ状態を作る（srcは必要ならセット）
+        error.style.display = "none";
+        area.style.display = "none";
+        if (!img.getAttribute("src")){
+          img.onerror = ()=>{ img.onerror = null; img.src = "allmax.png"; };
+          img.src = "images/allmax.png";
+        }
+        try{ overlay.classList.add("allmax-unlocked"); }catch(_){ }
+      }
+    }catch(_){ }
+
+    input.focus();
+  }
+
+  function closeAllMax(){
+    const overlay = qs("allmaxOverlay");
+    if (!overlay) return;
+
+    // reset UI state
+    try{ overlay.classList.remove("allmax-unlocked"); }catch(_){}
+    const img   = qs("allmaxImage");
+    const area  = qs("allmaxInputArea");
+    const input = qs("allmaxInput");
+    const error = qs("allmaxError");
+
+    if (img){
+      img.style.display = "none";
+      img.removeAttribute("src");
+    }
+    if (area) area.style.display = "flex";
+    if (input) input.value = "";
+    if (error) error.style.display = "none";
+
+    overlay.style.display = "none";
+    overlay.setAttribute("aria-hidden","true");
+  }
+
+  function armAllMaxUI(){
+    const title = qs("titleLabel");
+    if (!title) return;
+
+    // hasReachedMaxRank は既存ロジックの永続フラグ
+    if (typeof hasReachedMaxRank !== "undefined" && hasReachedMaxRank){
+      title.classList.add("allmax-ready");
+      title.onclick = openAllMax;
+    } else {
+      title.classList.remove("allmax-ready");
+      title.onclick = null;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const input = qs("allmaxInput");
+    const error = qs("allmaxError");
+    const img   = qs("allmaxImage");
+    const area  = qs("allmaxInputArea");
+    const close = qs("allmaxClose");
+    const overlay = qs("allmaxOverlay");
+
+    if (close) close.addEventListener("click", closeAllMax);
+    if (overlay) overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeAllMax(); });
+
+    if (input){
+      const okBtn = qs("allmaxOkBtn");
+      const submitAllMaxCode = ()=>{
+        if (!area || !img || !error) return;
+        const v = (input.value || "").trim();
+
+        if (v === ALLMAX_PASSCODE){
+          // 正解：この時点で初めて画像をロードして表示
+          error.style.display = "none";
+          area.style.display = "none";
+
+          // src 未設定なら設定（images/ を優先し、失敗時は同階層へフォールバック）
+          if (!img.getAttribute("src")){
+            img.onerror = ()=>{ img.onerror = null; img.src = "allmax.png"; };
+            img.src = "images/allmax.png";
+          }
+          try{ overlay && overlay.classList.add("allmax-unlocked"); }catch(_){ }
+          try{ localStorage.setItem(ALLMAX_UNLOCK_KEY, "1"); }catch(_){ }
+          // 表示はCSS制御
+          
+        } else {
+          // 不正解：画像は絶対に出さない
+          try{ overlay && overlay.classList.remove("allmax-unlocked"); }catch(_){ }
+          img.style.display = "none";
+          img.removeAttribute("src");
+          error.style.display = "block";
+        }
+      };
+
+      input.addEventListener("keydown", (e)=>{
+        if (e.key === "Enter") submitAllMaxCode();
+      });
+      if (okBtn) okBtn.addEventListener("click", submitAllMaxCode);
+    }armAllMaxUI();
+
+    // updateScoresUI が呼ばれるたびに MAX 状態が反映されるよう、ラップする
+    if (typeof window.updateScoresUI === "function" && !window.__allmax_wrapped){
+      const _orig = window.updateScoresUI;
+      window.updateScoresUI = function(){
+        const r = _orig.apply(this, arguments);
+        try{ armAllMaxUI(); }catch(_){}
+        return r;
+      };
+      window.__allmax_wrapped = true;
+    }
+  });
+
+  // maybeReachMax 内で hasReachedMaxRank が true になった直後も反映させたいので、playFinalRankMAXCeremony がある場合はそれもラップ
+  try{
+    if (typeof window.playFinalRankMAXCeremony === "function" && !window.__allmax_ceremony_wrapped){
+      const _c = window.playFinalRankMAXCeremony;
+      window.playFinalRankMAXCeremony = function(){
+        const r = _c.apply(this, arguments);
+        try{ setTimeout(()=>{ try{ armAllMaxUI(); }catch(_){} }, 0); }catch(_){}
+        return r;
+      };
+      window.__allmax_ceremony_wrapped = true;
+    }
+  }catch(_){}
+})();
+
 </script>
 <!-- >>> CHAR MODAL Z-INDEX & DOM FIX PATCH (added by ChatGPT) >>> -->
 <style>
@@ -2135,16 +4298,6 @@ function triggerJusoShake(r,c, power=1){
   // 既存より強いシェイクが来たら上書き（最大1.2まで）
   jusoShake[r][c] = Math.min(Math.max(jusoShake[r][c], power), 1.2);
 }
-function decayJusoShake(){
-  if(!jusoShake || !jusoShake.length) return;
-  // 毎フレームゆっくり減衰
-  for(let r=0;r<size;r++){
-    for(let c=0;c<size;c++){
-      const v = jusoShake[r][c];
-      if(v>0.001){ jusoShake[r][c] = v * 0.88; if(jusoShake[r][c]<0.001) jusoShake[r][c]=0; }
-    }
-  }
-}
 </script>
 
 <script>
@@ -2377,16 +4530,23 @@ if (ok){
       window.updateScoresUI = function(){
         try{
           __updateScoresUI_orig();
-          try{
-            var span = document.getElementById('rankProgress'); 
-            if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
-              if (rankIndex===MAX_RANK_INDEX){
-                if (hasReachedMaxRank){ span.textContent = 'MAX'; }
-                else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
-              }
-            }
-          }catch(_){}
         }catch(e){}
+        try{
+          var span = document.getElementById('rankProgress'); 
+          if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
+            if (rankIndex===MAX_RANK_INDEX){
+              if (hasReachedMaxRank){ span.textContent = 'MAX'; }
+              else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
+            }
+          }
+        }catch(_){}
+        try{
+          // ランクMAX行のアイコンボタンが消えないよう、常に表示に戻す
+          var row = document.getElementById('rankSelectRow');
+          if(row){
+            row.style.display = '';
+          }
+        }catch(_){}
       };
     }
   }catch(_){}
@@ -2434,7 +4594,8 @@ if (ok){
     return false;
   }
   window.hasAnyMove = hasAnyMove;
-  window.shuffleBoard = function(){
+  var __coreShuffleBoard = window.shuffleBoard;
+window.shuffleBoard = function(){
     if (window.__shuffling) return;      // 二重呼び出し防止
     window.__shuffling = true;
     try{
@@ -2444,30 +4605,16 @@ if (ok){
     }catch(_){}
     try{ Sound.play('whoosh', 1.0); }catch(_){}  // se_whoosh.mp3 再生（既存のSE_BANKにwhooshあり）
     setTimeout(function(){  // ← ワンクッション（待ち時間は好みで調整）
-      if (typeof size==='undefined'){ window.__shuffling=false; return; }
-      let attempts = 0;
-      const flat = [];
-      for (let r=0;r<size;r++) for (let c=0;c<size;c++) flat.push(get(r,c));
-      do {
-        attempts++;
-        for (let i=flat.length-1;i>0;i--){
-          const j=Math.floor(Math.random()*(i+1));
-          const t=flat[i]; flat[i]=flat[j]; flat[j]=t;
-        }
-        let k=0; for (let r=0;r<size;r++) for (let c=0;c<size;c++) set(r,c, flat[k++]);
-        if (findMatches(true)) continue;
-        if (hasAnyMove()) break;
-      } while (attempts < 50);
       try{
-        if (typeof updateStatus==='function'){
-          updateStatus('status: 盤面をシャッフルしました。');
+        if (typeof __coreShuffleBoard === 'function'){
+          __coreShuffleBoard();
         }
-      }catch(_){}
-      if (typeof prepareDrop==='function') prepareDrop();
-      window.__shuffling = false;
+      }finally{
+        window.__shuffling = false;
+      }
     }, 600); // ← ここが“ワンクッション”時間(ms)
-
   };
+
 
   // Hook after maybeSpawnObstacles is called in resolve flow (polling fallback)
   (function checkShuffleLoop(){
@@ -2476,6 +4623,9 @@ if (ok){
         if (!findMatches(true) && !hasAnyMove()){
           window.shuffleBoard();
           try{ if (typeof updateStatus==='function') updateStatus('status: シャッフルしました'); }catch(_){}
+          if (typeof setComboText === 'function'){
+            try { setComboText("盤面をシャッフルしました。"); } catch(_){}
+          }
         }
       }
     }catch(_){}
@@ -2484,29 +4634,8 @@ if (ok){
 
 })();
 </script>
-<style>
-  /* スマホ右端切れ対策：親幅にフィット（PCは従来通り最大480px） */
-  #gameCanvas{
-    width: min(100%, 480px) !important;
-    height: auto;
-    aspect-ratio: 1 / 1;
-  }
-</style>
-<style>
-  /* スマホだけ盤面を“横幅いっぱい”に近づける（ロジック無変更） */
-  @media (max-width: 480px) {
-    /* パネルの左右パディングを少し削って内側幅を広げる */
-    .wrap { padding-left: 8px; padding-right: 8px; }      /* 16px → 8px */
-    .panel { padding-left: 8px; padding-right: 8px; }     /* 14px → 8px */
 
-    /* 親の内側幅いっぱいまで広げる。上限は必要なら少しだけ拡大OK */
-    #gameCanvas{
-      width: min(100%, 500px) !important;  /* 例：上限480→500。480のままでも可 */
-      height: auto;
-      aspect-ratio: 1 / 1;
-    }
-  }
-</style>
+
 
 
 
@@ -2534,89 +4663,22 @@ if (ok){
 </script>
 
 
-<!-- PATCH: iPhone voice boost + BGM singleton + jusoHP init fix -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  // Voice boost on iOS
-  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-  if(isIOS){
-    document.querySelectorAll('audio').forEach(a=>{
-      if(a.id && a.id.includes('vo_')){
-        a.volume = Math.min(1.0, (a.volume||1)*1.35);
-      }
-    });
-  }
-
-  // BGM singleton enforcement
-  window.playBGM = function(id){
-    try{
-      document.querySelectorAll('audio[id^="bgm"]').forEach(b=>{
-        if(b.id!==id){ b.pause(); b.currentTime=0; }
-      });
-      const a = document.getElementById(id);
-      if(a){ a.currentTime=0; a.play().catch(()=>{}); }
-    }catch(e){}
-  }
-
-  // jusoHP init guard
-  if(window.initBoard && window.drawGame){
-    const origInit = window.initBoard;
-    window.initBoard = function(){
-      origInit();
-      setTimeout(()=>{ try{ window.drawGame(); }catch(e){} }, 50);
-    }
-  }
-});
-</script>
-
-
-<!-- PATCH2: iPhone voice gain & BGM ducking for voice audios -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  try{
-    var ua = navigator.userAgent || "";
-    var isIOS = /iP(hone|ad|od)/.test(ua);
-    if(!isIOS) return;
-
-    var bgmEls = [];
-    var b1 = document.getElementById('bgm1');
-    var b2 = document.getElementById('bgm2');
-    if(b1) bgmEls.push(b1);
-    if(b2) bgmEls.push(b2);
-
-    function duckBGM(){
-      bgmEls.forEach(function(b){
-        try{
-          if(b.dataset.prevVol === undefined){
-            b.dataset.prevVol = String(b.volume);
-            b.volume = Math.max(0, b.volume * 0.35); // BGMを約1/3に
-          }
-        }catch(e){}
-      });
-    }
-    function unduckBGM(){
-      bgmEls.forEach(function(b){
-        try{
-          if(b.dataset.prevVol !== undefined){
-            b.volume = Number(b.dataset.prevVol);
-            delete b.dataset.prevVol;
-          }
-        }catch(e){}
-      });
-    }
-
-    var voices = document.querySelectorAll('audio[id^="vo_"]');
-    voices.forEach(function(v){
-      try{
-        v.volume = 1.0; // ボイスは常に最大音量
-      }catch(e){}
-      v.addEventListener('play', duckBGM);
-      v.addEventListener('ended', unduckBGM);
-      v.addEventListener('pause', unduckBGM);
-    });
-  }catch(e){}
-});
-</script>
+<!-- ALL MAX Overlay -->
+<div id="allmaxOverlay" aria-hidden="true">
+  <div id="allmaxPanel" role="dialog" aria-modal="true">
+    <div id="allmaxClose" title="close">✕</div>
+    <h2>ALL MAX UNLOCK</h2>
+    <div id="allmaxInputArea">
+      <div id="allmaxInputRow">
+        <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
+        <button id="allmaxOkBtn" type="button">OK</button>
+      </div>
+      <div id="allmaxError">コードが異なっています</div>
+    </div>
+    <!-- Hidden image: do NOT set src until passcode succeeds -->
+    <img id="allmaxImage" alt="ALL MAX" />
+  </div>
+</div>
 
 </body>
 </html>
