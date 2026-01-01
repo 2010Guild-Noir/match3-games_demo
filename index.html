@@ -877,13 +877,11 @@ function onSeSliderChange(v){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
-    Sound.vol = vol;
+    setSEVol(vol);
   }
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
-
-  try{ if (AudioMix) AudioMix.setSEandVoice(Sound.enabled ? Sound.vol : 0); }catch(_){ }
 }
 
 // attach slider events
@@ -896,172 +894,103 @@ if (seSlider){
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
+const IS_IOS = /iP(hone|od|ad)/.test(navigator.platform) ||
+                (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
 
-/* === iOS対策：WebAudioミキサ（iPhone/iPadで audio.volume が無視される問題を回避） ===
-   - BGM/SE/ボイスを AudioContext + GainNode 経由で再生し、スライダーの音量が確実に効くようにする
-   - 端末側の物理ボリュームは「上限」として残るが、ゲーム内の相対音量はスライダーで制御可能
-*/
-const IS_IOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+/* ===== WebAudioミキサ（iOSでのvolume無効/端末依存対策） ===== */
+const AudioMix = (() => {
+  const state = {
+    ctx: null,
+    master: null,
+    bgmGain: null,
+    seGain: null,
+    voiceGain: null,
+    srcMap: new WeakMap(), // HTMLMediaElement -> MediaElementAudioSourceNode
+  };
 
-const AudioMix = {
-  ctx: null,
-  ready: false,
-  bgmMaster: null,
-  seMaster: null,
-  voiceMaster: null,
+  function ensureCtx(){
+    if (!IS_IOS) return null; // 非iOSは従来方式で十分（副作用最小）
+    if (!state.ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      state.ctx = new AC();
+      state.master = state.ctx.createGain();
+      state.master.gain.value = 1.0;
+      state.bgmGain = state.ctx.createGain();
+      state.seGain  = state.ctx.createGain();
+      state.voiceGain = state.ctx.createGain();
 
-  ensure(){
-    if (this.ready) {
-      try{ if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(()=>{}); }catch(_){}
-      return true;
+      // master routing
+      state.bgmGain.connect(state.master);
+      state.seGain.connect(state.master);
+      state.voiceGain.connect(state.master);
+      state.master.connect(state.ctx.destination);
     }
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return false;
-
-    try{
-      this.ctx = new Ctx();
-      this.bgmMaster   = this.ctx.createGain();
-      this.seMaster    = this.ctx.createGain();
-      this.voiceMaster = this.ctx.createGain();
-
-      this.bgmMaster.connect(this.ctx.destination);
-      this.seMaster.connect(this.ctx.destination);
-      this.voiceMaster.connect(this.ctx.destination);
-
-      // 初期ゲイン（localStorageの値を尊重）
-      const bgmV = store.get("bgmVol", BGM_DEFAULT_VOL);
-      const seV  = store.get("seVol",  SE_DEFAULT_VOL);
-
-      this.bgmMaster.gain.value = bgmV;
-
-      // iOSは体感で小さくなりがちなので、SE/ボイスだけ軽くブースト（上限1.0でクリップ）
-      const seBoost    = IS_IOS ? 1.25 : 1.0;
-      const voiceBoost = IS_IOS ? 1.8  : 1.0;
-
-      this.seMaster.gain.value    = Math.min(1, seV * seBoost);
-      this.voiceMaster.gain.value = Math.min(1, seV * voiceBoost);
-
-      // 既存の要素をルーティング（BGM / SEベース / ボイス）
-      this.routeElement(bgm1, this.bgmMaster, false);
-      this.routeElement(bgm2, this.bgmMaster, false);
-
-      try{
-        for (const k in SE_BANK){
-          const el = SE_BANK[k];
-          if (el) this.routeElement(el, this.seMaster, true);
-        }
-      }catch(_){}
-
-      try{
-        document.querySelectorAll('audio[id^="vo_"]').forEach(el=>{
-          this.routeElement(el, this.voiceMaster, true);
-        });
-      }catch(_){}
-
-      this.ready = true;
-      try{ if (this.ctx.state === "suspended") this.ctx.resume().catch(()=>{}); }catch(_){}
-      return true;
-    }catch(_){
-      return false;
-    }
-  },
-
-  routeElement(el, masterGain, withPreGain){
-    if (!el || !this.ctx) return;
-    if (el.__mediaNode) return; // 既に接続済み
-
-    try{
-      const src = this.ctx.createMediaElementSource(el);
-      let node = src;
-
-      if (withPreGain){
-        const g = this.ctx.createGain();
-        g.gain.value = 1.0;
-        src.connect(g);
-        node = g;
-        el.__preGain = g; // play()ごとの音量乗算用
-      }
-
-      node.connect(masterGain);
-      el.__mediaNode = src;
-
-      // WebAudio側で制御するので、HTML側volumeは常に1に寄せる
-      try{ el.volume = 1.0; }catch(_){}
-    }catch(_){}
-  },
-
-  setBGM(vol){
-    if (this.ready && this.bgmMaster){
-      this.bgmMaster.gain.value = vol;
-      return;
-    }
-    // 非対応環境のフォールバック
-    try{ bgm1.volume = vol; bgm2.volume = vol; }catch(_){}
-  },
-
-  setSEandVoice(vol){
-    const seBoost    = IS_IOS ? 1.25 : 1.0;
-    const voiceBoost = IS_IOS ? 1.8  : 1.0;
-
-    if (this.ready){
-      try{ if (this.seMaster) this.seMaster.gain.value = Math.min(1, vol * seBoost); }catch(_){}
-      try{ if (this.voiceMaster) this.voiceMaster.gain.value = Math.min(1, vol * voiceBoost); }catch(_){}
-    }
+    // ユーザー操作後にresumeされるべき（userGestureから呼ぶ）
+    try{ if (state.ctx.state === "suspended") state.ctx.resume(); }catch(_){}
+    return state.ctx;
   }
-};
 
+  function connect(el, kind){
+    const ctx = ensureCtx();
+    if (!ctx || !el) return;
+    if (state.srcMap.has(el)) return;
+    try{
+      const src = ctx.createMediaElementSource(el);
+      state.srcMap.set(el, src);
+      if (kind === "bgm") src.connect(state.bgmGain);
+      else if (kind === "voice") src.connect(state.voiceGain);
+      else src.connect(state.seGain);
+    }catch(_){}
+  }
+
+  function setBgm(vol){
+    if (!IS_IOS) return;
+    ensureCtx();
+    if (state.bgmGain) state.bgmGain.gain.value = Math.max(0, Math.min(1, vol));
+  }
+  function setSe(vol){
+    if (!IS_IOS) return;
+    ensureCtx();
+    const v = Math.max(0, Math.min(1, vol));
+    if (state.seGain) state.seGain.gain.value = v;
+    // iPhoneでボイスが小さい対策：iOSのみ軽くブースト（上限1.0クリップ）
+    const boost = 1.8;
+    const vv = Math.max(0, Math.min(1, v * boost));
+    if (state.voiceGain) state.voiceGain.gain.value = vv;
+  }
+
+  return { ensureCtx, connect, setBgm, setSe };
+})();
+
+    
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
   const arr = [baseEl.cloneNode(true)];
   try{ arr[0].pause(); }catch(_){}
   try{ arr[0].currentTime = 0; }catch(_){}
-
-  // AudioContextが既に確立しているなら、この時点でルーティングしておく
-  try{
-    if (AudioMix && AudioMix.ready){
-      AudioMix.routeElement(arr[0], AudioMix.seMaster, true);
-    }
-  }catch(_){}
-
+  // iOS対策：WebAudioへ接続（SEとして扱う）
+  try{ AudioMix.connect(arr[0], "se"); }catch(_){}
   for(let i=1;i<n;i++){
     const clone = baseEl.cloneNode(true);
     try{ clone.pause(); }catch(_){}
     try{ clone.currentTime = 0; }catch(_){}
-
-    try{
-      if (AudioMix && AudioMix.ready){
-        AudioMix.routeElement(clone, AudioMix.seMaster, true);
-      }
-    }catch(_){}
-
+    try{ AudioMix.connect(clone, "se"); }catch(_){}
     arr.push(clone);
   }
-
   let idx = 0;
   return {
     play(vol){
       const el = arr[idx++ % arr.length];
-
-      // 遅れてAudioContextが有効化された場合に備え、再生直前に一度だけルーティング
-      try{
-        if (AudioMix && AudioMix.ready && !el.__mediaNode){
-          AudioMix.routeElement(el, AudioMix.seMaster, true);
-        }
-      }catch(_){}
-
       try{ el.pause(); }catch(_){}
       try{ el.currentTime = 0; }catch(_){}
-
-      // iOS対策：volumeではなくWebAudioのGainで制御（非対応環境はvolumeへフォールバック）
-      try{
-        if (el.__preGain){
-          el.__preGain.gain.value = Math.max(0, Math.min(1, Number(vol)));
-          try{ el.volume = 1.0; }catch(_){}
-        }else{
-          el.volume = vol;
-        }
-      }catch(_){}
-
+      // 非iOSは従来どおり要素volumeで制御
+      if (!IS_IOS){
+        try{ el.volume = vol; }catch(_){}
+      } else {
+        // iOSはWebAudio Gainで制御するため、要素側は最大に固定
+        try{ el.volume = 1; }catch(_){}
+      }
       el.play().catch(()=>{});
     }
   };
@@ -1089,17 +1018,45 @@ const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT
   play(n, volMul=1){ if(!this.enabled) return; const p=this.pools[n]; if(p) p.play(this.vol*volMul); },
 }; Sound.init();
 
-function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); try{ if (AudioMix) AudioMix.setBGM(nv); else { bgm1.volume=nv; bgm2.volume=nv; } }catch(_){ try{ bgm1.volume=nv; bgm2.volume=nv; }catch(__){} } }
-function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
+function setBGMVol(v){
+  const nv = Number(v);
+  const vol = isNaN(nv) ? 0 : Math.max(0, Math.min(1, nv));
+  // legacy
+  try{ bgm1.volume = IS_IOS ? 1 : vol; }catch(_){}
+  try{ bgm2.volume = IS_IOS ? 1 : vol; }catch(_){}
+  // WebAudio (iOS)
+  try{ AudioMix.setBgm(vol); }catch(_){}
+  store.set("bgmVol", vol);
+  if (vol > 0) store.set("bgmLast", vol);
+}
+function setSEVol(v){
+  const nv = Number(v);
+  const vol = isNaN(nv) ? 0 : Math.max(0, Math.min(1, nv));
+  Sound.vol = vol;
+  try{ AudioMix.setSe(vol); }catch(_){}
+  store.set("seVol", vol);
+  if (vol > 0) store.set("seLast", vol);
+}
 
-function toggleSE(){ 
-  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
-  if (seSlider){
-    const now = Number(seSlider.value||"0");
-    const next = now > 0 ? 0 : 50;
-    seSlider.value = next;
-    onSeSliderChange(next);
+
+function toggleSE(){
+// 旧仕様の互換用：スライダーがあれば 0 <-> 直前値 を切り替える
+if (seSlider){
+  const now = Number(seSlider.value||"0");
+  if (now > 0){
+    // OFF: 現在値を退避して0に
+    const cur = Math.max(0, Math.min(100, now)) / 100;
+    if (cur > 0) store.set("seLast", cur);
+    seSlider.value = 0;
+    onSeSliderChange(0);
   } else {
+    // ON: 直前の非ゼロ値へ復帰（なければデフォルト）
+    const last = Number(store.get("seLast", store.get("seVol", SE_DEFAULT_VOL)));
+    const restored = Math.max(0.01, Math.min(1, isNaN(last)?SE_DEFAULT_VOL:last));
+    seSlider.value = Math.round(restored * 100);
+    onSeSliderChange(seSlider.value);
+  }
+} else {
     Sound.enabled = !Sound.enabled;
     store.set("seOn", Sound.enabled);
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
@@ -1128,12 +1085,22 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
-  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
+  // 旧仕様の互換用：スライダーがあれば 0 <-> 直前値 を切り替える
   if (bgmSlider){
     const now = Number(bgmSlider.value||"0");
-    const next = now > 0 ? 0 : 50;
-    bgmSlider.value = next;
-    onBgmSliderChange(next);
+    if (now > 0){
+      // OFF: 現在値を退避して0に
+      const cur = Math.max(0, Math.min(100, now)) / 100;
+      if (cur > 0) store.set("bgmLast", cur);
+      bgmSlider.value = 0;
+      onBgmSliderChange(0);
+    } else {
+      // ON: 直前の非ゼロ値へ復帰（なければデフォルト）
+      const last = Number(store.get("bgmLast", store.get("bgmVol", BGM_DEFAULT_VOL)));
+      const restored = Math.max(0.01, Math.min(1, isNaN(last)?BGM_DEFAULT_VOL:last));
+      bgmSlider.value = Math.round(restored * 100);
+      onBgmSliderChange(bgmSlider.value);
+    }
   } else {
     bgmOn = !bgmOn;
     store.set("bgmOn", bgmOn);
@@ -1196,7 +1163,13 @@ function unlockAllSE(){
   });
 }
 function userGesture(){
-  try{ if (AudioMix) AudioMix.ensure(); }catch(_){ }
+  try{ AudioMix.ensureCtx(); }catch(_){}
+  try{ AudioMix.connect(bgm1,"bgm"); AudioMix.connect(bgm2,"bgm"); }catch(_){}
+  try{
+    // voice elements
+    const vos = document.querySelectorAll('audio[id^="vo_"]');
+    vos.forEach(el=>{ try{ AudioMix.connect(el,"voice"); }catch(_){} });
+  }catch(_){}
   unlockAllSE();
 // ★タッチ/移動でBGMをキック（停止中なら再生を試みるが、ユーザー設定(bgmOn)を尊重する）
   // ユーザーが明示的にBGMをOFFにしている場合は再生も状態の上書きもしないように修正
@@ -1209,6 +1182,7 @@ function userGesture(){
   // BGM初期ボリュームを取得して反映
   const initBgmVol = store.get("bgmVol", BGM_DEFAULT_VOL);
   setBGMVol(initBgmVol);
+  try{ setSEVol(store.get("seVol", SE_DEFAULT_VOL)); }catch(_){}
 
   // SE初期状態：スライダーとアイコンへ反映
   if (seSlider){
