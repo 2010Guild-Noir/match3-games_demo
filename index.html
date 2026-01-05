@@ -317,6 +317,8 @@ details.help li {
 }
 .volume-row input[type="range"]{
   flex:1;
+  touch-action: none;           /* iOS/Chromeでドラッグをスクロール扱いにしない */
+  -webkit-tap-highlight-color: transparent;
 }
 #indexModal .btn-group .btn{ flex:1; padding:10px 12px; font-size:15px; }
 
@@ -813,12 +815,15 @@ html, body{
 
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
+const IS_IOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
 const bgm2 = document.getElementById("bgm2");
 let activeBGM = store.get("activeBGM", 1) === 2 ? bgm2 : bgm1;
 let bgmOn = !!store.get("bgmOn", false);
+let bgmPlayPending = false;
+let bgmPlayToken = 0;
 
 /* ★インデックス内のBGM/SEボタンに変更 */
 const bgmBtn = document.getElementById("bgmBtnIndex"); // BGM ON/OFFボタン
@@ -852,17 +857,19 @@ function onBgmSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
   const vol = Math.max(0, Math.min(100, v)) / 100;
+
   setBGMVol(vol);
   bgmOn = vol > 0;
   store.set("bgmOn", bgmOn);
+  store.set("bgmVol", vol);
+  if (vol > 0) store.set("bgmLast", vol);
+
   updateBgmIcon(vol);
 
   if (bgmOn){
     try{
       const bgm = currentBGM();
-      if (bgm && bgm.paused){
-        bgm.play().catch(()=>{});
-      }
+      safeStartBGM(bgm);
     }catch(_){}
   } else {
     pauseAllBGM();
@@ -877,7 +884,7 @@ function onSeSliderChange(v){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
-    setSEVol(vol);
+    Sound.vol = vol;
   }
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
@@ -886,96 +893,76 @@ function onSeSliderChange(v){
 
 // attach slider events
 if (bgmSlider){
-  bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); onClickSE(); });
+  bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); });
+  bgmSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
 }
 if (seSlider){
-  seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); onClickSE(); });
+  seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); });
+  seSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
 }
+// iOS/Chromeでrangeのドラッグが鈍い/反応しない対策：pointer/touch移動で値を直接更新する
+function enhanceRangeSlider(el, onValue){
+  if (!el) return;
+  const setFromClientX = (clientX)=>{
+    const r = el.getBoundingClientRect();
+    const x = Math.min(r.right, Math.max(r.left, clientX));
+    const t = (x - r.left) / Math.max(1, (r.width));
+    const min = Number(el.min || 0);
+    const max = Number(el.max || 100);
+    const step = Number(el.step || 1);
+    let val = min + t * (max - min);
+    // stepにスナップ
+    val = Math.round(val / step) * step;
+    val = Math.max(min, Math.min(max, val));
+    el.value = String(val);
+    try{ onValue(el.value); }catch(_){}
+  };
+
+  let dragging = false;
+
+  const onDown = (e)=>{
+    dragging = true;
+    try{ e.preventDefault(); }catch(_){}
+    const p = e.touches ? e.touches[0] : e;
+    if (p) setFromClientX(p.clientX);
+  };
+  const onMove = (e)=>{
+    if (!dragging) return;
+    try{ e.preventDefault(); }catch(_){}
+    const p = e.touches ? e.touches[0] : e;
+    if (p) setFromClientX(p.clientX);
+  };
+  const onUp = (e)=>{
+    if (!dragging) return;
+    dragging = false;
+    try{ e.preventDefault(); }catch(_){}
+    // つまみ操作終了時に一度だけクリックSE
+    try{ onClickSE(); }catch(_){}
+  };
+
+  el.addEventListener("pointerdown", onDown, { passive:false });
+  window.addEventListener("pointermove", onMove, { passive:false });
+  window.addEventListener("pointerup", onUp, { passive:false });
+
+  el.addEventListener("touchstart", onDown, { passive:false });
+  window.addEventListener("touchmove", onMove, { passive:false });
+  window.addEventListener("touchend", onUp, { passive:false });
+}
+enhanceRangeSlider(bgmSlider, onBgmSliderChange);
+enhanceRangeSlider(seSlider, onSeSliderChange);
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
-const IS_IOS = /iP(hone|od|ad)/.test(navigator.platform) ||
-                (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
-
-/* ===== WebAudioミキサ（iOSでのvolume無効/端末依存対策） ===== */
-const AudioMix = (() => {
-  const state = {
-    ctx: null,
-    master: null,
-    bgmGain: null,
-    seGain: null,
-    voiceGain: null,
-    srcMap: new WeakMap(), // HTMLMediaElement -> MediaElementAudioSourceNode
-  };
-
-  function ensureCtx(){
-    if (!IS_IOS) return null; // 非iOSは従来方式で十分（副作用最小）
-    if (!state.ctx){
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      state.ctx = new AC();
-      state.master = state.ctx.createGain();
-      state.master.gain.value = 1.0;
-      state.bgmGain = state.ctx.createGain();
-      state.seGain  = state.ctx.createGain();
-      state.voiceGain = state.ctx.createGain();
-
-      // master routing
-      state.bgmGain.connect(state.master);
-      state.seGain.connect(state.master);
-      state.voiceGain.connect(state.master);
-      state.master.connect(state.ctx.destination);
-    }
-    // ユーザー操作後にresumeされるべき（userGestureから呼ぶ）
-    try{ if (state.ctx.state === "suspended") state.ctx.resume(); }catch(_){}
-    return state.ctx;
-  }
-
-  function connect(el, kind){
-    const ctx = ensureCtx();
-    if (!ctx || !el) return;
-    if (state.srcMap.has(el)) return;
-    try{
-      const src = ctx.createMediaElementSource(el);
-      state.srcMap.set(el, src);
-      if (kind === "bgm") src.connect(state.bgmGain);
-      else if (kind === "voice") src.connect(state.voiceGain);
-      else src.connect(state.seGain);
-    }catch(_){}
-  }
-
-  function setBgm(vol){
-    if (!IS_IOS) return;
-    ensureCtx();
-    if (state.bgmGain) state.bgmGain.gain.value = Math.max(0, Math.min(1, vol));
-  }
-  function setSe(vol){
-    if (!IS_IOS) return;
-    ensureCtx();
-    const v = Math.max(0, Math.min(1, vol));
-    if (state.seGain) state.seGain.gain.value = v;
-    // iPhoneでボイスが小さい対策：iOSのみ軽くブースト（上限1.0クリップ）
-    const boost = 1.8;
-    const vv = Math.max(0, Math.min(1, v * boost));
-    if (state.voiceGain) state.voiceGain.gain.value = vv;
-  }
-
-  return { ensureCtx, connect, setBgm, setSe };
-})();
-
     
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
   const arr = [baseEl.cloneNode(true)];
   try{ arr[0].pause(); }catch(_){}
   try{ arr[0].currentTime = 0; }catch(_){}
-  // iOS対策：WebAudioへ接続（SEとして扱う）
-  try{ AudioMix.connect(arr[0], "se"); }catch(_){}
   for(let i=1;i<n;i++){
     const clone = baseEl.cloneNode(true);
     try{ clone.pause(); }catch(_){}
     try{ clone.currentTime = 0; }catch(_){}
-    try{ AudioMix.connect(clone, "se"); }catch(_){}
     arr.push(clone);
   }
   let idx = 0;
@@ -984,13 +971,7 @@ function makePool(baseEl, n){
       const el = arr[idx++ % arr.length];
       try{ el.pause(); }catch(_){}
       try{ el.currentTime = 0; }catch(_){}
-      // 非iOSは従来どおり要素volumeで制御
-      if (!IS_IOS){
-        try{ el.volume = vol; }catch(_){}
-      } else {
-        // iOSはWebAudio Gainで制御するため、要素側は最大に固定
-        try{ el.volume = 1; }catch(_){}
-      }
+      try{ el.volume = vol; }catch(_){}
       el.play().catch(()=>{});
     }
   };
@@ -1018,45 +999,17 @@ const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT
   play(n, volMul=1){ if(!this.enabled) return; const p=this.pools[n]; if(p) p.play(this.vol*volMul); },
 }; Sound.init();
 
-function setBGMVol(v){
-  const nv = Number(v);
-  const vol = isNaN(nv) ? 0 : Math.max(0, Math.min(1, nv));
-  // legacy
-  try{ bgm1.volume = IS_IOS ? 1 : vol; }catch(_){}
-  try{ bgm2.volume = IS_IOS ? 1 : vol; }catch(_){}
-  // WebAudio (iOS)
-  try{ AudioMix.setBgm(vol); }catch(_){}
-  store.set("bgmVol", vol);
-  if (vol > 0) store.set("bgmLast", vol);
-}
-function setSEVol(v){
-  const nv = Number(v);
-  const vol = isNaN(nv) ? 0 : Math.max(0, Math.min(1, nv));
-  Sound.vol = vol;
-  try{ AudioMix.setSe(vol); }catch(_){}
-  store.set("seVol", vol);
-  if (vol > 0) store.set("seLast", vol);
-}
+function setBGMVol(v){ const nv=Number(v); bgm1.volume=nv; bgm2.volume=nv; store.set("bgmVol", nv); }
+function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
 
-
-function toggleSE(){
-// 旧仕様の互換用：スライダーがあれば 0 <-> 直前値 を切り替える
-if (seSlider){
-  const now = Number(seSlider.value||"0");
-  if (now > 0){
-    // OFF: 現在値を退避して0に
-    const cur = Math.max(0, Math.min(100, now)) / 100;
-    if (cur > 0) store.set("seLast", cur);
-    seSlider.value = 0;
-    onSeSliderChange(0);
+function toggleSE(){ 
+  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
+  if (seSlider){
+    const now = Number(seSlider.value||"0");
+    const next = now > 0 ? 0 : 50;
+    seSlider.value = next;
+    onSeSliderChange(next);
   } else {
-    // ON: 直前の非ゼロ値へ復帰（なければデフォルト）
-    const last = Number(store.get("seLast", store.get("seVol", SE_DEFAULT_VOL)));
-    const restored = Math.max(0.01, Math.min(1, isNaN(last)?SE_DEFAULT_VOL:last));
-    seSlider.value = Math.round(restored * 100);
-    onSeSliderChange(seSlider.value);
-  }
-} else {
     Sound.enabled = !Sound.enabled;
     store.set("seOn", Sound.enabled);
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
@@ -1065,6 +1018,28 @@ if (seSlider){
 
 function pauseAllBGM(){ try{bgm1.pause();}catch(_){} try{bgm2.pause();}catch(_){} }
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
+function safeStartBGM(bgmEl){
+  try{
+    if (!bgmEl) return;
+    if (!bgmOn) return;
+    if (!bgmEl.paused) return;
+    if (bgmPlayPending) return;
+    bgmPlayPending = true;
+    const token = ++bgmPlayToken;
+    const p = bgmEl.play();
+    if (p && typeof p.then === "function"){
+      p.catch(()=>{}).finally(()=>{
+        if (bgmPlayToken === token){
+          bgmPlayPending = false;
+        }
+      });
+    } else {
+      bgmPlayPending = false;
+    }
+  }catch(_){
+    bgmPlayPending = false;
+  }
+}
 
 function updateBGMSelectButton(){
   const which = activeBGM === bgm2 ? 2 : 1;
@@ -1085,32 +1060,37 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
-  // 旧仕様の互換用：スライダーがあれば 0 <-> 直前値 を切り替える
+  // スライダーがある場合は「現在値>0ならOFF(0)」「0なら直前値へ復帰」で切替
   if (bgmSlider){
-    const now = Number(bgmSlider.value||"0");
+    const now = Number(bgmSlider.value || "0");
     if (now > 0){
-      // OFF: 現在値を退避して0に
       const cur = Math.max(0, Math.min(100, now)) / 100;
       if (cur > 0) store.set("bgmLast", cur);
       bgmSlider.value = 0;
       onBgmSliderChange(0);
     } else {
-      // ON: 直前の非ゼロ値へ復帰（なければデフォルト）
       const last = Number(store.get("bgmLast", store.get("bgmVol", BGM_DEFAULT_VOL)));
-      const restored = Math.max(0.01, Math.min(1, isNaN(last)?BGM_DEFAULT_VOL:last));
+      const restored = Math.max(0.01, Math.min(1, isNaN(last) ? BGM_DEFAULT_VOL : last));
       bgmSlider.value = Math.round(restored * 100);
       onBgmSliderChange(bgmSlider.value);
     }
+    return;
+  }
+
+  // スライダーが無い場合の互換
+  bgmOn = !bgmOn;
+  store.set("bgmOn", bgmOn);
+  if (bgmOn){
+    const vol = store.get("bgmVol", BGM_DEFAULT_VOL);
+    setBGMVol(vol);
+    try{
+      const bgm = currentBGM();
+      safeStartBGM(bgm);
+      updateBgmIcon(vol);
+    }catch(_){}
   } else {
-    bgmOn = !bgmOn;
-    store.set("bgmOn", bgmOn);
-    updateBgmIcon(bgmOn ? store.get("bgmVol", BGM_DEFAULT_VOL) : 0);
-    if (bgmOn){
-      pauseAllBGM(); currentBGM().currentTime = 0;
-      currentBGM().play().catch(()=>{});
-    } else {
-      pauseAllBGM();
-    }
+    pauseAllBGM();
+    updateBgmIcon(0);
   }
 }
 
@@ -1163,26 +1143,14 @@ function unlockAllSE(){
   });
 }
 function userGesture(){
-  try{ AudioMix.ensureCtx(); }catch(_){}
-  try{ AudioMix.connect(bgm1,"bgm"); AudioMix.connect(bgm2,"bgm"); }catch(_){}
-  try{
-    // voice elements
-    const vos = document.querySelectorAll('audio[id^="vo_"]');
-    vos.forEach(el=>{ try{ AudioMix.connect(el,"voice"); }catch(_){} });
-  }catch(_){}
+  // iOS/Chrome含め、ユーザー操作を契機に「アンロック」だけ行う。
+  // ここでBGMを勝手に再生・巻き戻しすると、二重再生や針飛び（再生位置の連続リセット）の原因になる。
   unlockAllSE();
-// ★タッチ/移動でBGMをキック（停止中なら再生を試みるが、ユーザー設定(bgmOn)を尊重する）
-  // ユーザーが明示的にBGMをOFFにしている場合は再生も状態の上書きもしないように修正
-  if (bgmOn && currentBGM().paused){ 
-    currentBGM().currentTime = 0;
-    currentBGM().play().catch(()=>{});
-  }
 }
 (function initAudio(){
   // BGM初期ボリュームを取得して反映
   const initBgmVol = store.get("bgmVol", BGM_DEFAULT_VOL);
   setBGMVol(initBgmVol);
-  try{ setSEVol(store.get("seVol", SE_DEFAULT_VOL)); }catch(_){}
 
   // SE初期状態：スライダーとアイコンへ反映
   if (seSlider){
@@ -1632,7 +1600,7 @@ function resetRank(){
   try { if (typeof updateStatus === "function") updateStatus("status: 覚醒ランクと暗躍値をリセットしました。"); } catch(e){}
   try {
     var v = document.getElementById("vo_reset");
-    if(v){ v.currentTime = 0; v.play && v.play().catch(()=>{}); }
+    if(v){ try{ const base=Number(store.get("seVol", SE_DEFAULT_VOL)); const mul=IS_IOS?1.8:1.2; const vv=Math.max(0,Math.min(1,(isNaN(base)?SE_DEFAULT_VOL:base)*mul)); v.volume=vv; }catch(_){} v.currentTime = 0; v.play && v.play().catch(()=>{}); }
   } catch(e){}
 }
 
@@ -1731,6 +1699,10 @@ function endComboIfAny(){
         const v = document.getElementById(info.voiceId);
         if (v){
           try{
+            const base = Number(store.get("seVol", SE_DEFAULT_VOL));
+            const mul  = IS_IOS ? 1.8 : 1.2;
+            const vv   = Math.max(0, Math.min(1, (isNaN(base)?SE_DEFAULT_VOL:base) * mul));
+            try{ v.volume = vv; }catch(_){}
             v.currentTime = 0;   // 毎回頭から再生
             v.play().catch(()=>{});
           }catch(_){}
@@ -1837,7 +1809,7 @@ function getComboInfo(n){
   if (n === 3) return { name:"連鎖×3「慟哭剣・宵闇」", voiceId:"vo_combo3" };
   if (n === 4) return { name:"連鎖×4「慟哭剣・因果廻天」", voiceId:"vo_combo4" };
   if (n === 5) return { name:"連鎖×5「慟哭剣・地之叢雲」", voiceId:"vo_combo5" };
-  return { name:`連鎖×${n}「慟哭剣」`, voiceId:"vo_comboX" };
+  return { name:`連鎖×${n}「慟哭剣・敵國降伏」`, voiceId:"vo_comboX" };
 }
 
 function getTitleByScore(s){
@@ -1889,7 +1861,7 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 
       stopAllRankVoices();
       const v = voiceForSpecial(sym);
-      if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
+      if(v){ try{ const base=Number(store.get("seVol", SE_DEFAULT_VOL)); const mul=IS_IOS?1.8:1.2; const vv=Math.max(0,Math.min(1,(isNaN(base)?SE_DEFAULT_VOL:base)*mul)); try{ v.volume=vv; }catch(_){} v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
 
     });
     row.appendChild(btn);
@@ -4645,7 +4617,7 @@ if (ok){
     if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
       if (unknownStageProgress >= UNKNOWN_THRESH){
         hasReachedMaxRank = true; try{ store.set('hasReachedMaxRank', true); }catch(_){}
-        try{ var v5=document.getElementById('vo_rank5'); if(v5){ v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
+        try{ var v5=document.getElementById('vo_rank5'); if(v5){ try{ const base=Number(store.get('seVol', SE_DEFAULT_VOL)); const mul=IS_IOS?1.8:1.2; const vv=Math.max(0,Math.min(1,(isNaN(base)?SE_DEFAULT_VOL:base)*mul)); try{ v5.volume=vv; }catch(_){} }catch(_){} v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
         try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
         try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
         try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
