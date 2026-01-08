@@ -677,6 +677,70 @@ input[type="range"]{
   }
 }
 
+
+/* === Slider style unification: mobile matches PC (water-blue rounded), remove borders === */
+:root{
+  --slider-track: rgba(80, 200, 255, 0.22);
+  --slider-fill: rgba(80, 200, 255, 0.68);
+  --slider-thumb: rgba(80, 200, 255, 0.95);
+}
+/* Fill (伸び縮み) : no borders */
+input[type="range"]{
+  background-image: linear-gradient(var(--slider-fill), var(--slider-fill));
+  background-repeat: no-repeat;
+  background-size: 50% 100%; /* JSで更新 */
+}
+/* Track / thumb : rounded, no borders */
+input[type="range"]::-webkit-slider-runnable-track{
+  background: var(--slider-track) !important;
+  border: none !important;
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb{
+  background: var(--slider-thumb) !important;
+  border: none !important;
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-track{
+  background: var(--slider-track) !important;
+  border: none !important;
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-thumb{
+  background: var(--slider-thumb) !important;
+  border: none !important;
+  border-radius: 999px;
+}
+
+/* Mobile wrapper variant uses same visuals (some browsers ignore the generic selectors when wrapped) */
+@media (max-width: 900px){
+  .slider-hit input[type="range"]{
+    background-image: linear-gradient(var(--slider-fill), var(--slider-fill));
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
+    background: var(--slider-track) !important;
+    border: none !important;
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-thumb{
+    background: var(--slider-thumb) !important;
+    border: none !important;
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-track{
+    background: var(--slider-track) !important;
+    border: none !important;
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-thumb{
+    background: var(--slider-thumb) !important;
+    border: none !important;
+    border-radius: 999px;
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
