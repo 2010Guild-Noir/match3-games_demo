@@ -1118,7 +1118,7 @@ function updateRangeFill(el){
     const v = Number(el.value || 0);
     const t = (v - min) / Math.max(1e-9, (max - min));
     const pct = Math.max(0, Math.min(1, t)) * 100;
-    el.style.backgroundSize = pct + "% 100%";
+    el.style.backgroundSize = pct + "% 4px";
   }catch(_){}
 }
 function onBgmSliderChange(v){
@@ -5284,23 +5284,28 @@ window.shuffleBoard = function(){
 </script>
 
 <style>
-/* === Mobile only slider styling (forced). PC untouched. === */
+/* === Mobile only slider styling (forced). PC untouched. ===
+   Base track is neutral; ONLY the fill (伸縮部分) is water-blue, matching the PC intent. */
 :root{ --range-thumb-nudge: 3px; }
 
 @media (max-width: 900px){
-  /* Force custom rendering on mobile engines where native track is invisible */
   input[type="range"], .slider-hit input[type="range"]{
     -webkit-appearance: none !important;
     appearance: none !important;
     height: 28px !important;
     background: transparent !important;
+    /* fill (伸縮部分) */
+    background-image: linear-gradient(#5ecbff, #5ecbff) !important; /* water blue fill only */
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    background-size: 50% 4px !important; /* JSで幅だけ更新（高さは固定） */
   }
 
-  /* Track: water blue */
+  /* Track base: neutral (restore) */
   input[type="range"]::-webkit-slider-runnable-track,
   .slider-hit input[type="range"]::-webkit-slider-runnable-track{
     height: 4px !important;
-    background: #5ecbff !important;
+    background: rgba(255,255,255,0.22) !important; /* neutral base */
     border: none !important;
     border-radius: 999px !important;
   }
@@ -5311,7 +5316,7 @@ window.shuffleBoard = function(){
     -webkit-appearance: none !important;
     width: 16px !important;
     height: 16px !important;
-    background: #1e90ff !important;
+    background: #1e90ff !important; /* blue */
     border: none !important;
     border-radius: 50% !important;
     margin-top: calc((4px - 16px) / 2 + var(--range-thumb-nudge)) !important;
@@ -5321,7 +5326,7 @@ window.shuffleBoard = function(){
   input[type="range"]::-moz-range-track,
   .slider-hit input[type="range"]::-moz-range-track{
     height: 4px !important;
-    background: #5ecbff !important;
+    background: rgba(255,255,255,0.22) !important;
     border: none !important;
     border-radius: 999px !important;
   }
