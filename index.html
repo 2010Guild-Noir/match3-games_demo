@@ -653,6 +653,30 @@ input[type="range"]::-moz-range-thumb{
   }
 }
 
+
+/* === FIX: restore desktop slider look (no top/bottom borders) === */
+@media (min-width: 901px){
+  input[type="range"]::-webkit-slider-runnable-track{ border: none !important; }
+  input[type="range"]::-webkit-slider-thumb{ border: none !important; }
+  input[type="range"]::-moz-range-track{ border: none !important; }
+  input[type="range"]::-moz-range-thumb{ border: none !important; }
+}
+
+
+/* === FIX: range fill bar (track fill) === */
+input[type="range"]{
+  background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+  background-repeat: no-repeat;
+  background-size: 50% 100%; /* JSで更新 */
+}
+@media (max-width: 900px){
+  .slider-hit input[type="range"]{
+    background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -966,14 +990,29 @@ function updateSeIcon(vol){
   seBtn.textContent = "SE" + icon;
 }
 
+
+
+// === range fill helper (keep the “伸び縮み” visual) ===
+function updateRangeFill(el){
+  try{
+    if(!el) return;
+    const min = Number(el.min || 0);
+    const max = Number(el.max || 100);
+    const v = Number(el.value || 0);
+    const t = (v - min) / Math.max(1e-9, (max - min));
+    const pct = Math.max(0, Math.min(1, t)) * 100;
+    el.style.backgroundSize = pct + "% 100%";
+  }catch(_){}
+}
 function onBgmSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
   const vol = Math.max(0, Math.min(100, v)) / 100;
-
-  // 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
+  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
+// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
   setBGMVol(vol);
-  bgmOn = vol > 0;
+  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
+bgmOn = vol > 0;
   // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
   bgmMuted = false;
   store.set("bgmMuted", false);
@@ -1035,7 +1074,8 @@ function enhanceRangeSlider(el, onValue){
     val = Math.round(val / step) * step;
     val = Math.max(min, Math.min(max, val));
     el.value = String(val);
-    try{ onValue(el.value); }catch(_){}
+    try{ updateRangeFill(el); }catch(_){ }
+try{ onValue(el.value); }catch(_){}
     try{ if(dragging) onSliderDragSE(); }catch(_){ }
   };
 
@@ -1464,13 +1504,19 @@ function unlockAllSE(){
     }catch(_){}
   });
 }
+
 function userGesture(){
-  // ユーザー操作を契機にオーディオをアンロックし、BGMがONなら再生を試みる。
+  // ユーザー操作を契機にアンロックし、BGMが有効なら「ガード付き」で開始を試みる。
+  // currentTimeのリセットは行わない（針飛び/多重再生の原因）
   unlockAllSE();
-  if (bgmOn){
-    try{ safeStartBGM(currentBGM()); }catch(_){ }
-  }
+  try{
+    const base = store.get("bgmVol", BGM_DEFAULT_VOL);
+    if (!bgmMuted && base > 0){
+      safeStartBGM(currentBGM());
+    }
+  }catch(_){}
 }
+
 (function initAudio(){
   // BGM初期ボリュームを取得して反映
   const initBgmVol = store.get("bgmVol", BGM_DEFAULT_VOL);
@@ -1484,7 +1530,8 @@ function userGesture(){
     } else {
       const seVol = Sound.vol || SE_DEFAULT_VOL;
       seSlider.value = Math.round(seVol * 100);
-      updateSeIcon(seVol);
+      try{ updateRangeFill(seSlider); }catch(_){ }
+updateSeIcon(seVol);
     }
   } else {
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
@@ -1493,7 +1540,8 @@ function userGesture(){
   // BGMスライダーとアイコンへ反映
   if (bgmSlider){
     bgmSlider.value = Math.round(initBgmVol * 100);
-    updateBgmIcon(initBgmVol);
+    try{ updateRangeFill(bgmSlider); }catch(_){ }
+updateBgmIcon(initBgmVol);
   } else {
     updateBgmIcon(bgmOn ? initBgmVol : 0);
   }
@@ -4761,6 +4809,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
               (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
 
   function resumeCtx(){
+    if (!unlocked) return;
     try{
       if (!ctx){
         var AC = window.AudioContext || window.webkitAudioContext;
@@ -5087,7 +5136,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
