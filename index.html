@@ -775,7 +775,7 @@ input[type="range"]{
   -webkit-appearance: auto;
   background: initial;
 }
-
+ｓ
 
 /* === FIX: thumb vertical centering with small per-engine nudge ===
    Native range metrics differ across OS/engines; a 1px nudge is the most stable way
@@ -792,6 +792,48 @@ input[type="range"]::-webkit-slider-thumb{
 /* Firefox */
 input[type="range"]::-moz-range-thumb{
   margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
+}
+
+
+/* === Mobile only: show native-like colored track & blue thumb === */
+@media (max-width: 900px){
+  input[type="range"]{
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    background: transparent;
+  }
+
+  /* Track */
+  input[type="range"]::-webkit-slider-runnable-track{
+    height: 4px;
+    background: #5ecbff; /* water blue */
+    border-radius: 999px;
+  }
+
+  /* Thumb */
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #1e90ff; /* blue */
+    border-radius: 50%;
+    margin-top: calc((4px - 16px) / 2 + var(--range-thumb-nudge));
+  }
+
+  /* Firefox Android */
+  input[type="range"]::-moz-range-track{
+    height: 4px;
+    background: #5ecbff;
+    border-radius: 999px;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width: 16px;
+    height: 16px;
+    background: #1e90ff;
+    border-radius: 50%;
+    margin-top: calc((4px - 16px) / 2 + var(--range-thumb-nudge));
+  }
 }
 
 </style>
@@ -5253,7 +5295,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
