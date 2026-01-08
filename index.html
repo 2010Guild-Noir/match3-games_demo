@@ -1113,20 +1113,26 @@ function updateSeIcon(vol){
 function updateRangeFill(el){
   try{
     if(!el) return;
-    const min = Number(el.min || 0);
-    const max = Number(el.max || 100);
-    const v = Number(el.value || 0);
+    const min = Number(el.min||0);
+    const max = Number(el.max||100);
+    const v = Number(el.value||0);
     const t = (v - min) / Math.max(1e-9, (max - min));
     const pct = Math.max(0, Math.min(1, t)) * 100;
-    el.style.setProperty('--fill-pct', pct + '%');
+
+    // New: CSS var driven (mobile custom range)
+    try{ el.style.setProperty('--fill-pct', pct + '%'); }catch(_){ }
+
+    // Back-compat: backgroundSize directly (if used)
+    try{
+      const trackH = getComputedStyle(el).getPropertyValue('--track-h').trim() || '4px';
+      el.style.backgroundSize = (pct + '% ' + trackH);
+    }catch(_){ }
   }catch(_){}
 }
 function onBgmSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
-  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
-// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
+  const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
   setBGMVol(vol);
   try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
 bgmOn = vol > 0;
@@ -1153,13 +1159,22 @@ bgmOn = vol > 0;
 function onSeSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
+  const pct = Math.max(0, Math.min(100, v));
+  const vol = pct / 100;
+
   if (vol <= 0){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
     Sound.vol = vol;
+    // 最後の非0値を保存（SEボタンON復帰用）
+    store.set("seLastPct", pct);
   }
+
+  // UI反映
+  try{ if(seSlider) seSlider.value = String(pct); }catch(_){ }
+  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
+
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
@@ -1228,6 +1243,18 @@ try{ onValue(el.value); }catch(_){}
 }
 enhanceRangeSlider(bgmSlider, onBgmSliderChange);
 enhanceRangeSlider(seSlider, onSeSliderChange);
+
+
+// === Native input fallback (iOS reliability): ensure volume changes on real range events ===
+try{
+  if (bgmSlider){
+    bgmSlider.addEventListener("input", (e)=>{ try{ onBgmSliderChange(e.target.value); }catch(_){ } }, {passive:true});
+  }
+  if (seSlider){
+    seSlider.addEventListener("input", (e)=>{ try{ onSeSliderChange(e.target.value); }catch(_){ } }, {passive:true});
+  }
+}catch(_){}
+
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
@@ -1457,18 +1484,28 @@ window.playVoiceById = function(voiceId){
 function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVolume(); }
 function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
 
-function toggleSE(){ 
-  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
-  if (seSlider){
-    const now = Number(seSlider.value||"0");
-    const next = now > 0 ? 0 : 50;
-    seSlider.value = next;
-    onSeSliderChange(next);
-  } else {
+function toggleSE(){
+  if (!seSlider){
     Sound.enabled = !Sound.enabled;
     store.set("seOn", Sound.enabled);
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
+    return;
   }
+
+  const nowPct = Number(seSlider.value || "0");
+  if (nowPct > 0){
+    // OFF: 現在値を記憶して0へ（表示も追従）
+    store.set("seLastPct", nowPct);
+    seSlider.value = "0";
+    onSeSliderChange(0);
+    return;
+  }
+
+  // ON: 直前の値へ復帰（なければデフォルト）
+  const last = Number(store.get("seLastPct", 50));
+  const restore = (isNaN(last) || last <= 0) ? 50 : Math.max(1, Math.min(100, last));
+  seSlider.value = String(restore);
+  onSeSliderChange(restore);
 }
 
 function pauseAllBGM(){
@@ -1482,7 +1519,12 @@ function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
 function safeStartBGM(bgmEl){
   try{
     if (!bgmEl) return;
-    if (!bgmOn) return;
+    // 重複再生防止：ターゲット以外のBGMは必ず停止
+    try{
+      if (bgm1 && bgmEl!==bgm1){ bgm1.pause(); }
+      if (bgm2 && bgmEl!==bgm2){ bgm2.pause(); }
+    }catch(_){ }
+if (!bgmOn) return;
 
     // 常に「片方だけ」再生する（多重再生防止）
     const other = (bgmEl === bgm1) ? bgm2 : bgm1;
@@ -1671,6 +1713,8 @@ const which=store.get("activeBGM",1);
   updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
 
   if(bgmOn){
+    // 再生前に必ず非アクティブBGMを停止（重なり防止）
+    try{ pauseAllBGM(); }catch(_){ }
     // 再生は必ずガード付きで開始
     try{ safeStartBGM(currentBGM()); }catch(_){ }
   } else {
@@ -5253,7 +5297,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
+      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
