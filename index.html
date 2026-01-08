@@ -605,6 +605,29 @@ html, body{
   text-overflow: ellipsis;
 }
 
+
+/* === FIX: make range sliders visible on mobile (track/thumb were transparent) === */
+input[type="range"]::-webkit-slider-runnable-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -1067,10 +1090,38 @@ const SE_BANK = {
   not:document.getElementById("se_not"),
   scream:document.getElementById("se_scream"),
 };
-const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
-  init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
-  play(n, volMul=1){ if(!this.enabled) return; const p=this.pools[n]; if(p) p.play(__getSeEffectiveVol()*volMul); },
-}; Sound.init();
+const Sound={
+  enabled:store.get("seOn", true),
+  vol:store.get("seVol", SE_DEFAULT_VOL),
+  pools:{},
+  // SEごとの補正（同じスライダーでも素材音圧差を吸収）
+  mul:{ rumble: 0.60 },
+  // 連打/同時発火で“音量が突出”しやすいSEは間引く
+  _last:{},
+  init(){
+    for(const k in SE_BANK){
+      if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6);
+    }
+  },
+  play(n, volMul=1){
+    if(!this.enabled) return;
+    const p=this.pools[n];
+    if(!p) return;
+
+    // rumbleは同フレーム多重発火で加算的に大きくなりやすいのでレート制限
+    if (n==="rumble"){
+      const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+      const prev = this._last.rumble || 0;
+      if (now - prev < 120) return; // 120ms以内は無視
+      this._last.rumble = now;
+    }
+
+    const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
+    const v = this.vol * volMul * m;
+    p.play(v);
+  },
+};
+Sound.init();
 
 /* ===== Voice priority & stable playback (Ducking + Gesture Queue) ===== */
 window.Sound = Sound; // expose for other helper scripts
@@ -2062,7 +2113,7 @@ function getComboInfo(n){
 function getTitleByScore(s){
   if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の見習い(2/8)";
-  if (s < 20000) return "称号：業火の僕(3/8)";
+  if (s < 20000) return "称号：業火の丁稚(3/8)";
   if (s < 50000) return "称号：比良坂の防人(4/8)";
   if (s < 100000) return "称号：黄昏の審問官(5/8)";
   if (s < 300000) return "称号：血煙の傍観者(6/8)";
