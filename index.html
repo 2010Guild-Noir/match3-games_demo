@@ -1118,7 +1118,7 @@ function updateRangeFill(el){
     const v = Number(el.value || 0);
     const t = (v - min) / Math.max(1e-9, (max - min));
     const pct = Math.max(0, Math.min(1, t)) * 100;
-    el.style.backgroundSize = pct + "% 4px";
+    el.style.setProperty('--fill-pct', pct + '%');
   }catch(_){}
 }
 function onBgmSliderChange(v){
@@ -5285,7 +5285,12 @@ window.shuffleBoard = function(){
 
 <style>
 /* === Mobile only slider styling (forced). PC untouched. ===
-   Base track is neutral; ONLY the fill (伸縮部分) is water-blue, matching the PC intent. */
+   - Track base: neutral
+   - Fill only: water-blue
+   - Track thickness: 1.5x (6px)
+   - Fill follows thumb via CSS var (--fill-pct) updated in JS
+   - Thumb centered to track using track height var
+*/
 :root{ --range-thumb-nudge: 3px; }
 
 @media (max-width: 900px){
@@ -5294,51 +5299,76 @@ window.shuffleBoard = function(){
     appearance: none !important;
     height: 28px !important;
     background: transparent !important;
+
+    /* geometry vars */
+    --track-h: 6px;              /* 4px * 1.5 = 6px */
+    --fill-pct: 50%;
+    --thumb-s: 16px;
+    --thumb-nudge-mobile: 0px;   /* 必要ならここだけ微調整 */
+
     /* fill (伸縮部分) */
-    background-image: linear-gradient(#5ecbff, #5ecbff) !important; /* water blue fill only */
+    background-image: linear-gradient(#5ecbff, #5ecbff) !important;
     background-repeat: no-repeat !important;
     background-position: left center !important;
-    background-size: 50% 4px !important; /* JSで幅だけ更新（高さは固定） */
+    background-size: var(--fill-pct) var(--track-h) !important;
   }
 
-  /* Track base: neutral (restore) */
+  /* Track base: neutral */
   input[type="range"]::-webkit-slider-runnable-track,
   .slider-hit input[type="range"]::-webkit-slider-runnable-track{
-    height: 4px !important;
-    background: rgba(255,255,255,0.22) !important; /* neutral base */
+    height: var(--track-h) !important;
+    background: rgba(255,255,255,0.22) !important;
     border: none !important;
     border-radius: 999px !important;
   }
 
-  /* Thumb: blue */
+  /* Thumb: blue (centered) */
   input[type="range"]::-webkit-slider-thumb,
   .slider-hit input[type="range"]::-webkit-slider-thumb{
     -webkit-appearance: none !important;
-    width: 16px !important;
-    height: 16px !important;
-    background: #1e90ff !important; /* blue */
+    width: var(--thumb-s) !important;
+    height: var(--thumb-s) !important;
+    background: #1e90ff !important;
     border: none !important;
     border-radius: 50% !important;
-    margin-top: calc((4px - 16px) / 2 + var(--range-thumb-nudge)) !important;
+    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
   }
 
   /* Firefox (Android) */
   input[type="range"]::-moz-range-track,
   .slider-hit input[type="range"]::-moz-range-track{
-    height: 4px !important;
+    height: var(--track-h) !important;
     background: rgba(255,255,255,0.22) !important;
     border: none !important;
     border-radius: 999px !important;
   }
   input[type="range"]::-moz-range-thumb,
   .slider-hit input[type="range"]::-moz-range-thumb{
-    width: 16px !important;
-    height: 16px !important;
+    width: var(--thumb-s) !important;
+    height: var(--thumb-s) !important;
     background: #1e90ff !important;
     border: none !important;
     border-radius: 50% !important;
-    margin-top: calc((4px - 16px) / 2 + var(--range-thumb-nudge)) !important;
+    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
   }
 }
 </style>
+
+
+
+<script>
+// === Ensure mobile range fill follows thumb (without changing existing logic) ===
+(function(){
+  function bindFill(el){
+    if(!el) return;
+    try{ updateRangeFill(el); }catch(_){}
+    el.addEventListener('input', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
+    el.addEventListener('change', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    bindFill(document.getElementById('bgmSlider'));
+    bindFill(document.getElementById('seSlider'));
+  });
+})();
+</script>
 
