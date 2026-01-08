@@ -628,6 +628,31 @@ input[type="range"]::-moz-range-thumb{
   border-radius: 999px;
 }
 
+
+/* === FIX: mobile range sliders visibility (track/thumb) === */
+@media (max-width: 900px){
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -931,8 +956,8 @@ function updateBgmIcon(vol){
   if(!bgmBtn) return;
   let base = Number(vol);
   if (!isFinite(base)) base = Number(store.get("bgmVol", BGM_DEFAULT_VOL));
-  const isOn = (bgmOn && !bgmMuted && base > 0);
-  const icon = isOn ? "🔊" : "🔇";
+  const isOn = (!bgmMuted && base > 0);
+const icon = isOn ? "🔊" : "🔇";
   bgmBtn.textContent = "BGM" + icon;
 }
 function updateSeIcon(vol){
@@ -1351,6 +1376,11 @@ function toggleBGMSelect(){
 function toggleBGM(){
   // BGMボタンは「停止」ではなく「ミュート切替」に寄せる（iOS/Chromeでの再開不安定を避ける）
   if (bgmSlider){
+    // スライダーUIがある構成では、BGMは常に「再生状態を保持」し、ボタンはミュートの切替とする
+    // bgmOn が false のままだと __applyBgmVolume() が常に0になり、ONに戻しても鳴らない原因になる
+    bgmOn = true;
+    store.set("bgmOn", true);
+
     const now = Number(bgmSlider.value || "0");
     const hasLevel = (isFinite(now) && now > 0);
 
@@ -5057,7 +5087,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ。</div>
+      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
