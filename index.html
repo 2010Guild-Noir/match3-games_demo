@@ -741,6 +741,100 @@ input[type="range"]::-moz-range-thumb{
   }
 }
 
+
+/* === Slider polish (opaque, shaded). Fill height = track height (not thumb). === */
+:root{
+  --track-h: 10px;
+  --thumb-s: 22px;
+  --track-bg1: #0aa7d9;   /* opaque water-blue */
+  --track-bg2: #078bb5;   /* shade */
+  --fill-bg1:  #26d0ff;   /* brighter fill */
+  --fill-bg2:  #0fb2e6;
+  --thumb-bg1: #43ddff;
+  --thumb-bg2: #0fb2e6;
+}
+@media (max-width: 900px){
+  :root{
+    --track-h: 12px;
+    --thumb-s: 26px;
+  }
+}
+
+/* Base: paint fill as background-image but keep its HEIGHT equal to track height */
+input[type="range"]{
+  -webkit-appearance: none;
+  appearance: none;
+  height: var(--thumb-s);
+  background: transparent;
+  /* fill (伸び縮み) */
+  background-image: linear-gradient(var(--fill-bg1), var(--fill-bg2));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 50% var(--track-h); /* JSで%のみ更新。高さはトラックに固定 */
+}
+
+/* Track (shaded, no borders) */
+input[type="range"]::-webkit-slider-runnable-track{
+  height: var(--track-h);
+  background: linear-gradient(var(--track-bg1), var(--track-bg2));
+  border: none !important;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    inset 0 -2px 3px rgba(0,0,0,0.25),
+    0 1px 2px rgba(0,0,0,0.35);
+}
+input[type="range"]::-moz-range-track{
+  height: var(--track-h);
+  background: linear-gradient(var(--track-bg1), var(--track-bg2));
+  border: none !important;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    inset 0 -2px 3px rgba(0,0,0,0.25),
+    0 1px 2px rgba(0,0,0,0.35);
+}
+
+/* Thumb (shaded, no borders) */
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb-s);
+  height: var(--thumb-s);
+  margin-top: calc((var(--track-h) - var(--thumb-s)) / 2);
+  background: linear-gradient(var(--thumb-bg1), var(--thumb-bg2));
+  border: none !important;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 3px rgba(0,0,0,0.25),
+    0 2px 4px rgba(0,0,0,0.45);
+}
+input[type="range"]::-moz-range-thumb{
+  width: var(--thumb-s);
+  height: var(--thumb-s);
+  background: linear-gradient(var(--thumb-bg1), var(--thumb-bg2));
+  border: none !important;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 3px rgba(0,0,0,0.25),
+    0 2px 4px rgba(0,0,0,0.45);
+}
+
+/* Wrapper variant for mobile: ensure same visuals apply */
+@media (max-width: 900px){
+  .slider-hit input[type="range"]{
+    height: var(--thumb-s);
+    background-position: left center;
+    background-size: 50% var(--track-h);
+  }
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{ height: var(--track-h); }
+  .slider-hit input[type="range"]::-moz-range-track{ height: var(--track-h); }
+  .slider-hit input[type="range"]::-webkit-slider-thumb{ width: var(--thumb-s); height: var(--thumb-s); }
+  .slider-hit input[type="range"]::-moz-range-thumb{ width: var(--thumb-s); height: var(--thumb-s); }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -5200,7 +5294,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ。</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ。。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
