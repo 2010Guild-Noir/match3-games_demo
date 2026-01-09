@@ -1597,53 +1597,45 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
-  // BGMボタンは「停止」ではなく「ミュート切替」に寄せる（iOS/Chromeでの再開不安定を避ける）
-  if (bgmSlider){
-    // スライダーUIがある構成では、BGMは常に「再生状態を保持」し、ボタンはミュートの切替とする
-    // bgmOn が false のままだと __applyBgmVolume() が常に0になり、ONに戻しても鳴らない原因になる
-    bgmOn = true;
-    store.set("bgmOn", true);
-
-    const now = Number(bgmSlider.value || "0");
-    const hasLevel = (isFinite(now) && now > 0);
-
-    // 音量が0(=OFF)の状態なら、直前値へ復帰してON
-    if (!hasLevel){
-      const last = Number(store.get("bgmLast", store.get("bgmVol", BGM_DEFAULT_VOL)));
-      const restored = Math.max(0.01, Math.min(1, isNaN(last) ? BGM_DEFAULT_VOL : last));
-      bgmSlider.value = Math.round(restored * 100);
-      onBgmSliderChange(bgmSlider.value); // bgmOn=true & bgmMuted解除
-      try{ safeStartBGM(currentBGM()); }catch(_){}
-      return;
-    }
-
-    // 音量>0の状態では「ミュート」トグル（スライダー位置は保持）
-    bgmMuted = !bgmMuted;
-    store.set("bgmMuted", bgmMuted);
-    __applyBgmVolume();
-    updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL));
-
-    if (!bgmMuted){
+  if (!bgmSlider){
+    bgmOn = !bgmOn;
+    store.set("bgmOn", bgmOn);
+    updateBgmIcon(bgmOn ? bgmVol : 0);
+    if (bgmOn){
       try{ safeStartBGM(currentBGM()); }catch(_){}
     }
     return;
   }
 
-  // スライダーが無い場合の互換（従来挙動）
-  bgmOn = !bgmOn;
-  store.set("bgmOn", bgmOn);
-  store.set("bgmMuted", false);
-  bgmMuted = false;
-  if (bgmOn){
-    const vol = store.get("bgmVol", BGM_DEFAULT_VOL);
-    setBGMVol(vol);
-    try{ safeStartBGM(currentBGM()); }catch(_){}
-    updateBgmIcon(vol);
-  } else {
-    pauseAllBGM();
+  const nowPct = Number(bgmSlider.value || "0");
+
+  if (nowPct > 0){
+    // OFF: 現在位置を保存して0へ（表示=fillも0）。音はミュート扱い。
+    store.set("bgmLastPct", nowPct);
+    bgmSlider.value = "0";
+    try{ updateRangeFill(bgmSlider); }catch(_){}
+    try{ dispatchRangeInput(bgmSlider); }catch(_){}
+    try{ onBgmSliderChange(0); }catch(_){}
     updateBgmIcon(0);
+    return;
   }
-  __applyBgmVolume();
+
+  // ON: 直前の位置へ復帰（なければ bgmLast/bgmVol から復元、最終的に25）
+  let lastPct = Number(store.get("bgmLastPct", NaN));
+  if (isNaN(lastPct) || lastPct <= 0){
+    const lastVol = Number(store.get("bgmLast", NaN)); // 0..1
+    if (!isNaN(lastVol) && lastVol > 0) lastPct = Math.round(lastVol * 100);
+  }
+  if (isNaN(lastPct) || lastPct <= 0){
+    const vol = Number(store.get("bgmVol", bgmVol || 0.25)); // 0..1
+    lastPct = Math.round(Math.max(0.01, Math.min(1, vol)) * 100);
+  }
+  lastPct = Math.max(1, Math.min(100, lastPct));
+
+  bgmSlider.value = String(lastPct);
+  try{ updateRangeFill(bgmSlider); }catch(_){}
+  try{ dispatchRangeInput(bgmSlider); }catch(_){}
+  try{ onBgmSliderChange(lastPct); }catch(_){}
 }
 
 function selectBGM(which){
@@ -5321,7 +5313,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
