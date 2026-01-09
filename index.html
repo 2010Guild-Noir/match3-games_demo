@@ -794,6 +794,15 @@ input[type="range"]::-moz-range-thumb{
   margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
 }
 
+
+/* === iOS: keep native range interaction reliable === */
+@supports (-webkit-touch-callout: none){
+  @media (max-width: 900px){
+    .slider-hit{ touch-action: pan-y; }
+    input[type="range"]{ touch-action: pan-y; }
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -1089,6 +1098,7 @@ if (seBtn){
   seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
 }
 
+const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
 const bgmSlider = document.getElementById("bgmSlider");
 const seSlider  = document.getElementById("seSlider");
@@ -1129,6 +1139,16 @@ function updateRangeFill(el){
     }catch(_){ }
   }catch(_){}
 }
+
+// === Helper: force UI refresh on some mobile browsers after programmatic value changes ===
+function dispatchRangeInput(el){
+  try{
+    if(!el) return;
+    const ev = new Event('input', { bubbles:true });
+    el.dispatchEvent(ev);
+  }catch(_){}
+}
+
 function onBgmSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
@@ -1241,8 +1261,8 @@ try{ onValue(el.value); }catch(_){}
   window.addEventListener("touchmove", onMove, { passive:false });
   window.addEventListener("touchend", onUp, { passive:false });
 }
-enhanceRangeSlider(bgmSlider, onBgmSliderChange);
-enhanceRangeSlider(seSlider, onSeSliderChange);
+if(!isIOS){ enhanceRangeSlider(bgmSlider, onBgmSliderChange); }
+if(!isIOS){ enhanceRangeSlider(seSlider, onSeSliderChange); }
 
 
 // === Native input fallback (iOS reliability): ensure volume changes on real range events ===
@@ -1497,6 +1517,8 @@ function toggleSE(){
     // OFF: 現在値を記憶して0へ（表示も追従）
     store.set("seLastPct", nowPct);
     seSlider.value = "0";
+    try{ updateRangeFill(seSlider); }catch(_){ }
+    dispatchRangeInput(seSlider);
     onSeSliderChange(0);
     return;
   }
@@ -1505,6 +1527,8 @@ function toggleSE(){
   const last = Number(store.get("seLastPct", 50));
   const restore = (isNaN(last) || last <= 0) ? 50 : Math.max(1, Math.min(100, last));
   seSlider.value = String(restore);
+  try{ updateRangeFill(seSlider); }catch(_){ }
+  dispatchRangeInput(seSlider);
   onSeSliderChange(restore);
 }
 
@@ -5297,7 +5321,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…。</div>
+      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
