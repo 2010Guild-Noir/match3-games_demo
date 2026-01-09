@@ -2186,7 +2186,9 @@ const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
-let slashes=[], particles=[], trails=[], auroraBeams=[]; // Bのエフェクト要素
+let slashes=[], particles=[], trails=[],
+  shuraCracks = [], // 特殊駒（ミミック等）消去：黒靄＋低彩度赤亀裂オーバーレイ
+ auroraBeams=[]; // Bのエフェクト要素
 let flameParts = [];
 // ★連鎖終了の残響（火の粉が上へ舞い上がって収束／SEなし）
 let chainAfterglowEmbers = [];
@@ -2208,7 +2210,10 @@ let jusoShake=[]; // 0..1 の減衰パワー
 
 let lastShuraItemKind = null;
 let lastShuraItemMask  = null;
-let lastRekCrossCombo = false; // レク×しゅらの2段階演出フラグ
+let lastRekCrossCombo = false;
+let rekCrossStage = 0;          // 0:なし 1:十字後 2:全消去後
+let rekCrossSyms = null;        // Set<string> / Array
+ // レク×しゅらの2段階演出フラグ
 let isCascadeMatch = false;    // ドロップ後のカスケードマッチ中かどうか
 
 let isBgmReady = false; // BGMの準備完了フラグ
@@ -2282,7 +2287,7 @@ function endComboIfAny(){
           : null;
       } else {
         // 通常は force=false でオーロラ生成＋火の粉・火柱・火の雨までまとめて行う
-        triggerAurora(false, comboEffectAnchor);
+        if (specialsHit && specialsHit.has('S_UNK')) triggerAurora(false, comboEffectAnchor);
       }
     }catch(_){}
   }
@@ -2759,9 +2764,18 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
  // ★同一 vanish サイクル中に同じお邪魔へ複数回ダメージを入れないためのメモ
   const damagedThisVanish = new Set();
 
-  // ★しゅらちゃん十字による vanish かどうかを判定
-  const isShuraCrossVanish = (lastShuraItemKind === "SHURACHAN" && lastShuraItemMask && lastShuraItemMask.size>0);
-
+  // ★しゅらちゃん十字による vanish かどうかを判定（“今回の vanishMask が十字マスクそのもの”の時だけ true）
+  const isShuraCrossVanish = (function(){
+    try{
+      if (lastShuraItemKind !== "SHURACHAN") return false;
+      if (!lastShuraItemMask || !vanishMask) return false;
+      if (lastShuraItemMask.size !== vanishMask.size) return false;
+      for (const p of vanishMask){
+        if (!lastShuraItemMask.has(p)) return false;
+      }
+      return true;
+    }catch(_){ return false; }
+  })();
   const specialsHit = new Set();
   if (!isShuraCrossVanish){
     vanishMask.forEach(pos=>{
@@ -2777,13 +2791,14 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
       else if (sym==="S_UNK")                  Sound.play('cross', 0.9);
     });
 
+
     // ★レベル3：修羅王丸の消去スキル発動時（S_BIR/S_NE0/S_SHU/S_REQ/S_UNK）に
-    // 残光（しゅら演出）＋オーロラ＋背景脈動を一斉発動
+    // （確認用）特殊駒消去時の白オーロラ／波紋（spawnFlameRipples含む）を無効化
     if (specialsHit && specialsHit.size){
-      try {
-        triggerAurora(true);   // レベル3側はフル強度
-        triggerBgPulse();
-      } catch(_){}
+      try{
+        if (specialsHit && specialsHit.has('S_UNK')) triggerAurora(true);
+        triggerBgPulse();      // 背景脈動だけは残す
+      }catch(_){}
     }
 
     /* === Unknown 闘値インクリメント（MAX直前のみ） === */
@@ -2806,14 +2821,30 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
 
   const safeMask = new Set(vanishMask);
 
+
   if (lastShuraItemKind && safeMask.size > 0){
     try{
       createShuraItemBurstEffects(safeMask, lastShuraItemKind);
       createSlashEffects(safeMask);
     }catch(_){}
-  } else if (extra.size) {
-    createSlashEffects(extra);
-    createParticles(extra);
+  }
+  // 特殊駒ギミック（ミミック/ネオレトロ/シンギュラ/レクイエム/アンノウン）が絡む消去：
+  // specialsHit 判定が環境差で取りこぼす可能性があるため、消去マスク内に特殊駒が含まれるかでも判定する。
+  if (!isShuraCrossVanish){
+    let hasSpecialInMask = false;
+    try{
+      const SPECIALS = new Set(['S_BIR','S_NE0','S_SHU','S_REQ','S_UNK']);
+      for (const p of safeMask){
+        const [r,c]=p.split(',').map(Number);
+        const sym=get(r,c);
+        if (SPECIALS.has(sym)){ hasSpecialInMask = true; break; }
+      }
+    }catch(_){ }
+    const isSpecialCycle = (specialsHit && specialsHit.size) || hasSpecialInMask;
+    if (isSpecialCycle){
+      createSlashEffects(vanishMask,'special');
+      if (extra.size) createParticles(extra);
+    }
   }
 
   vanishMask.forEach(pos=>{
@@ -2891,6 +2922,54 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
     if (JUSOS.includes(b)) { jusoHP[r][c] = 0; }
     set(r,c,null);
   });
+
+  // ★レク×しゅら：第1段階（十字）消去後に、第2段階（同種全消去）を“落下前”に実行する
+  if (lastRekCrossCombo && rekCrossStage === 1){
+    try{
+      const syms = Array.isArray(rekCrossSyms) ? rekCrossSyms : [];
+      const sset = new Set(syms);
+      const second = new Set();
+      if (sset.size > 0){
+        for(let rr=0; rr<size; rr++){
+          for(let cc=0; cc<size; cc++){
+            const sym = get(rr,cc);
+            if (sset.has(sym)) second.add(rr + "," + cc);
+          }
+        }
+      }
+      if (second.size > 0){
+        // 第2段階の視覚＆SE（第1段階と分離して見えるように）
+        try{ Sound.play('cross', 0.9); }catch(_){}
+        // 第2段階も第1段階と同程度の表示時間・存在感にする（しゅら/レクの専用演出を流用）
+        try{
+          const kind = lastShuraItemKind || "SHURACHAN";
+          createShuraItemBurstEffects(second, kind);
+        }catch(_){}
+        try{ createSlashEffects(second); createParticles(second); }catch(_){}
+
+        vanishMask = second;
+        vanishP = 0;
+        animState = "vanish";
+        rekCrossStage = 2;
+        return; // 落下は第2段階の後にまとめて行う
+      } else {
+        rekCrossStage = 0;
+        rekCrossSyms = null;
+        lastRekCrossCombo = false;
+      }
+    }catch(_){
+      rekCrossStage = 0;
+      rekCrossSyms = null;
+      lastRekCrossCombo = false;
+    }
+  }
+
+  // 第2段階が終わった後は通常処理へ戻す（落下→連鎖へ）
+  if (lastRekCrossCombo && rekCrossStage === 2){
+    rekCrossStage = 0;
+    rekCrossSyms = null;
+    lastRekCrossCombo = false;
+  }
 
   if (specialsHit.size > 0) {
     rankProgress++;
@@ -3036,13 +3115,15 @@ function maybeSpawnObstacles(){ /* (省略: 変更なし) */
 }
 
 /* 斬撃＆粒子エフェクト (省略: 変更なし) */
-function createSlashEffects(matches){ /* (省略: 変更なし) */
+function createSlashEffects(matches, mode){ /* (省略: 変更なし) */
   slashes=[];
+  const slashMode = mode || 'normal';
+  const col = (slashMode==='special') ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'} : null;
   matches.forEach(p=>{
     const [r,c]=p.split(',').map(Number);
     const cx=c*tileSize+tileSize/2, cy=r*tileSize+tileSize/2;
-    slashes.push({x:cx,y:cy,dir:'h',t:0});
-    slashes.push({x:cx,y:cy,dir:'v',t:0});
+    slashes.push({col: col, x:cx,y:cy,dir:'h',t:0});
+    slashes.push({col: col, x:cx,y:cy,dir:'v',t:0});
   });
 }
 function createParticles(matches){ /* (省略: 変更なし) */
@@ -3063,7 +3144,74 @@ function createParticles(matches){ /* (省略: 変更なし) */
 
 /* 描画 (省略: 変更なし) */
 const SWAP_ANIM_TIME=0.15*60, VANISH_ANIM_TIME=0.25*60;
-function drawSlashes(){ /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字両対応 */
+
+
+
+
+function drawShuraCracks(){
+  // 修羅王丸スキルで消去される駒に「黒い靄＋赤い亀裂」を重ね、視認性を上げる
+  if(!shuraCracks.length) return;
+  ctx.save();
+  for(const e of shuraCracks){
+    const t = e.life / e.maxLife;
+    const fade = (1 - t);
+    const aSmoke = 0.85 * fade;
+    const aCrack = 1.0  * fade;
+
+    const x0 = e.x - tileSize/2;
+    const y0 = e.y - tileSize/2;
+
+    // 黒い靄（中心濃く、外側に拡散）
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    const g = ctx.createRadialGradient(e.x, e.y, tileSize*0.10, e.x, e.y, tileSize*0.65);
+    g.addColorStop(0, `rgba(0,0,0,${0.55*aSmoke})`);
+    g.addColorStop(0.55, `rgba(0,0,0,${0.22*aSmoke})`);
+    g.addColorStop(1, `rgba(0,0,0,0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.rect(x0, y0, tileSize, tileSize);
+    ctx.fill();
+    ctx.restore();
+
+    // 赤い亀裂（細い線＋外側の暗赤グロウ）
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 外側グロウ
+    ctx.lineWidth = Math.max(2.2, tileSize*0.075);
+    ctx.strokeStyle = `rgba(90,10,20,${0.35*aCrack})`;
+    ctx.beginPath();
+    for(const p of e.paths){
+      ctx.moveTo(p[0].x, p[0].y);
+      for(let k=1;k<p.length;k++) ctx.lineTo(p[k].x, p[k].y);
+    }
+    ctx.stroke();
+
+    // 内側の鮮烈な赤
+    ctx.lineWidth = Math.max(1.6, tileSize*0.040);
+    ctx.strokeStyle = `rgba(220,70,80,${aCrack})`;
+    ctx.beginPath();
+    for(const p of e.paths){
+      ctx.moveTo(p[0].x, p[0].y);
+      for(let k=1;k<p.length;k++) ctx.lineTo(p[k].x, p[k].y);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    e.life++;
+  }
+  shuraCracks = shuraCracks.filter(e=>e.life < e.maxLife);
+  ctx.restore();
+}
+
+function drawSlashes(){
+  // ensure non-additive, opaque rendering
+  const prevComp = ctx.globalCompositeOperation;
+  const prevAlpha = ctx.globalAlpha;
+ /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字両対応 */
   if(!slashes.length) return;
   ctx.save();
   ctx.globalCompositeOperation='lighter';
@@ -3091,19 +3239,44 @@ function drawSlashes(){ /* 通常斬撃＋しゅらちゃん／レクしゅら�
       else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
       ctx.stroke();
     } else {
-      // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
-      ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
-      ctx.lineWidth=w;
-      ctx.beginPath();
-      if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-      else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-      ctx.stroke();
+      // 通常斬撃。mode==='special' の場合は createSlashEffects 側で s.col が設定される
+      if (s.col){
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        // 外側（ぼかし）
+        ctx.strokeStyle = 'rgba(40,20,20,0.45)';
+        ctx.lineWidth = w*1.2;
+        ctx.beginPath();
+        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+        ctx.stroke();
+        // 内側（芯）
+        ctx.strokeStyle = s.col.inner;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'rgba(0,0,0,0)';
+      } else {
+        // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
+        ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
+        ctx.lineWidth=w;
+        ctx.beginPath();
+        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+        ctx.stroke();
+      }
     }
     s.t+=0.12;
   }
   slashes=slashes.filter(s=>s.t<1.0);
   ctx.restore();
+  ctx.globalCompositeOperation = prevComp;
+  ctx.globalAlpha = prevAlpha;
 }
+
 
 
 function drawFlames(){
@@ -3241,7 +3414,7 @@ function drawFireRains(){
     ctx.strokeStyle = `rgba(${f.r|0},${f.g|0},${f.b|0},${a*0.75})`;
     ctx.lineWidth = f.width * 1.7;
     ctx.stroke();
-    ctx.strokeStyle = `rgba(255,255,255,${a})`;
+    ctx.strokeStyle = `rgba(170,10,30,${a})`;
     ctx.lineWidth = Math.max(0.6, f.width * 0.65);
     ctx.stroke();
 
@@ -3537,7 +3710,7 @@ function drawAurora(){
   ctx.globalCompositeOperation='lighter';
   for(const b of auroraBeams){
     const t = b.life / b.maxLife;
-    const alphaBase = 0.40 * b.strength; // 元の約3分の2程度を想定
+    const alphaBase = 0.20 * b.strength; // 元の約3分の2程度を想定
     const alpha = alphaBase * (1 - t);
     if (alpha <= 0){ b.life = b.maxLife; continue; }
     ctx.save();
@@ -3550,7 +3723,7 @@ function drawAurora(){
     if (isHellAurora){
       // 地獄味の強い赤黒系オーロラの柱
       grad.addColorStop(0.0, `rgba(0,0,0,0)`);
-      grad.addColorStop(0.25, `rgba(120,0,0,${alpha * 0.7})`);
+      grad.addColorStop(0.25, `rgba(90,10,20,${alpha * 0.7})`);
       grad.addColorStop(0.6, `rgba(210,20,20,${alpha})`);
       grad.addColorStop(1.0, `rgba(0,0,0,0)`);
     } else if (isKanki){
@@ -3846,6 +4019,8 @@ function drawGame(){ /* (省略: 変更なし) */
   if (!__freeze){
     drawBgPulse();
     drawSlashes();
+  // 特殊駒消去対象の視認性（黒靄＋低彩度赤亀裂）
+  drawShuraCracks();
     drawTrails();
     drawFlames();
     drawFlamePillars();
@@ -4044,6 +4219,9 @@ function gameLoop(){ /* (省略: 変更なし) */
        
 
 function createShuraItemBurstEffects(mask, kind){
+  // 特殊駒（ミミック/ネオレトロ/シンギュラ/レクイエム/アンノウン）が揃った時も十字を赤系に
+  const isSpecialKindForRed = (kind==='S_BIR' || kind==='S_NE0' || kind==='S_SHU' || kind==='S_REQ' || kind==='S_UNK');
+  const specialCol = isSpecialKindForRed ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'} : null;
   if (!mask || !kind) return;
   const palette = (kind==="SHURACHAN")
     ? [{r:120,g:200,b:255},{r:255,g:80,b:140}]
@@ -4059,8 +4237,8 @@ function createShuraItemBurstEffects(mask, kind){
     const cy = r*tileSize + tileSize/2;
 
     // 水色グロウの十字（しゅらちゃん／レクしゅら専用）
-    slashes.push({x:cx,y:cy,dir:'h',t:0,kind:'shuraCross'});
-    slashes.push({x:cx,y:cy,dir:'v',t:0,kind:'shuraCross'});
+    slashes.push({col: specialCol, x:cx,y:cy,dir:'h',t:0,kind:'shuraCross'});
+    slashes.push({col: specialCol, x:cx,y:cy,dir:'v',t:0,kind:'shuraCross'});
 
     // ★レベル1：しゅらちゃん／レクしゅらの十字から残光トレイルを生成（v2の約半分）
     const trailLen = tileSize * 1.2;
@@ -4138,17 +4316,22 @@ function createShuraItemBurstEffects(mask, kind){
               }
               // レク×しゅら or しゅら×レク → 「十字消去 → 消えた色の全消去（2段階演出）」
               else if ((b1==="REKUSHURA" && b2==="SHURACHAN") || (b2==="REKUSHURA" && b1==="SHURACHAN")){
-                mask = new Set();
+                // レク×しゅら / しゅら×レク：2段階
+                // 1) しゅらちゃん基準の十字消去（巻き込まれた しゅらちゃん も連鎖発動）
+                // 2) 十字で消えた通常駒の種類をトリガーとして、盤面から同種を全消去（resolveVanishAndDrop内で第2段階を実行）
                 lastRekCrossCombo = true;
+                rekCrossStage = 1;
+                rekCrossSyms = null;
+
                 const crossMask = new Set();
                 const shuraPos = (b1 === "SHURACHAN") ? p1 : p2;
                 const triggerSyms = new Set();
 
-                // 1) 十字消去（しゅらちゃん基準：巻き込まれた しゅらちゃん も連鎖発動）
                 const queue = [];
                 const visited = new Set();
                 const startKey = shuraPos.r + "," + shuraPos.c;
                 queue.push(startKey);
+
                 while (queue.length){
                   const key = queue.shift();
                   if (visited.has(key)) continue;
@@ -4156,10 +4339,10 @@ function createShuraItemBurstEffects(mask, kind){
                   const parts = key.split(",");
                   const cr = parseInt(parts[0], 10);
                   const cc0 = parseInt(parts[1], 10);
+
                   // 横方向
                   for (let x=0; x<size; x++){
                     const k = cr + "," + x;
-                    mask.add(k);
                     crossMask.add(k);
                     const sym = get(cr, x);
                     if (NORMALS.includes(sym)) triggerSyms.add(sym);
@@ -4168,7 +4351,6 @@ function createShuraItemBurstEffects(mask, kind){
                   // 縦方向
                   for (let y=0; y<size; y++){
                     const k = y + "," + cc0;
-                    mask.add(k);
                     crossMask.add(k);
                     const sym = get(y, cc0);
                     if (NORMALS.includes(sym)) triggerSyms.add(sym);
@@ -4176,29 +4358,22 @@ function createShuraItemBurstEffects(mask, kind){
                   }
                 }
 
-                // ★第1段階演出：十字だけ先に光らせる（しゅらちゃんカラー）
+                // レクしゅら＆しゅらちゃん自身も確実に第1段階で消す
+                crossMask.add(p1.r + "," + p1.c);
+                crossMask.add(p2.r + "," + p2.c);
+
+                // 第2段階用に「トリガー種類」を保存（この瞬間の十字巻き込み基準）
+                rekCrossSyms = Array.from(triggerSyms);
+
+                // 第1段階演出：十字だけ先に光らせる（しゅらちゃんカラー）
                 try{
                   if (crossMask && crossMask.size > 0){
                     createShuraItemBurstEffects(crossMask, "SHURACHAN");
                   }
                 }catch(_){}
 
-                // 2) 十字で消えた「通常駒の色」をトリガーとして、盤面から同種を全消去
-                if (triggerSyms.size > 0){
-                  for(let rr=0; rr<size; rr++){
-                    for(let cc=0; cc<size; cc++){
-                      const sym = get(rr, cc);
-                      if (triggerSyms.has(sym)){
-                        mask.add(rr + "," + cc);
-                      }
-                    }
-                  }
-                }
-
-                // レクしゅら＆しゅらちゃん自身も確実に消す
-                mask.add(p1.r + "," + p1.c);
-                mask.add(p2.r + "," + p2.c);
-
+                // 実際の消去マスクは第1段階（十字）のみ
+                mask = crossMask;
                 particleKind = "REKUSHURA";
               }
               // アイテム＋通常駒（片側のみアイテム）
@@ -5313,7 +5488,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
+      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
