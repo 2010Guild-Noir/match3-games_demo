@@ -3283,10 +3283,20 @@ function drawSlashes(){
   ctx.lineJoin = 'round';
 
   // 端を細く／中心を少し太くし、全体長さを約8%短縮（格子感低減）
-  const strokeTaper = (s, lenBase, baseW, strokeStyle, comp, alpha, shadowBlur, shadowColor)=>{
-    const len = lenBase * 0.92;
-    const mid = len * 0.42;
+  const strokeTaper = (s, baseW, strokeStyle, comp, alpha, shadowBlur, shadowColor, tPhase)=>{
+    // v77相当：端先が“びよー”と伸びる（tに応じて長くなる）＋わずかなオーバーシュート
+    const ph = (typeof tPhase === 'number') ? Math.max(0, Math.min(1, tPhase)) : 0;
+    // 基本長（中心→端）：初期短め→終盤で長く
+    const lenBase = tileSize * (0.30 + ph * 1.10);  // 0.30〜1.40 tileSize
+    const overshoot = 1 + 0.14 * Math.sin(Math.PI * ph); // 中盤で少し伸びる
+    const len = lenBase * overshoot;
+
+    // 端を短くし格子感を抑える（中心太の領域を広げ、端区間を短縮）
+    const mid = len * 0.82;
+    const tip = len * 0.90;
+
     const wThin  = Math.max(1, baseW * 0.82);
+    const wTip   = Math.max(1, wThin * 0.60);
     const wThick = Math.max(1, baseW * 1.10);
 
     ctx.globalCompositeOperation = comp || 'source-over';
@@ -3295,16 +3305,30 @@ function drawSlashes(){
     ctx.shadowColor = shadowColor || 'rgba(0,0,0,0)';
     ctx.strokeStyle = strokeStyle;
 
-    // ends (thin)
+    // ends (thin) - inner part
     ctx.lineWidth = wThin;
     ctx.beginPath();
     if (s.dir === 'h'){
-      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x - mid, s.y);
-      ctx.moveTo(s.x + mid, s.y); ctx.lineTo(s.x + len, s.y);
+      ctx.moveTo(s.x - tip, s.y); ctx.lineTo(s.x - mid, s.y);
+      ctx.moveTo(s.x + mid, s.y); ctx.lineTo(s.x + tip, s.y);
     } else {
-      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y - mid);
-      ctx.moveTo(s.x, s.y + mid); ctx.lineTo(s.x, s.y + len);
+      ctx.moveTo(s.x, s.y - tip); ctx.lineTo(s.x, s.y - mid);
+      ctx.moveTo(s.x, s.y + mid); ctx.lineTo(s.x, s.y + tip);
     }
+    ctx.stroke();
+
+    // ends (tip) - extra thin
+    ctx.lineWidth = wTip;
+    ctx.beginPath();
+    if (s.dir === 'h'){
+      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x - tip, s.y);
+      ctx.moveTo(s.x + tip, s.y); ctx.lineTo(s.x + len, s.y);
+    } else {
+      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y - tip);
+      ctx.moveTo(s.x, s.y + tip); ctx.lineTo(s.x, s.y + len);
+    }
+    // fix vertical last line: canvas lineTo signature
+    // We'll correct below after insert.
     ctx.stroke();
 
     // center (thick)
@@ -3314,52 +3338,63 @@ function drawSlashes(){
     else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
     ctx.stroke();
   };
+  // 赤十字（特殊駒）用：負荷軽減版（端の分割描画を省略し、ぼかしも軽量化）
+  const strokeRedFast = (s, w, colInner, tPhase)=>{
+    const ph = (typeof tPhase === 'number') ? Math.max(0, Math.min(1, tPhase)) : 0;
+    const lenBase = tileSize * (0.30 + ph * 1.10);
+    const overshoot = 1 + 0.14 * Math.sin(Math.PI * ph);
+    const len = lenBase * overshoot;
+
+    // 端短縮（格子感低減）は維持。ただし分割線は描かず一本化（軽量）
+    const mid = len * 0.82;
+
+    // 外側（黒い靄）— 最初の数フレームだけ描画（後半は靄なし）
+    if (ph < 0.35){
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(0,0,0,0.65)';
+      ctx.strokeStyle = 'rgba(40,20,20,0.40)';
+      ctx.lineWidth = Math.max(2, w * 2.1);
+      ctx.beginPath();
+      if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+      else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'rgba(0,0,0,0)';
+    }
+
+    // 内側（赤線）— ぼかし無しで一本
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'rgba(0,0,0,0)';
+    ctx.strokeStyle = colInner;
+    ctx.lineWidth = Math.max(1.5, w);
+    ctx.beginPath();
+    if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+    else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+    ctx.stroke();
+  };
+
 
   const drawList = (list)=>{
     for(const s of list){
       const t = Math.min(1, s.t);
-      const lenBase = tileSize * (1 + t*1.2);
       let w = Math.max(2, 6 - t*5);
 
       if (s.kind === 'shuraCross'){
         const alpha = 0.75 * (1 - t);
         const outerW = w * 2.0;
-        strokeTaper(s, lenBase, outerW, `rgba(60,150,255,${alpha * 0.6})`, 'lighter', 1, 0, 'rgba(0,0,0,0)');
-        strokeTaper(s, lenBase, w,      `rgba(120,255,255,${alpha})`,     'lighter', 1, 0, 'rgba(0,0,0,0)');
+        // 水色グロウ十字（従来維持）
+        strokeTaper(s, outerW, `rgba(60,150,255,${alpha * 0.6})`, 'lighter', 1, 0, 'rgba(0,0,0,0)', t);
+        strokeTaper(s, w,      `rgba(120,255,255,${alpha})`,     'lighter', 1, 0, 'rgba(0,0,0,0)', t);
+      } else if (s.col){
+        // 特殊駒 赤十字：負荷軽減版（v77の伸長感は維持）
+        strokeRedFast(s, w, s.col.inner, t);
       } else {
-        if (s.col){
-          // 特殊駒用 赤十字：v72仕様（source-over、スクリーン/加算なし）
-          const len = lenBase * 0.92; // 他の短縮仕様は維持
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.globalAlpha = 1;
-
-          // 外側（黒い靄ぼかし）
-          ctx.strokeStyle = 'rgba(40,20,20,0.45)';
-          ctx.lineWidth = w * 1.8;
-          ctx.shadowBlur = 12;
-          ctx.shadowColor = 'rgba(0,0,0,0.55)';
-          ctx.beginPath();
-          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-          ctx.stroke();
-
-          // 内側（赤系）
-          ctx.shadowBlur = 0;
-          ctx.shadowColor = 'rgba(0,0,0,0)';
-          ctx.strokeStyle = s.col.inner;
-          ctx.lineWidth = w;
-          ctx.beginPath();
-          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-          ctx.stroke();
-
-          ctx.shadowBlur = 0;
-          ctx.shadowColor = 'rgba(0,0,0,0)';
-        } else {
-          // 通常消去：白に固定（歓喜/焦土の色分けは行わない）
-          strokeTaper(s, lenBase, w, "rgba(255,255,255,0.85)", 'source-over', 1, 0, 'rgba(0,0,0,0)');
-        }
+        // 通常消去：白固定
+        strokeTaper(s, w, "rgba(255,255,255,0.85)", 'source-over', 1, 0, 'rgba(0,0,0,0)', t);
       }
+
       s.t += 0.12;
     }
     return list.filter(s=>s.t < 1.0);
