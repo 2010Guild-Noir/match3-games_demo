@@ -942,8 +942,8 @@ window.store = window.store || {
 <div class="wrap">
     <div class="panel">
       <div class="hud">
-        <div class="badge" id="score">暗躍値: 0</div>
-        <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
+        <div class="badge" id="score">暗躍値:  </div>
+        <div class="badge" id="rank">修羅王丸: 　 <span class="rank-progress" id="rankProgress"></span></div>
       </div>
       <div id="titleRow"><span id="titleLabel"></span></div>
       <div id="comboGaugeContainer">
@@ -1212,6 +1212,8 @@ if (seSlider){
 // iOS/Chromeでrangeのドラッグが鈍い/反応しない対策：pointer/touch移動で値を直接更新する
 function enhanceRangeSlider(el, onValue){
   if (!el) return;
+  try{ if (el.dataset && el.dataset.rangeDirect==='1') return; }catch(_){ }
+  try{ if (el.dataset) el.dataset.rangeDirect='1'; }catch(_){ }
   const hit = el.closest(".slider-hit") || el;
   try{ hit.style.touchAction = "none"; }catch(_){}
   const setFromClientX = (clientX)=>{
@@ -1261,8 +1263,8 @@ try{ onValue(el.value); }catch(_){}
   window.addEventListener("touchmove", onMove, { passive:false });
   window.addEventListener("touchend", onUp, { passive:false });
 }
-if(!isIOS){ enhanceRangeSlider(bgmSlider, onBgmSliderChange); }
-if(!isIOS){ enhanceRangeSlider(seSlider, onSeSliderChange); }
+enhanceRangeSlider(bgmSlider, onBgmSliderChange);
+enhanceRangeSlider(seSlider, onSeSliderChange);
 
 
 // === Native input fallback (iOS reliability): ensure volume changes on real range events ===
@@ -1662,22 +1664,33 @@ let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
   audioUnlocked=true;
-  // 【修正】SEの一斉再生を避けるため、SE_BANKに対するループを削除し、
-  // BGM (bgm1, bgm2) のみに対してアンロック処理を行います。
-  const audioElements = [bgm1, bgm2]; // ★SEの要素は含めず、bgm1とbgm2のみを指定
-  
-  audioElements.forEach(a => {
-    if (!a) return;
-    try{ 
-      const v=a.volume; 
-      a.volume=0.0001; 
-      a.play().then(()=>{ 
-        a.pause(); a.currentTime=0; a.volume=v; 
-      }).catch(()=>{ 
-        a.volume=v; 
-      }); 
+
+  // iOS/Chromeの自動再生制限対策：
+  // 以後の play() が「連鎖中に不発」にならないよう、ページ内の audio を無音で一度だけ解禁する。
+  const audioElements = Array.from(document.querySelectorAll('audio'));
+
+  for (const a of audioElements){
+    if (!a) continue;
+    try{
+      const v = a.volume;
+      // 0 だと解禁扱いにならない環境があるため、極小値にする
+      a.volume = 0.0001;
+      const p = a.play();
+      if (p && typeof p.then === 'function'){
+        p.then(()=>{
+          try{ a.pause(); }catch(_){}
+          try{ a.currentTime = 0; }catch(_){}
+          try{ a.volume = v; }catch(_){}
+        }).catch(()=>{
+          try{ a.volume = v; }catch(_){}
+        });
+      } else {
+        try{ a.pause(); }catch(_){}
+        try{ a.currentTime = 0; }catch(_){}
+        try{ a.volume = v; }catch(_){}
+      }
     }catch(_){}
-  });
+  }
 }
 
 function userGesture(){
@@ -2186,7 +2199,7 @@ const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
-let slashes=[], particles=[], trails=[],
+let slashes=[], specialSlashes=[], particles=[], trails=[],
   shuraCracks = [], // 特殊駒（ミミック等）消去：黒靄＋低彩度赤亀裂オーバーレイ
  auroraBeams=[]; // Bのエフェクト要素
 let flameParts = [];
@@ -2287,7 +2300,7 @@ function endComboIfAny(){
           : null;
       } else {
         // 通常は force=false でオーロラ生成＋火の粉・火柱・火の雨までまとめて行う
-        if (specialsHit && specialsHit.has('S_UNK')) triggerAurora(false, comboEffectAnchor);
+        triggerAurora(false, comboEffectAnchor, comboCount);
       }
     }catch(_){}
   }
@@ -3116,14 +3129,21 @@ function maybeSpawnObstacles(){ /* (省略: 変更なし) */
 
 /* 斬撃＆粒子エフェクト (省略: 変更なし) */
 function createSlashEffects(matches, mode){ /* (省略: 変更なし) */
-  slashes=[];
   const slashMode = mode || 'normal';
-  const col = (slashMode==='special') ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'} : null;
+  const target = (slashMode === 'special') ? specialSlashes : slashes;
+
+  // それぞれ独立に管理（通常斬撃が後続で発火しても、特殊斬撃が上書きで消えないようにする）
+  target.length = 0;
+
+  const col = (slashMode==='special')
+    ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'}
+    : null;
+
   matches.forEach(p=>{
     const [r,c]=p.split(',').map(Number);
     const cx=c*tileSize+tileSize/2, cy=r*tileSize+tileSize/2;
-    slashes.push({col: col, x:cx,y:cy,dir:'h',t:0});
-    slashes.push({col: col, x:cx,y:cy,dir:'v',t:0});
+    target.push({col: col, x:cx,y:cy,dir:'h',t:0});
+    target.push({col: col, x:cx,y:cy,dir:'v',t:0});
   });
 }
 function createParticles(matches){ /* (省略: 変更なし) */
@@ -3211,74 +3231,83 @@ function drawSlashes(){
   // ensure non-additive, opaque rendering
   const prevComp = ctx.globalCompositeOperation;
   const prevAlpha = ctx.globalAlpha;
- /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字両対応 */
-  if(!slashes.length) return;
+  /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字＋特殊駒用の赤系斬撃を独立に描画 */
+  if(!slashes.length && !specialSlashes.length) return;
+
   ctx.save();
   ctx.globalCompositeOperation='lighter';
-  for(const s of slashes){
-    const t=Math.min(1,s.t);
-    const len=tileSize*(1+t*1.2);
-    let w=Math.max(2,6-t*5);
 
-    if (s.kind === 'shuraCross'){
-      // しゅらちゃん／レクしゅら専用：水色グロウ十字
-      const alpha = 0.75 * (1 - t);
-      const outerW = w * 2.0;
-      // 外側の青寄りグロウ
-      ctx.strokeStyle = `rgba(60,150,255,${alpha * 0.6})`;
-      ctx.lineWidth = outerW;
-      ctx.beginPath();
-      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-      ctx.stroke();
-      // 内側の鮮烈なアクア系
-      ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-      ctx.stroke();
-    } else {
-      // 通常斬撃。mode==='special' の場合は createSlashEffects 側で s.col が設定される
-      if (s.col){
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-        // 外側（ぼかし）
-        ctx.strokeStyle = 'rgba(40,20,20,0.45)';
-        ctx.lineWidth = w*1.2;
+  const drawList = (list)=>{
+    for(const s of list){
+      const t=Math.min(1,s.t);
+      const len=tileSize*(1+t*1.2);
+      let w=Math.max(2,6-t*5);
+
+      if (s.kind === 'shuraCross'){
+        // しゅらちゃん／レクしゅら専用：水色グロウ十字
+        const alpha = 0.75 * (1 - t);
+        const outerW = w * 2.0;
+        // 外側の青寄りグロウ
+        ctx.strokeStyle = `rgba(60,150,255,${alpha * 0.6})`;
+        ctx.lineWidth = outerW;
         ctx.beginPath();
-        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+        if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
+        else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
         ctx.stroke();
-        // 内側（芯）
-        ctx.strokeStyle = s.col.inner;
+        // 内側の鮮烈なアクア系
+        ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
         ctx.lineWidth = w;
         ctx.beginPath();
-        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+        if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
+        else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
         ctx.stroke();
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'rgba(0,0,0,0)';
       } else {
-        // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
-        ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
-        ctx.lineWidth=w;
-        ctx.beginPath();
-        if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-        else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-        ctx.stroke();
+        // 通常斬撃。mode==='special' の場合は createSlashEffects 側で s.col が設定される
+        if (s.col){
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+          // 外側（ぼかし）
+          ctx.strokeStyle = 'rgba(40,20,20,0.45)';
+          ctx.lineWidth = w * 1.8;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = 'rgba(0,0,0,0.55)';
+          ctx.beginPath();
+          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+          ctx.stroke();
+          // 内側（赤系）
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'rgba(0,0,0,0)';
+          ctx.strokeStyle = s.col.inner;
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'rgba(0,0,0,0)';
+        } else {
+          // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
+          ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
+          ctx.lineWidth=w;
+          ctx.beginPath();
+          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
+          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
+          ctx.stroke();
+        }
       }
+      s.t+=0.12;
     }
-    s.t+=0.12;
-  }
-  slashes=slashes.filter(s=>s.t<1.0);
+    return list.filter(s=>s.t<1.0);
+  };
+
+  slashes = drawList(slashes);
+  specialSlashes = drawList(specialSlashes);
+
   ctx.restore();
   ctx.globalCompositeOperation = prevComp;
   ctx.globalAlpha = prevAlpha;
 }
-
-
-
 function drawFlames(){
   if (!flameParts.length) return;
   ctx.save();
@@ -5488,7 +5517,7 @@ window.shuffleBoard = function(){
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
