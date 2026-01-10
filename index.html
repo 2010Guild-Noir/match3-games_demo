@@ -1666,28 +1666,38 @@ function unlockAllSE(){
   audioUnlocked=true;
 
   // iOS/Chromeの自動再生制限対策：
-  // 以後の play() が「連鎖中に不発」にならないよう、ページ内の audio を無音で一度だけ解禁する。
+  // “解禁”のための play() が可聴にならないよう、muted + volume=0 で短時間だけ再生→停止する。
+  // （起動時に複数SE/ボイスが同時に鳴る現象を防止）
   const audioElements = Array.from(document.querySelectorAll('audio'));
 
   for (const a of audioElements){
     if (!a) continue;
     try{
-      const v = a.volume;
-      // 0 だと解禁扱いにならない環境があるため、極小値にする
-      a.volume = 0.0001;
+      const prevVol = a.volume;
+      const prevMuted = !!a.muted;
+
+      // 無音化
+      try{ a.muted = true; }catch(_){}
+      try{ a.volume = 0; }catch(_){}
+      try{ a.pause(); }catch(_){}
+      try{ a.currentTime = 0; }catch(_){}
+
       const p = a.play();
       if (p && typeof p.then === 'function'){
         p.then(()=>{
           try{ a.pause(); }catch(_){}
           try{ a.currentTime = 0; }catch(_){}
-          try{ a.volume = v; }catch(_){}
+          try{ a.volume = prevVol; }catch(_){}
+          try{ a.muted = prevMuted; }catch(_){}
         }).catch(()=>{
-          try{ a.volume = v; }catch(_){}
+          try{ a.volume = prevVol; }catch(_){}
+          try{ a.muted = prevMuted; }catch(_){}
         });
       } else {
         try{ a.pause(); }catch(_){}
         try{ a.currentTime = 0; }catch(_){}
-        try{ a.volume = v; }catch(_){}
+        try{ a.volume = prevVol; }catch(_){}
+        try{ a.muted = prevMuted; }catch(_){}
       }
     }catch(_){}
   }
@@ -2216,6 +2226,8 @@ let bgPulse = null;               // 背景脈動用
 let auroraTriggeredThisMove = false; // この一手でオーロラを出したか
 let vanishMask=null, vanishP=0, animState="idle";
 let drag={active:false,start:null,t:null}, swapPair=null;
+let lastMoveAnchor=null; // 最後にユーザーが動かした駒の到達先(ギミック中心)
+
 let jusoHP=[], currentObstacleCount=0;
 let pendingShuraItem = null, pendingShuraItemPos = null;
 
@@ -2737,37 +2749,71 @@ const SEED_BASE_CHANCE = 0.06;
 function addCell(set, r, c){ /* (省略: 変更なし) */
   if(r>=0 && r<size && c>=0 && c<size) set.add(`${r},${c}`);
 }
-function applySpecialGimmicks(baseMatches){ /* (省略: 変更なし) */
+function applySpecialGimmicks(baseMatches){
+  // 特殊駒ギミックの消去範囲を追加する。
+  // 要件：ミミック/ネオレトロ/レクイエムは「移動した駒（到達先）」を中心に発動し、
+  // マッチ内に複数の特殊駒が含まれても列/行が過剰に増えないようにする。
   const extra = new Set();
-  baseMatches.forEach(pos=>{
-    const [r,c]=pos.split(',').map(Number);
-    const b=get(r,c);
-    if(!b || !SPECIALS.includes(b)) return;
 
-    if(b==="S_BIR"){ // 縦列
-      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
-    }
-    else if(b==="S_NE0"){ // 縦列 (+焦土で両隣の列)
-      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
-      if(!isKanki){ for(let rr=0; rr<size; rr++){ addCell(extra, rr, c-1); addCell(extra, rr, c+1); } }
-    }
-    else if(b==="S_SHU"){ // 円形（半径2）
-      for(let rr=r-2; rr<=r+2; rr++) for(let cc=c-2; cc<=c+2; cc++){
-        const dx=cc-c, dy=rr-r;
-        if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
+  // まず「今回の発動中心」を決める（最優先：ユーザーが動かした到達先が特殊駒で、かつ baseMatches に含まれる場合）
+  let anchor = null;
+  try{
+    if (lastMoveAnchor){
+      const ar = lastMoveAnchor.r|0, ac = lastMoveAnchor.c|0;
+      const key = ar + "," + ac;
+      const sym = get(ar, ac);
+      if (sym && SPECIALS.includes(sym) && baseMatches && typeof baseMatches.has === 'function' && baseMatches.has(key)){
+        anchor = { r: ar, c: ac, sym };
       }
     }
-    else if(b==="S_REQ"){ // 横列 (+焦土で上下の行)
-      for(let cc=0; cc<size; cc++) addCell(extra, r, cc);
-      if(!isKanki){ for(let cc=0; cc<size; cc++){ addCell(extra, r-1, cc); addCell(extra, r+1, cc); } }
-    }
-    else if(b==="S_UNK"){ // 斜め×2
-      for(let k=-size; k<=size; k++){
-        addCell(extra, r+k, c+k);
-        addCell(extra, r+k, c-k);
+  }catch(_){}
+
+  // フォールバック：baseMatches 内で最初に見つかった特殊駒
+  if (!anchor && baseMatches){
+    try{
+      for (const pos of baseMatches){
+        const [r,c]=pos.split(',').map(Number);
+        const sym=get(r,c);
+        if (sym && SPECIALS.includes(sym)){
+          anchor = { r, c, sym };
+          break;
+        }
       }
+    }catch(_){}
+  }
+  if (!anchor) return extra;
+
+  const r = anchor.r, c = anchor.c, b = anchor.sym;
+
+  if (b==="S_BIR"){ // ミミック：縦一列のみ（中心列）
+    for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
+  }
+  else if (b==="S_NE0"){ // ネオレトロ：無条件で縦三列（中心＋両隣）
+    for(let rr=0; rr<size; rr++){
+      addCell(extra, rr, c-1);
+      addCell(extra, rr, c);
+      addCell(extra, rr, c+1);
     }
-  });
+  }
+  else if (b==="S_SHU"){ // シンギュラ：円形（半径2）
+    for(let rr=r-2; rr<=r+2; rr++) for(let cc=c-2; cc<=c+2; cc++){
+      const dx=cc-c, dy=rr-r;
+      if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
+    }
+  }
+  else if (b==="S_REQ"){ // レクイエム：無条件で縦三列（中心＋両隣）
+    for(let rr=0; rr<size; rr++){
+      addCell(extra, rr, c-1);
+      addCell(extra, rr, c);
+      addCell(extra, rr, c+1);
+    }
+  }
+  else if (b==="S_UNK"){ // アンノウン：斜め×2
+    for(let k=-size; k<=size; k++){
+      addCell(extra, r+k, c+k);
+      addCell(extra, r+k, c-k);
+    }
+  }
   return extra;
 }
 
@@ -3228,45 +3274,66 @@ function drawShuraCracks(){
 }
 
 function drawSlashes(){
-  // ensure non-additive, opaque rendering
   const prevComp = ctx.globalCompositeOperation;
   const prevAlpha = ctx.globalAlpha;
-  /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字＋特殊駒用の赤系斬撃を独立に描画 */
   if(!slashes.length && !specialSlashes.length) return;
 
   ctx.save();
-  ctx.globalCompositeOperation='lighter';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 端を細く／中心を少し太くし、全体長さを約8%短縮（格子感低減）
+  const strokeTaper = (s, lenBase, baseW, strokeStyle, comp, alpha, shadowBlur, shadowColor)=>{
+    const len = lenBase * 0.92;
+    const mid = len * 0.42;
+    const wThin  = Math.max(1, baseW * 0.82);
+    const wThick = Math.max(1, baseW * 1.10);
+
+    ctx.globalCompositeOperation = comp || 'source-over';
+    ctx.globalAlpha = (alpha!=null) ? alpha : 1;
+    ctx.shadowBlur = shadowBlur || 0;
+    ctx.shadowColor = shadowColor || 'rgba(0,0,0,0)';
+    ctx.strokeStyle = strokeStyle;
+
+    // ends (thin)
+    ctx.lineWidth = wThin;
+    ctx.beginPath();
+    if (s.dir === 'h'){
+      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x - mid, s.y);
+      ctx.moveTo(s.x + mid, s.y); ctx.lineTo(s.x + len, s.y);
+    } else {
+      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y - mid);
+      ctx.moveTo(s.x, s.y + mid); ctx.lineTo(s.x, s.y + len);
+    }
+    ctx.stroke();
+
+    // center (thick)
+    ctx.lineWidth = wThick;
+    ctx.beginPath();
+    if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+    else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+    ctx.stroke();
+  };
 
   const drawList = (list)=>{
     for(const s of list){
-      const t=Math.min(1,s.t);
-      const len=tileSize*(1+t*1.2);
-      let w=Math.max(2,6-t*5);
+      const t = Math.min(1, s.t);
+      const lenBase = tileSize * (1 + t*1.2);
+      let w = Math.max(2, 6 - t*5);
 
       if (s.kind === 'shuraCross'){
-        // しゅらちゃん／レクしゅら専用：水色グロウ十字
         const alpha = 0.75 * (1 - t);
         const outerW = w * 2.0;
-        // 外側の青寄りグロウ
-        ctx.strokeStyle = `rgba(60,150,255,${alpha * 0.6})`;
-        ctx.lineWidth = outerW;
-        ctx.beginPath();
-        if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-        else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-        ctx.stroke();
-        // 内側の鮮烈なアクア系
-        ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
-        ctx.lineWidth = w;
-        ctx.beginPath();
-        if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-        else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-        ctx.stroke();
+        strokeTaper(s, lenBase, outerW, `rgba(60,150,255,${alpha * 0.6})`, 'lighter', 1, 0, 'rgba(0,0,0,0)');
+        strokeTaper(s, lenBase, w,      `rgba(120,255,255,${alpha})`,     'lighter', 1, 0, 'rgba(0,0,0,0)');
       } else {
-        // 通常斬撃。mode==='special' の場合は createSlashEffects 側で s.col が設定される
         if (s.col){
+          // 特殊駒用 赤十字：v72仕様（source-over、スクリーン/加算なし）
+          const len = lenBase * 0.92; // 他の短縮仕様は維持
           ctx.globalCompositeOperation = 'source-over';
           ctx.globalAlpha = 1;
-          // 外側（ぼかし）
+
+          // 外側（黒い靄ぼかし）
           ctx.strokeStyle = 'rgba(40,20,20,0.45)';
           ctx.lineWidth = w * 1.8;
           ctx.shadowBlur = 12;
@@ -3275,6 +3342,7 @@ function drawSlashes(){
           if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
           else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
           ctx.stroke();
+
           // 内側（赤系）
           ctx.shadowBlur = 0;
           ctx.shadowColor = 'rgba(0,0,0,0)';
@@ -3284,21 +3352,17 @@ function drawSlashes(){
           if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
           else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
           ctx.stroke();
+
           ctx.shadowBlur = 0;
           ctx.shadowColor = 'rgba(0,0,0,0)';
         } else {
-          // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
-          ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
-          ctx.lineWidth=w;
-          ctx.beginPath();
-          if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-          else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-          ctx.stroke();
+          // 通常消去：白に固定（歓喜/焦土の色分けは行わない）
+          strokeTaper(s, lenBase, w, "rgba(255,255,255,0.85)", 'source-over', 1, 0, 'rgba(0,0,0,0)');
         }
       }
-      s.t+=0.12;
+      s.t += 0.12;
     }
-    return list.filter(s=>s.t<1.0);
+    return list.filter(s=>s.t < 1.0);
   };
 
   slashes = drawList(slashes);
@@ -4086,6 +4150,7 @@ function canSwapAndMatch(r1,c1,r2,c2){ /* (省略: 変更なし) */
 function swapAndStart(r1,c1,r2,c2){ /* (省略: 変更なし) */
   resetComboForNewMove();
   swapPair={p1:{r:r1,c:c1},p2:{r:r2,c:c2},p:0,back:false};
+  lastMoveAnchor={r:r2,c:c2};
   animState="swap";
   userGesture();
 }
