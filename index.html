@@ -1366,8 +1366,30 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
   const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.25 : 1);
+
+  // WebAudioバスがあればGainで制御（iOSで確実）
+  try{
+    const g = window.__audioGraph;
+    if (g && g.bgm && g.bgm.gain){
+      g.bgm.gain.value = eff;
+      return;
+    }
+  }catch(_){}
+
+  // フォールバック
   try{ bgm1.volume = eff; }catch(_){}
   try{ bgm2.volume = eff; }catch(_){}
+}
+
+function __applySeVolume(){
+  const eff = __getSeEffectiveVol();
+  try{
+    const g = window.__audioGraph;
+    if (g && g.se && g.se.gain){
+      g.se.gain.value = eff;
+      return;
+    }
+  }catch(_){}
 }
 
 function __getSeEffectiveVol(){
@@ -1504,7 +1526,7 @@ window.playVoiceById = function(voiceId){
 
 
 function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVolume(); }
-function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
+function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); __applySeVolume(); }
 
 function toggleSE(){
   if (!seSlider){
@@ -1663,42 +1685,17 @@ function selectBGM(which){
 let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
-  audioUnlocked=true;
+  audioUnlocked = true;
 
-  // iOS/Chromeの自動再生制限対策：
-  // “解禁”のための play() が可聴にならないよう、muted + volume=0 で短時間だけ再生→停止する。
-  // （起動時に複数SE/ボイスが同時に鳴る現象を防止）
+  // iOSで“解禁”目的に全audioをplayすると、一斉再生（全部鳴る）バグを誘発しやすい。
+  // ここでは preload のみに留める。
   const audioElements = Array.from(document.querySelectorAll('audio'));
-
   for (const a of audioElements){
     if (!a) continue;
     try{
-      const prevVol = a.volume;
-      const prevMuted = !!a.muted;
-
-      // 無音化
-      try{ a.muted = true; }catch(_){}
-      try{ a.volume = 0; }catch(_){}
       try{ a.pause(); }catch(_){}
       try{ a.currentTime = 0; }catch(_){}
-
-      const p = a.play();
-      if (p && typeof p.then === 'function'){
-        p.then(()=>{
-          try{ a.pause(); }catch(_){}
-          try{ a.currentTime = 0; }catch(_){}
-          try{ a.volume = prevVol; }catch(_){}
-          try{ a.muted = prevMuted; }catch(_){}
-        }).catch(()=>{
-          try{ a.volume = prevVol; }catch(_){}
-          try{ a.muted = prevMuted; }catch(_){}
-        });
-      } else {
-        try{ a.pause(); }catch(_){}
-        try{ a.currentTime = 0; }catch(_){}
-        try{ a.volume = prevVol; }catch(_){}
-        try{ a.muted = prevMuted; }catch(_){}
-      }
+      try{ a.load(); }catch(_){}
     }catch(_){}
   }
 }
@@ -5286,6 +5283,66 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
 (function(){
   var unlocked = false;
   var ctx = null;
+
+  // WebAudio バス（iOSでHTMLAudio.volumeが効かない／効きにくい端末対策）
+  var masterGain = null, bgmGain = null, seGain = null;
+  var srcMap = new WeakMap();
+
+  function ensureGraph(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!ctx && AC){
+        ctx = window.__sharedAudioCtx || new AC();
+        window.__sharedAudioCtx = ctx;
+      }
+      if (!ctx) return null;
+      if (ctx.state === 'suspended'){ try{ ctx.resume(); }catch(_){ } }
+
+      if (masterGain) return window.__audioGraph;
+
+      masterGain = ctx.createGain();
+      bgmGain = ctx.createGain();
+      seGain = ctx.createGain();
+      bgmGain.connect(masterGain);
+      seGain.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      window.__audioGraph = {ctx:ctx, master:masterGain, bgm:bgmGain, se:seGain};
+      return window.__audioGraph;
+    }catch(_){ return null; }
+  }
+
+  function connectToBus(el, bus){
+    if (!el || !bus) return;
+    try{
+      if (srcMap.has(el)) return;
+      var g = ensureGraph();
+      if (!g) return;
+      var src = g.ctx.createMediaElementSource(el);
+      src.connect(bus);
+      srcMap.set(el, src);
+      try{ el.volume = 1; }catch(_){}
+    }catch(_){}
+  }
+
+  function connectKnownAudio(){
+    try{
+      var g = ensureGraph();
+      if (!g) return;
+      // BGM
+      try{ connectToBus(document.getElementById('bgm1'), g.bgm); }catch(_){}
+      try{ connectToBus(document.getElementById('bgm2'), g.bgm); }catch(_){}
+      // その他のaudioタグ（SE/ボイス）
+      var audios = Array.from(document.querySelectorAll('audio'));
+      for (var i=0;i<audios.length;i++){
+        var a = audios[i];
+        if (!a) continue;
+        if (a.id === 'bgm1' || a.id === 'bgm2') continue;
+        connectToBus(a, g.se);
+      }
+    }catch(_){}
+  }
+
   var isIOS = /iP(hone|od|ad)/.test(navigator.platform) ||
               (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
 
@@ -5309,32 +5366,26 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   }
 
   function primeBGM(){
-    ['bgm1','bgm2'].forEach(function(id){
-      var el = document.getElementById(id);
-      if (!el) return;
-      try{
-        el.muted = true;
-        el.currentTime = 0;
-        var p = el.play();
-        if (p && p.then){
-          p.then(function(){
-            try{ el.pause(); el.currentTime = 0; }catch(_){}
-            el.muted = false;
-          }).catch(function(){ el.muted = false; });
-        }else{
-          try{ el.pause(); el.currentTime = 0; }catch(_){}
-          el.muted = false;
-        }
-      }catch(_){}
-    });
-  }
+  // iOSでmuted play/pauseを行うと、稀に多重再生や音量バグのトリガになるため行わない。
+  // 事前ロードのみ。
+  ['bgm1','bgm2'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    try{ el.pause(); }catch(_){}
+    try{ el.currentTime = 0; }catch(_){}
+    try{ el.load(); }catch(_){}
+  });
+}
 
   function unlock(){
     if (unlocked) return;
     unlocked = true;
     resumeCtx();
+    connectKnownAudio();
     try{ if (typeof unlockAllSE === 'function') unlockAllSE(); }catch(_){}
     primeBGM();
+    try{ __applySeVolume && __applySeVolume(); }catch(_){ }
+    try{ __applyBgmVolume && __applyBgmVolume(); }catch(_){ }
     detach();
   }
 
@@ -5346,6 +5397,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   }
 
   window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('touchstart', unlock, true);
   window.addEventListener('touchend', unlock, true);
   window.addEventListener('keydown', unlock, true);
 
