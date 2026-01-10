@@ -4146,9 +4146,9 @@ function drawGame(){ /* (省略: 変更なし) */
   const __freeze = (__now < comboFreezeUntil);
   if (!__freeze){
     drawBgPulse();
-    drawSlashes();
+    try{ drawSlashes(); }catch(_){ }
   // 特殊駒消去対象の視認性（黒靄＋低彩度赤亀裂）
-  drawShuraCracks();
+  try{ drawShuraCracks(); }catch(_){ }
     drawTrails();
     drawFlames();
     drawFlamePillars();
@@ -5340,6 +5340,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
 
   function detach(){
     window.removeEventListener('pointerdown', unlock, true);
+    window.removeEventListener('touchstart', unlock, true);
     window.removeEventListener('touchend', unlock, true);
     window.removeEventListener('keydown', unlock, true);
   }
