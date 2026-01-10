@@ -1197,6 +1197,8 @@ function onSeSliderChange(v){
 
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
+  // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
+  try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
@@ -1298,7 +1300,9 @@ function makePool(baseEl, n){
       const el = arr[idx++ % arr.length];
       try{ el.pause(); }catch(_){}
       try{ el.currentTime = 0; }catch(_){}
-      try{ el.volume = vol; }catch(_){}
+      try{ el.volume = vol; }catch(_){ }
+      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
+      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
       el.play().catch(()=>{});
     }
   };
@@ -1348,7 +1352,8 @@ const Sound={
     }
 
     const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
-    const v = this.vol * volMul * m;
+    const g = window.__audioGraph;
+    const v = (g && g.se && g.se.gain) ? (volMul * m) : (this.vol * volMul * m);
     p.play(v);
   },
 };
@@ -1437,9 +1442,28 @@ function __playMedia(el){
   try{
     const p = el.play();
     if (p && typeof p.catch === "function"){
-      p.catch(()=>{ __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }); });
+      p.catch(()=>{
+        // iOS対策：ジェスチャ待ちだけにせず、短いリトライも行う（連鎖中に取りこぼさない）
+        try{ el.load && el.load(); }catch(_){}
+        try{
+          if (!el.__retrying){
+            el.__retrying = true;
+            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
+            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+          }
+        }catch(_){ el.__retrying = false; }
+        __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
+      });
     }
   }catch(_){
+    try{ el.load && el.load(); }catch(__){}
+    try{
+      if (!el.__retrying){
+        el.__retrying = true;
+        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
+        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+      }
+    }catch(__){ el.__retrying = false; }
     __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
   }
 }
@@ -1505,6 +1529,7 @@ window.playVoiceById = function(voiceId){
     const voiceFloor = Number(store.get("voiceFloor", 0.45));
     const voiceVol = __clamp01(baseSe<=0 ? 0 : Math.max(voiceFloor, baseSe * voiceBoost));
     __setElementVolumeSafe(el, voiceVol);
+    try{ var g=ensureGraph(); if(g) connectToBus(el, g.se); }catch(_){ }
 
     try{ el.currentTime = 0; }catch(_){}
     __playMedia(el);
@@ -2798,11 +2823,11 @@ function applySpecialGimmicks(baseMatches){
       if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
     }
   }
-  else if (b==="S_REQ"){ // レクイエム：無条件で縦三列（中心＋両隣）
-    for(let rr=0; rr<size; rr++){
-      addCell(extra, rr, c-1);
-      addCell(extra, rr, c);
-      addCell(extra, rr, c+1);
+  else if (b==="S_REQ"){ // レクイエム：移動駒を中心に「横列＋上下隣」(＝3行)
+    for(let cc=0; cc<size; cc++){
+      addCell(extra, r-1, cc);
+      addCell(extra, r,   cc);
+      addCell(extra, r+1, cc);
     }
   }
   else if (b==="S_UNK"){ // アンノウン：斜め×2
@@ -5290,6 +5315,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
 
   function ensureGraph(){
     try{
+      if (!IS_IOS) return null;
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!ctx && AC){
         ctx = window.__sharedAudioCtx || new AC();
@@ -5313,6 +5339,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   }
 
   function connectToBus(el, bus){
+    if (!IS_IOS) return;
     if (!el || !bus) return;
     try{
       if (srcMap.has(el)) return;
@@ -5326,6 +5353,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   }
 
   function connectKnownAudio(){
+    if (!IS_IOS) return;
     try{
       var g = ensureGraph();
       if (!g) return;
