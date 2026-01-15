@@ -1074,6 +1074,19 @@ window.store = window.store || {
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
 const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
 
+
+// === iOS audio volume FIX: global ensureGraph shim ===
+// Some parts of this file call ensureGraph() before the iOS audio graph is initialized.
+// We provide a stable global shim that delegates to the implementation once it is registered.
+function ensureGraph(){
+  try{
+    return (typeof window.__ensureGraphImpl === 'function') ? window.__ensureGraphImpl() : null;
+  }catch(_){
+    return null;
+  }
+}
+
+
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
 const bgm2 = document.getElementById("bgm2");
@@ -5327,15 +5340,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
         var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
         else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
         var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
-        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
-        ACTIVE.push(p); }
-      if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
-    window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
-  }
-
-  
-    
-// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*sp// ---------- Audio unlock on first interaction (iOS-hardened) ----------
 (function(){
   var unlocked = false;
   var ctx = null;
@@ -5344,7 +5349,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   var masterGain = null, bgmGain = null, seGain = null;
   var srcMap = new WeakMap();
 
-  function ensureGraph(){
+  function ensureGraphImpl(){
     try{
       if (!IS_IOS) return null;
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -5380,6 +5385,8 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
       return null;
     }
   }
+
+  window.__ensureGraphImpl = ensureGraphImpl;
 
   function unlock(){
     if (unlocked) return;
@@ -5444,6 +5451,18 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
           };
           function cleanup(){
             window.removeEventListener('pointerdown', once, true);
+            window.removeEventListener('touchend', once, true);
+            window.removeEventListener('keydown', once, true);
+          }
+          window.addEventListener('pointerdown', once, true);
+          window.addEventListener('touchend', once, true);
+          window.addEventListener('keydown', once, true);
+        }.bind(this));
+      }
+      return ret;
+    };
+  }
+r('pointerdown', once, true);
             window.removeEventListener('touchend', once, true);
             window.removeEventListener('keydown', once, true);
           }
@@ -5668,7 +5687,7 @@ window.shuffleBoard = function(){
 <div id="allmaxOverlay" aria-hidden="true">
   <div id="allmaxPanel" role="dialog" aria-modal="true">
     <div id="allmaxClose" title="close">✕</div>
-    <h2>到達せし者の扉</h2>
+    <h2>― 到達せし者の扉 ―</h2>
     <div id="allmaxInputArea">
       <div id="allmaxInputRow">
         <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
