@@ -1170,27 +1170,18 @@ function onBgmSliderChange(v){
 
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
-  setBGMVol(vol);
-  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
-bgmOn = vol > 0;
-bgmMuted = false;
-store.set("bgmMuted", false);
-store.set("bgmOn", bgmOn);
-store.set("bgmVol", vol);
-if (vol > 0) store.set("bgmLast", vol);
-
-// ← 状態確定後に適用
-try{ __applyBgmVolume(); }catch(_){}
-try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){}
-
-updateBgmIcon(vol);
-
-if (bgmOn){
-  try{ safeStartBGM(currentBGM()); }catch(_){}
-}
-
+  const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
+  bgmOn = vol > 0;
+  // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
+  bgmMuted = false;
+  store.set("bgmMuted", false);
+  store.set("bgmOn", bgmOn);
+  store.set("bgmVol", vol);
   if (vol > 0) store.set("bgmLast", vol);
+
+  // 状態と保存が確定してから実効音量を適用（iOSでスライダーが効かない問題の修正）
+  try{ __applyBgmVolume(); }catch(_){ }
+  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
 
   updateBgmIcon(vol);
 
@@ -1230,6 +1221,8 @@ function onSeSliderChange(v){
   store.set("seVol", Sound.vol);
   // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
   try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
+  // 念のため、共通の適用関数も通す（SEスライダーが効かない問題の修正）
+  try{ __applySeVolume(); }catch(_){ }
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
@@ -1334,11 +1327,7 @@ function makePool(baseEl, n){
       try{ el.volume = vol; }catch(_){ }
       // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
       if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
-      try{
-  __playMedia(el);   // iOSジェスチャキュー対応
-}catch(_){
-  el.play().catch(()=>{});
-}
+      try{ __playMedia(el); }catch(_){ el.play().catch(()=>{}); }
     }
   };
 }
@@ -1639,7 +1628,6 @@ function toggleSE(){
   try{ updateRangeFill(seSlider); }catch(_){ }
   dispatchRangeInput(seSlider);
   onSeSliderChange(restore);
-try{ __applySeVolume(); }catch(_){}
 }
 
 function pauseAllBGM(){
