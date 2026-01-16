@@ -1548,39 +1548,82 @@ function __playMedia(el){
 window.__playMediaSafe = __playMedia;
 window.__getSeEffectiveVol = __getSeEffectiveVol;
 
+
 function __setBgmVolPair(v){
+  // Backward-compat helper: set BGM level in the most reliable way per platform.
   v = __clamp01(v);
-  try{ bgm1.volume = v; }catch(_){}
-  try{ bgm2.volume = v; }catch(_){}
+  try{
+    const g = window.__audioGraph;
+    let connected = false;
+    try{
+      if (g && g.sources && g.sources.has){
+        connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2)));
+      }
+    }catch(_){ connected = false; }
+
+    // If iOS WebAudio graph is active and BGM is connected, prefer GainNode.
+    if (IS_IOS && g && g.bgm && g.bgm.gain && connected){
+      try{ g.bgm.gain.value = v; }catch(_){ }
+      // Keep element volume at 1 so that element-level volume does not fight GainNode.
+      try{ if (bgm1) bgm1.volume = 1; }catch(_){ }
+      try{ if (bgm2) bgm2.volume = 1; }catch(_){ }
+      return;
+    }
+  }catch(_){ }
+
+  // Fallback: element volume control
+  try{ if (bgm1) bgm1.volume = v; }catch(_){ }
+  try{ if (bgm2) bgm2.volume = v; }catch(_){ }
 }
+
 function __getBgmBaseVol(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
   return (bgmOn && !bgmMuted) ? base : 0;
 }
+
 let __duckToken = 0;
 
 function __startDucking(){
-  // Smooth "attack" to avoid sudden drops (ear-fatiguing)
+  // Mark ducking active for SE/voice scaling
   if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
   const token = ++__duckToken;
-  const base  = __getBgmBaseVol();
-  const target = __clamp01(base * 0.25);
-
-  // Mark ducking active for SE/voice scaling
   __ducking = true;
 
-  // Fade from current -> target
-  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : base);
+  const base = __getBgmBaseVol();
+  const target = __clamp01(base * 0.25);
+
+  // Smooth fade using whichever volume path is active (GainNode preferred on iOS)
+  const from = (()=>{
+    try{
+      const g = window.__audioGraph;
+      let connected=false;
+      try{ if (g && g.sources && g.sources.has){ connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2))); } }catch(_){ connected=false; }
+      if (IS_IOS && g && g.bgm && g.bgm.gain && connected) return Number(g.bgm.gain.value);
+    }catch(_){ }
+    try{ return Number((bgm1 && typeof bgm1.volume==='number') ? bgm1.volume : base); }catch(_){ }
+    return base;
+  })();
+
   __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, target, 220);
 }
 
 function __releaseDucking(ms){
-  // Smooth "release" and keep ducking until voice actually ends
   if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
   const token = ++__duckToken;
+
   const base = __getBgmBaseVol();
-  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : (base*0.25));
-  const to   = __clamp01(base);
+  const to = __clamp01(base);
+  const from = (()=>{
+    try{
+      const g = window.__audioGraph;
+      let connected=false;
+      try{ if (g && g.sources && g.sources.has){ connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2))); } }catch(_){ connected=false; }
+      if (IS_IOS && g && g.bgm && g.bgm.gain && connected) return Number(g.bgm.gain.value);
+    }catch(_){ }
+    try{ return Number((bgm1 && typeof bgm1.volume==='number') ? bgm1.volume : (base*0.25)); }catch(_){ }
+    return base*0.25;
+  })();
+
   __duckReleaseTimer = setTimeout(()=>{
     __ducking = false;
     __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, to, 420);
