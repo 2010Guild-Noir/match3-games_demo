@@ -35,6 +35,12 @@ html{ margin:0; padding:0; height:100%; }
   .wrap{ max-width:640px; margin:0 auto 28px; padding:0 16px 16px; }
   .panel{ margin:0 auto; padding:16px 14px; border-radius:16px; background:#121316; border:1px solid var(--line);
     box-shadow:0 18px 60px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.06) inset; backdrop-filter:saturate(120%) blur(8px); }
+  html.ios .panel{ backdrop-filter:none !important; }
+  html.ios canvas{ box-shadow:0 10px 26px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.04) inset; }
+  html.ios .btn, html.ios #rankSelectRow .btn-icon{ transition:none !important; box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 8px 18px rgba(0,0,0,.30); }
+  html.ios .btn:hover, html.ios .btn.hover-glow{ box-shadow:0 8px 18px rgba(0,0,0,.30); transform:none; }
+  html.ios .modal-content{ box-shadow:0 10px 24px rgba(0,0,0,0.55); }
+
   /* タイトルサイズ＝B */
   h1{ display:none; }
   .subtitle{ display:none; }
@@ -927,27 +933,6 @@ input[type="range"]::-moz-range-thumb{
 }
 </style>
 
-
-<!-- === iPhone: hide volume sliders (buttons only) === -->
-<style id="ios-hide-sliders">
-/* iPhone/iPad (iOS Safari / WKWebView): hide range sliders and keep ON/OFF buttons only */
-html.ios #indexModal .slider-hit{
-  display:none !important;
-}
-html.ios #indexModal input[type="range"]{
-  display:none !important;
-}
-/* Reflow rows so the toggle buttons look intentional */
-html.ios #indexModal .volume-row{
-  justify-content:center;
-  gap:10px;
-}
-html.ios #indexModal .volume-text.vol-toggle{
-  min-width:140px;
-  height:36px;
-  font-size:15px;
-}
-</style>
 </head>
 <body>
   
@@ -1094,23 +1079,6 @@ window.store = window.store || {
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
 const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
-try{ document.documentElement.classList.toggle('ios', IS_IOS); }catch(_){}
-
-// Mark iOS on <html> for CSS targeting
-try{ if (IS_IOS) document.documentElement.classList.add('ios'); }catch(_){ }
-
-
-// === iOS audio volume FIX: global ensureGraph shim ===
-// Some parts of this file call ensureGraph() before the iOS audio graph is initialized.
-// We provide a stable global shim that delegates to the implementation once it is registered.
-function ensureGraph(){
-  try{
-    return (typeof window.__ensureGraphImpl === 'function') ? window.__ensureGraphImpl() : null;
-  }catch(_){
-    return null;
-  }
-}
-
 
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
@@ -1189,9 +1157,6 @@ function dispatchRangeInput(el){
 
 function onBgmSliderChange(v){
   if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
-
-  // iOS: keep element volume at 1, control via WebAudio gain
-  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
 
   v = Number(v);
   if (isNaN(v)) v = 0;
@@ -1440,10 +1405,8 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-// ★ iPhoneだけ最大音量を80%に制限
-const iosLimit = IS_IOS ? 0.8 : 1.0;
-
-const eff = ((bgmOn && !bgmMuted) ? base * iosLimit : 0) * (__ducking ? 0.25 : 1);
+  const iosLimit = (typeof IS_IOS!=="undefined" && IS_IOS) ? 0.8 : 1.0;
+  const eff  = ((bgmOn && !bgmMuted) ? (base * iosLimit) : 0) * (__ducking ? 0.25 : 1);
 
   // WebAudioバスがあればGainで制御（iOSで確実）
   try{
@@ -1664,12 +1627,9 @@ function pauseAllBGM(){
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
 function safeStartBGM(bgmEl){
   try{
-    if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
+    if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
 
     if (!bgmEl) return;
-    // iOS: route BGM through WebAudio bus so sliders/mute work
-    if (IS_IOS){ try{ var g = ensureGraph(); if (g) { connectToBus(bgmEl, g.bgm); if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ } }
-    try{ __applyBgmVolume(); }catch(_){ }
     // 重複再生防止：ターゲット以外のBGMは必ず停止
     try{
       if (bgm1 && bgmEl!==bgm1){ bgm1.pause(); }
@@ -1743,9 +1703,7 @@ function toggleBGM(){
     try{ updateRangeFill(bgmSlider); }catch(_){}
     try{ dispatchRangeInput(bgmSlider); }catch(_){}
     try{ onBgmSliderChange(0); }catch(_){}
-        // Safety: if WebAudio is not yet active on iOS, also pause to ensure true mute
-    try{ if (IS_IOS) pauseAllBGM(); }catch(_){ }
-updateBgmIcon(0);
+    updateBgmIcon(0);
     return;
   }
 
@@ -1769,8 +1727,6 @@ updateBgmIcon(0);
 
 function selectBGM(which){
   pauseAllBGM();
-  // iOS: ensure WebAudio routing before (re)starting
-  if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
   activeBGM = (which===2)?bgm2:bgm1;
   store.set("activeBGM", which);
   setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
@@ -1918,7 +1874,7 @@ let logicalSize = 400;
 let tileSize = logicalSize/size;
 let isMobileViewport = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
 let dprRaw = (window.devicePixelRatio || 1);
-let DPR = isMobileViewport ? Math.min(2, dprRaw) : Math.max(2, Math.min(3, dprRaw));
+let DPR = isMobileViewport ? Math.min((typeof IS_IOS!=="undefined" && IS_IOS)?1.5:2, dprRaw) : Math.max(2, Math.min(3, dprRaw));
 let paused = false;
 let isKanki = true;
 const DRAG_THRESHOLD = 0.35;
@@ -3786,7 +3742,7 @@ function triggerAurora(force, anchor, chainLevelOverride){ /* レベル2/3用オ
 
 function spawnFlamesFromAurora(beams, level){
   if (!beams || !beams.length) return;
-  const MAX_FLAME_PARTS = 220;
+  const MAX_FLAME_PARTS = ((typeof IS_IOS!=="undefined"&&IS_IOS)?140:220);
   if (flameParts.length >= MAX_FLAME_PARTS) return;
 
   // 3:8 / 4:12 / 5:16 / 6:20 + 業火ボーナス → 全体を3倍
@@ -3896,7 +3852,7 @@ function spawnFlameRipples(){
 
 // レベル6以上専用：画面全体に「火の雨」を降らせる
 function spawnFireRain(level){
-  const MAX_RAIN = 220;
+  const MAX_RAIN = ((typeof IS_IOS!=="undefined"&&IS_IOS)?140:220);
   if (flameRains.length >= MAX_RAIN) return;
 
   const count = 90 + Math.max(0, level - 6) * 20; // だいたい90本前後
@@ -4836,7 +4792,7 @@ function initGame(reset=false){ /* (省略: 変更なし) */
 const parentW = 480;
   logicalSize = Math.floor(480/size)*size;
   tileSize = logicalSize/size;
-  DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(2,(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
+  DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(((typeof IS_IOS!=="undefined"&&IS_IOS)?1.5:2),(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
   canvas.width=logicalSize*DPR; canvas.height=logicalSize*DPR; ctx.setTransform(1,0,0,1,0,0); ctx.scale(DPR,DPR);
   canvas.style.width = logicalSize + 'px'; canvas.style.height = 'auto';
   if(reset) initBoard();
@@ -5141,7 +5097,7 @@ window.addEventListener("DOMContentLoaded", () => {
         $howtoModal.hidden = false;
         $howtoModal.classList.add('open');
       }
-      if ($indexModal) $indexModal.style.filter = 'blur(4px)';
+      if ($indexModal) $indexModal.style.filter = ((typeof IS_IOS!=="undefined"&&IS_IOS)?"none":"blur(4px)");
     } catch(e){ console.error('[openHowto] ', e); }
   };
 
@@ -5342,7 +5298,7 @@ function triggerJusoShake(r,c, power=1){
 
   // ---------- ParticleFX (single canvas, pooled) ----------
   if(!window.ParticleFX){
-    var DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(2,(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
+    var DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(((typeof IS_IOS!=="undefined"&&IS_IOS)?1.5:2),(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
 var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
     var cvs=document.createElement('canvas');
     cvs.id = 'infernoCanvas'; Object.assign(cvs.style,{position:'fixed',inset:'0',pointerEvents:'none',zIndex:1,background:'transparent',display:'none'});
@@ -5378,7 +5334,15 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
         var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
         else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
         var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
-        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*sp// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
+        ACTIVE.push(p); }
+      if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
+    window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
+  }
+
+  
+    
+// ---------- Audio unlock on first interaction (iOS-hardened) ----------
 (function(){
   var unlocked = false;
   var ctx = null;
@@ -5387,7 +5351,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   var masterGain = null, bgmGain = null, seGain = null;
   var srcMap = new WeakMap();
 
-  function ensureGraphImpl(){
+  function ensureGraph(){
     try{
       if (!IS_IOS) return null;
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -5423,8 +5387,6 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
       return null;
     }
   }
-
-  window.__ensureGraphImpl = ensureGraphImpl;
 
   function unlock(){
     if (unlocked) return;
@@ -5489,18 +5451,6 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
           };
           function cleanup(){
             window.removeEventListener('pointerdown', once, true);
-            window.removeEventListener('touchend', once, true);
-            window.removeEventListener('keydown', once, true);
-          }
-          window.addEventListener('pointerdown', once, true);
-          window.addEventListener('touchend', once, true);
-          window.addEventListener('keydown', once, true);
-        }.bind(this));
-      }
-      return ret;
-    };
-  }
-r('pointerdown', once, true);
             window.removeEventListener('touchend', once, true);
             window.removeEventListener('keydown', once, true);
           }
@@ -5728,7 +5678,7 @@ window.shuffleBoard = function(){
     <h2>― 到達せし者の扉 ―</h2>
     <div id="allmaxInputArea">
       <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="鍵の在処を"知る者"に提示せよ" autocomplete="off" />
+        <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
       <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
@@ -5737,164 +5687,6 @@ window.shuffleBoard = function(){
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
 </div>
-
-
-<script>
-(function(){
-  'use strict';
-  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-
-  function clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
-
-  // --- Robust play() retry on iOS (gesture unlock) ---
-  try{
-    if (!HTMLMediaElement.prototype.__patchedPlayRetry){
-      HTMLMediaElement.prototype.__patchedPlayRetry = true;
-      var _origPlay = HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play = function(){
-        var el = this;
-        var ret;
-        try{ ret = _origPlay.call(el); }catch(e){ ret = Promise.reject(e); }
-        if (ret && typeof ret.catch === 'function'){
-          ret.catch(function(){
-            var once = function(){
-              try{ _origPlay.call(el).catch(function(){}); }catch(_){ }
-              cleanup();
-            };
-            function cleanup(){
-              window.removeEventListener('pointerdown', once, true);
-              window.removeEventListener('touchend', once, true);
-              window.removeEventListener('keydown', once, true);
-            }
-            window.addEventListener('pointerdown', once, true);
-            window.addEventListener('touchend', once, true);
-            window.addEventListener('keydown', once, true);
-          });
-        }
-        return ret;
-      };
-    }
-  }catch(_){ }
-
-  function safeEnsureGraph(){
-    try{ return (typeof window.ensureGraph === 'function') ? window.ensureGraph() : null; }catch(_){ return null; }
-  }
-
-  function connectBgmIfPossible(){
-    if (!IS_IOS) return;
-    var g = safeEnsureGraph();
-    if (!g) return;
-    try{
-      if (typeof window.connectToBus === 'function'){
-        if (window.bgm1) window.connectToBus(window.bgm1, g.bgm);
-        if (window.bgm2) window.connectToBus(window.bgm2, g.bgm);
-      }
-    }catch(_){ }
-  }
-
-  function applyBgmVolumeDirect(vol){
-    // Prefer existing helper if present
-    try{ if (typeof window.__applyBgmVolume === 'function'){ window.__applyBgmVolume(); return; } }catch(_){ }
-    try{ if (window.bgm1) window.bgm1.volume = vol; }catch(_){ }
-    try{ if (window.bgm2) window.bgm2.volume = vol; }catch(_){ }
-    try{ var g = window.__audioGraph; if (g && g.bgm && g.bgm.gain) g.bgm.gain.value = vol; }catch(_){ }
-  }
-
-  function applySeVolumeDirect(vol){
-    try{ if (typeof window.__applySeVolume === 'function'){ window.__applySeVolume(); return; } }catch(_){ }
-    try{ var g = window.__audioGraph; if (g && g.se && g.se.gain) g.se.gain.value = vol; }catch(_){ }
-  }
-
-  function onBgmSliderRaw(val){
-    var vol = clamp01(Number(val) / 100);
-
-    // Update global flags if present
-    try{ window.bgmMuted = false; }catch(_){ }
-    try{ window.bgmOn = (vol > 0); }catch(_){ }
-
-    // Persist if store is available
-    try{
-      if (window.store && typeof window.store.set === 'function'){
-        window.store.set('bgmMuted', false);
-        window.store.set('bgmOn', vol > 0);
-        window.store.set('bgmVol', vol);
-        if (vol > 0) window.store.set('bgmLast', vol);
-      }
-    }catch(_){ }
-
-    // Ensure graph + connections on iOS
-    connectBgmIfPossible();
-
-    // Apply volume (GainNode preferred)
-    applyBgmVolumeDirect(vol);
-
-    // Start if needed
-    if (vol > 0){
-      try{ if (typeof window.safeStartBGM === 'function') window.safeStartBGM((typeof window.currentBGM==='function') ? window.currentBGM() : (window.bgm1||null)); }catch(_){ }
-    }
-
-    // Update UI icon if helper exists
-    try{ if (typeof window.updateBgmIcon === 'function') window.updateBgmIcon(vol); }catch(_){ }
-  }
-
-  function onSeSliderRaw(val){
-    var vol = clamp01(Number(val) / 100);
-
-    // Update Sound + persistence
-    try{
-      if (window.Sound){
-        window.Sound.enabled = (vol > 0);
-        window.Sound.vol = vol;
-      }
-    }catch(_){ }
-
-    try{
-      if (window.store && typeof window.store.set === 'function'){
-        window.store.set('seOn', vol > 0);
-        window.store.set('seVol', vol);
-        if (vol > 0) window.store.set('seLastPct', Math.round(vol*100));
-      }
-    }catch(_){ }
-
-    // Ensure graph exists on iOS (SE bus gain)
-    if (IS_IOS) safeEnsureGraph();
-
-    applySeVolumeDirect((vol > 0) ? vol : 0);
-
-    try{ if (typeof window.updateSeIcon === 'function') window.updateSeIcon((vol > 0) ? vol : 0); }catch(_){ }
-  }
-
-  // Attach listeners late to override any earlier ineffective wiring
-  function attach(){
-    var bgmSlider = document.getElementById('bgmSlider');
-    var seSlider  = document.getElementById('seSlider');
-
-    if (bgmSlider && !bgmSlider.__v6){
-      bgmSlider.__v6 = true;
-      bgmSlider.addEventListener('input', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
-      bgmSlider.addEventListener('change', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
-      bgmSlider.addEventListener('pointerdown', function(){ connectBgmIfPossible(); }, {passive:true});
-    }
-
-    if (seSlider && !seSlider.__v6){
-      seSlider.__v6 = true;
-      seSlider.addEventListener('input', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
-      seSlider.addEventListener('change', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
-      seSlider.addEventListener('pointerdown', function(){ if (IS_IOS) safeEnsureGraph(); }, {passive:true});
-    }
-
-    // Apply once from current UI state so initial load matches sliders
-    try{ if (bgmSlider) onBgmSliderRaw(bgmSlider.value); }catch(_){ }
-    try{ if (seSlider)  onSeSliderRaw(seSlider.value); }catch(_){ }
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', attach);
-  } else {
-    attach();
-  }
-})();
-</script>
 
 </body>
 </html>
