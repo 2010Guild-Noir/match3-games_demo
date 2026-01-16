@@ -1163,40 +1163,34 @@ function dispatchRangeInput(el){
 }
 
 function onBgmSliderChange(v){
-  // iOS: ensure WebAudio graph early so sliders are reliable
   if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
+
+  // iOS: keep element volume at 1, control via WebAudio gain
+  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
 
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
-
-  // IMPORTANT: __applyBgmVolume() depends on bgmOn/bgmMuted, so update flags first
-  bgmOn = vol > 0;
+  const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
+  setBGMVol(vol);
+  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
+bgmOn = vol > 0;
+  // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
   bgmMuted = false;
-
   store.set("bgmMuted", false);
   store.set("bgmOn", bgmOn);
   store.set("bgmVol", vol);
   if (vol > 0) store.set("bgmLast", vol);
 
-  // If WebAudio graph exists on iOS, keep element volume at 1 so GainNode controls loudness.
-  try{
-    if (IS_IOS && window.__audioGraph && window.__audioGraph.bgm && window.__audioGraph.sources){
-      if (bgm1) bgm1.volume = 1;
-      if (bgm2) bgm2.volume = 1;
-    }
-  }catch(_){ }
-
-  // Apply effective volume (ducking + gain fallback)
-  try{ if (typeof __applyBgmVolume === 'function') __applyBgmVolume(); }catch(_){ }
-
-  // UI
-  try{ if (bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
   updateBgmIcon(vol);
 
-  // Start when becoming audible
   if (bgmOn){
-    try{ safeStartBGM(currentBGM()); }catch(_){ }
+    try{ safeStartBGM(currentBGM()); }catch(_){}
+  } else {
+    // 0の場合は停止せずミュートのみ（iOS/Chromeの再開不安定を回避）
+    try{
+      // 既に再生中ならそのまま。停止している場合もここでは再生開始しない。
+      // （ON復帰時に safeStartBGM が走る）
+    }catch(_){}
   }
 }
 
@@ -1212,20 +1206,19 @@ function onSeSliderChange(v){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
-    Sound.vol = vol;
+    setSEVol(vol);
+    // 最後の非0値を保存（SEボタンON復帰用）
     store.set("seLastPct", pct);
   }
 
-  // Persist
-  store.set("seOn", Sound.enabled);
-  store.set("seVol", Sound.vol);
-
-  // Apply effective volume (ducking + gain fallback)
-  try{ if (typeof __applySeVolume === 'function') __applySeVolume(); }catch(_){ }
-
-  // UI
+  // UI反映
   try{ if(seSlider) seSlider.value = String(pct); }catch(_){ }
   try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
+
+  store.set("seOn", Sound.enabled);
+  store.set("seVol", Sound.vol);
+  // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
+  try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
@@ -1313,37 +1306,24 @@ const SE_DEFAULT_VOL  = 0.25;
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
   const arr = [baseEl.cloneNode(true)];
-  try{ arr[0].pause(); }catch(_){ }
-  try{ arr[0].currentTime = 0; }catch(_){ }
+  try{ arr[0].pause(); }catch(_){}
+  try{ arr[0].currentTime = 0; }catch(_){}
   for(let i=1;i<n;i++){
     const clone = baseEl.cloneNode(true);
-    try{ clone.pause(); }catch(_){ }
-    try{ clone.currentTime = 0; }catch(_){ }
+    try{ clone.pause(); }catch(_){}
+    try{ clone.currentTime = 0; }catch(_){}
     arr.push(clone);
   }
   let idx = 0;
   return {
     play(vol){
       const el = arr[idx++ % arr.length];
-      try{ el.pause(); }catch(_){ }
-      try{ el.currentTime = 0; }catch(_){ }
-
-      // iOS: prefer WebAudio bus volume control (HTMLAudio.volume is unreliable)
-      try{
-        if (IS_IOS){
-          var g = ensureGraph();
-          if (g){
-            try{ connectToBus(el, g.se); }catch(_){ }
-            try{ el.volume = 1; }catch(_){ }
-          } else {
-            try{ el.volume = vol; }catch(_){ }
-          }
-        } else {
-          try{ el.volume = vol; }catch(_){ }
-        }
-      }catch(_){ }
-
-      try{ __playMedia(el); }catch(_){ try{ el.play().catch(()=>{}); }catch(__){} }
+      try{ el.pause(); }catch(_){}
+      try{ el.currentTime = 0; }catch(_){}
+      try{ el.volume = vol; }catch(_){ }
+      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
+      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
+      el.play().catch(()=>{});
     }
   };
 }
@@ -5729,6 +5709,164 @@ window.shuffleBoard = function(){
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
 </div>
+
+
+<script>
+(function(){
+  'use strict';
+  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+
+  function clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
+
+  // --- Robust play() retry on iOS (gesture unlock) ---
+  try{
+    if (!HTMLMediaElement.prototype.__patchedPlayRetry){
+      HTMLMediaElement.prototype.__patchedPlayRetry = true;
+      var _origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function(){
+        var el = this;
+        var ret;
+        try{ ret = _origPlay.call(el); }catch(e){ ret = Promise.reject(e); }
+        if (ret && typeof ret.catch === 'function'){
+          ret.catch(function(){
+            var once = function(){
+              try{ _origPlay.call(el).catch(function(){}); }catch(_){ }
+              cleanup();
+            };
+            function cleanup(){
+              window.removeEventListener('pointerdown', once, true);
+              window.removeEventListener('touchend', once, true);
+              window.removeEventListener('keydown', once, true);
+            }
+            window.addEventListener('pointerdown', once, true);
+            window.addEventListener('touchend', once, true);
+            window.addEventListener('keydown', once, true);
+          });
+        }
+        return ret;
+      };
+    }
+  }catch(_){ }
+
+  function safeEnsureGraph(){
+    try{ return (typeof window.ensureGraph === 'function') ? window.ensureGraph() : null; }catch(_){ return null; }
+  }
+
+  function connectBgmIfPossible(){
+    if (!IS_IOS) return;
+    var g = safeEnsureGraph();
+    if (!g) return;
+    try{
+      if (typeof window.connectToBus === 'function'){
+        if (window.bgm1) window.connectToBus(window.bgm1, g.bgm);
+        if (window.bgm2) window.connectToBus(window.bgm2, g.bgm);
+      }
+    }catch(_){ }
+  }
+
+  function applyBgmVolumeDirect(vol){
+    // Prefer existing helper if present
+    try{ if (typeof window.__applyBgmVolume === 'function'){ window.__applyBgmVolume(); return; } }catch(_){ }
+    try{ if (window.bgm1) window.bgm1.volume = vol; }catch(_){ }
+    try{ if (window.bgm2) window.bgm2.volume = vol; }catch(_){ }
+    try{ var g = window.__audioGraph; if (g && g.bgm && g.bgm.gain) g.bgm.gain.value = vol; }catch(_){ }
+  }
+
+  function applySeVolumeDirect(vol){
+    try{ if (typeof window.__applySeVolume === 'function'){ window.__applySeVolume(); return; } }catch(_){ }
+    try{ var g = window.__audioGraph; if (g && g.se && g.se.gain) g.se.gain.value = vol; }catch(_){ }
+  }
+
+  function onBgmSliderRaw(val){
+    var vol = clamp01(Number(val) / 100);
+
+    // Update global flags if present
+    try{ window.bgmMuted = false; }catch(_){ }
+    try{ window.bgmOn = (vol > 0); }catch(_){ }
+
+    // Persist if store is available
+    try{
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('bgmMuted', false);
+        window.store.set('bgmOn', vol > 0);
+        window.store.set('bgmVol', vol);
+        if (vol > 0) window.store.set('bgmLast', vol);
+      }
+    }catch(_){ }
+
+    // Ensure graph + connections on iOS
+    connectBgmIfPossible();
+
+    // Apply volume (GainNode preferred)
+    applyBgmVolumeDirect(vol);
+
+    // Start if needed
+    if (vol > 0){
+      try{ if (typeof window.safeStartBGM === 'function') window.safeStartBGM((typeof window.currentBGM==='function') ? window.currentBGM() : (window.bgm1||null)); }catch(_){ }
+    }
+
+    // Update UI icon if helper exists
+    try{ if (typeof window.updateBgmIcon === 'function') window.updateBgmIcon(vol); }catch(_){ }
+  }
+
+  function onSeSliderRaw(val){
+    var vol = clamp01(Number(val) / 100);
+
+    // Update Sound + persistence
+    try{
+      if (window.Sound){
+        window.Sound.enabled = (vol > 0);
+        window.Sound.vol = vol;
+      }
+    }catch(_){ }
+
+    try{
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('seOn', vol > 0);
+        window.store.set('seVol', vol);
+        if (vol > 0) window.store.set('seLastPct', Math.round(vol*100));
+      }
+    }catch(_){ }
+
+    // Ensure graph exists on iOS (SE bus gain)
+    if (IS_IOS) safeEnsureGraph();
+
+    applySeVolumeDirect((vol > 0) ? vol : 0);
+
+    try{ if (typeof window.updateSeIcon === 'function') window.updateSeIcon((vol > 0) ? vol : 0); }catch(_){ }
+  }
+
+  // Attach listeners late to override any earlier ineffective wiring
+  function attach(){
+    var bgmSlider = document.getElementById('bgmSlider');
+    var seSlider  = document.getElementById('seSlider');
+
+    if (bgmSlider && !bgmSlider.__v6){
+      bgmSlider.__v6 = true;
+      bgmSlider.addEventListener('input', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
+      bgmSlider.addEventListener('change', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
+      bgmSlider.addEventListener('pointerdown', function(){ connectBgmIfPossible(); }, {passive:true});
+    }
+
+    if (seSlider && !seSlider.__v6){
+      seSlider.__v6 = true;
+      seSlider.addEventListener('input', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
+      seSlider.addEventListener('change', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
+      seSlider.addEventListener('pointerdown', function(){ if (IS_IOS) safeEnsureGraph(); }, {passive:true});
+    }
+
+    // Apply once from current UI state so initial load matches sliders
+    try{ if (bgmSlider) onBgmSliderRaw(bgmSlider.value); }catch(_){ }
+    try{ if (seSlider)  onSeSliderRaw(seSlider.value); }catch(_){ }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+</script>
 
 </body>
 </html>
