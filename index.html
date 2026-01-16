@@ -1163,34 +1163,40 @@ function dispatchRangeInput(el){
 }
 
 function onBgmSliderChange(v){
+  // iOS: ensure WebAudio graph early so sliders are reliable
   if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
-
-  // iOS: keep element volume at 1, control via WebAudio gain
-  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
 
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
-  setBGMVol(vol);
-  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
-bgmOn = vol > 0;
-  // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
+  const vol = Math.max(0, Math.min(100, v)) / 100;
+
+  // IMPORTANT: __applyBgmVolume() depends on bgmOn/bgmMuted, so update flags first
+  bgmOn = vol > 0;
   bgmMuted = false;
+
   store.set("bgmMuted", false);
   store.set("bgmOn", bgmOn);
   store.set("bgmVol", vol);
   if (vol > 0) store.set("bgmLast", vol);
 
+  // If WebAudio graph exists on iOS, keep element volume at 1 so GainNode controls loudness.
+  try{
+    if (IS_IOS && window.__audioGraph && window.__audioGraph.bgm && window.__audioGraph.sources){
+      if (bgm1) bgm1.volume = 1;
+      if (bgm2) bgm2.volume = 1;
+    }
+  }catch(_){ }
+
+  // Apply effective volume (ducking + gain fallback)
+  try{ if (typeof __applyBgmVolume === 'function') __applyBgmVolume(); }catch(_){ }
+
+  // UI
+  try{ if (bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
   updateBgmIcon(vol);
 
+  // Start when becoming audible
   if (bgmOn){
-    try{ safeStartBGM(currentBGM()); }catch(_){}
-  } else {
-    // 0の場合は停止せずミュートのみ（iOS/Chromeの再開不安定を回避）
-    try{
-      // 既に再生中ならそのまま。停止している場合もここでは再生開始しない。
-      // （ON復帰時に safeStartBGM が走る）
-    }catch(_){}
+    try{ safeStartBGM(currentBGM()); }catch(_){ }
   }
 }
 
@@ -1206,19 +1212,20 @@ function onSeSliderChange(v){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
-    setSEVol(vol);
-    // 最後の非0値を保存（SEボタンON復帰用）
+    Sound.vol = vol;
     store.set("seLastPct", pct);
   }
 
-  // UI反映
-  try{ if(seSlider) seSlider.value = String(pct); }catch(_){ }
-  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
-
+  // Persist
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
-  // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
-  try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
+
+  // Apply effective volume (ducking + gain fallback)
+  try{ if (typeof __applySeVolume === 'function') __applySeVolume(); }catch(_){ }
+
+  // UI
+  try{ if(seSlider) seSlider.value = String(pct); }catch(_){ }
+  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
@@ -1306,12 +1313,12 @@ const SE_DEFAULT_VOL  = 0.25;
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
   const arr = [baseEl.cloneNode(true)];
-  try{ arr[0].pause(); }catch(_){}
-  try{ arr[0].currentTime = 0; }catch(_){}
+  try{ arr[0].pause(); }catch(_){ }
+  try{ arr[0].currentTime = 0; }catch(_){ }
   for(let i=1;i<n;i++){
     const clone = baseEl.cloneNode(true);
-    try{ clone.pause(); }catch(_){}
-    try{ clone.currentTime = 0; }catch(_){}
+    try{ clone.pause(); }catch(_){ }
+    try{ clone.currentTime = 0; }catch(_){ }
     arr.push(clone);
   }
   let idx = 0;
@@ -1321,23 +1328,22 @@ function makePool(baseEl, n){
       try{ el.pause(); }catch(_){ }
       try{ el.currentTime = 0; }catch(_){ }
 
-      // iOS Safariでは HTMLAudio.volume が端末依存で効かない/不安定なことがあるため、
-      // 可能なら WebAudio(GainNode) 側で確実に音量制御する。
-      // - バスへ正常に接続できた場合: element.volume=1 に固定し、全体音量は seGain で制御
-      // - 接続できなかった場合: element.volume を直接設定（フォールバック）
-      let useBus = false;
-      if (IS_IOS){
-        try{
-          const g = ensureGraph();
+      // iOS: prefer WebAudio bus volume control (HTMLAudio.volume is unreliable)
+      try{
+        if (IS_IOS){
+          var g = ensureGraph();
           if (g){
             try{ connectToBus(el, g.se); }catch(_){ }
-            try{ useBus = !!(g.sources && g.sources.has && g.sources.has(el)); }catch(_){ useBus = false; }
+            try{ el.volume = 1; }catch(_){ }
+          } else {
+            try{ el.volume = vol; }catch(_){ }
           }
-        }catch(_){ useBus = false; }
-      }
+        } else {
+          try{ el.volume = vol; }catch(_){ }
+        }
+      }catch(_){ }
 
-      try{ el.volume = useBus ? 1 : vol; }catch(_){ }
-      el.play().catch(()=>{});
+      try{ __playMedia(el); }catch(_){ try{ el.play().catch(()=>{}); }catch(__){} }
     }
   };
 }
@@ -1387,9 +1393,7 @@ const Sound={
 
     const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
     const g = window.__audioGraph;
-    // スライダーの基準音量(this.vol)は常に反映する。
-    // WebAudioバス接続時は pool側で element.volume=1 に固定し、seGainで最終制御する。
-    const v = (this.vol * volMul * m);
+    const v = (g && g.se && g.se.gain) ? (volMul * m) : (this.vol * volMul * m);
     p.play(v);
   },
 };
@@ -1433,34 +1437,18 @@ function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
   const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.25 : 1);
 
-  // iOS Safariでは HTMLAudio.volume が効かない/端末依存になる場合があるため、
-  // 可能なら WebAudio(GainNode) のBGMバスで確実に制御する。
+  // WebAudioバスがあればGainで制御（iOSで確実）
   try{
     const g = window.__audioGraph;
     if (g && g.bgm && g.bgm.gain){
       g.bgm.gain.value = eff;
-
-      // 本当にバス接続できている場合は element.volume を 1 に固定（ゲインで制御）
-      // ※未接続のまま 1 固定するとスライダーが効かなくなるため、接続有無を確認する
-      let connected = false;
-      try{
-        if (g.sources && g.sources.has){
-          connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2)));
-        }
-      }catch(_){ connected = false; }
-
-      if (connected){
-        try{ if (bgm1) bgm1.volume = 1; }catch(_){ }
-        try{ if (bgm2) bgm2.volume = 1; }catch(_){ }
-        return;
-      }
-      // 未接続ならフォールバックへ
+      return;
     }
-  }catch(_){ }
+  }catch(_){}
 
-  // フォールバック：要素音量で制御
-  try{ if (bgm1) bgm1.volume = eff; }catch(_){ }
-  try{ if (bgm2) bgm2.volume = eff; }catch(_){ }
+  // フォールバック
+  try{ bgm1.volume = eff; }catch(_){}
+  try{ bgm2.volume = eff; }catch(_){}
 }
 
 function __applySeVolume(){
@@ -1548,82 +1536,39 @@ function __playMedia(el){
 window.__playMediaSafe = __playMedia;
 window.__getSeEffectiveVol = __getSeEffectiveVol;
 
-
 function __setBgmVolPair(v){
-  // Backward-compat helper: set BGM level in the most reliable way per platform.
   v = __clamp01(v);
-  try{
-    const g = window.__audioGraph;
-    let connected = false;
-    try{
-      if (g && g.sources && g.sources.has){
-        connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2)));
-      }
-    }catch(_){ connected = false; }
-
-    // If iOS WebAudio graph is active and BGM is connected, prefer GainNode.
-    if (IS_IOS && g && g.bgm && g.bgm.gain && connected){
-      try{ g.bgm.gain.value = v; }catch(_){ }
-      // Keep element volume at 1 so that element-level volume does not fight GainNode.
-      try{ if (bgm1) bgm1.volume = 1; }catch(_){ }
-      try{ if (bgm2) bgm2.volume = 1; }catch(_){ }
-      return;
-    }
-  }catch(_){ }
-
-  // Fallback: element volume control
-  try{ if (bgm1) bgm1.volume = v; }catch(_){ }
-  try{ if (bgm2) bgm2.volume = v; }catch(_){ }
+  try{ bgm1.volume = v; }catch(_){}
+  try{ bgm2.volume = v; }catch(_){}
 }
-
 function __getBgmBaseVol(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
   return (bgmOn && !bgmMuted) ? base : 0;
 }
-
 let __duckToken = 0;
 
 function __startDucking(){
-  // Mark ducking active for SE/voice scaling
+  // Smooth "attack" to avoid sudden drops (ear-fatiguing)
   if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
   const token = ++__duckToken;
-  __ducking = true;
-
-  const base = __getBgmBaseVol();
+  const base  = __getBgmBaseVol();
   const target = __clamp01(base * 0.25);
 
-  // Smooth fade using whichever volume path is active (GainNode preferred on iOS)
-  const from = (()=>{
-    try{
-      const g = window.__audioGraph;
-      let connected=false;
-      try{ if (g && g.sources && g.sources.has){ connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2))); } }catch(_){ connected=false; }
-      if (IS_IOS && g && g.bgm && g.bgm.gain && connected) return Number(g.bgm.gain.value);
-    }catch(_){ }
-    try{ return Number((bgm1 && typeof bgm1.volume==='number') ? bgm1.volume : base); }catch(_){ }
-    return base;
-  })();
+  // Mark ducking active for SE/voice scaling
+  __ducking = true;
 
+  // Fade from current -> target
+  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : base);
   __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, target, 220);
 }
 
 function __releaseDucking(ms){
+  // Smooth "release" and keep ducking until voice actually ends
   if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
   const token = ++__duckToken;
-
   const base = __getBgmBaseVol();
-  const to = __clamp01(base);
-  const from = (()=>{
-    try{
-      const g = window.__audioGraph;
-      let connected=false;
-      try{ if (g && g.sources && g.sources.has){ connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2))); } }catch(_){ connected=false; }
-      if (IS_IOS && g && g.bgm && g.bgm.gain && connected) return Number(g.bgm.gain.value);
-    }catch(_){ }
-    try{ return Number((bgm1 && typeof bgm1.volume==='number') ? bgm1.volume : (base*0.25)); }catch(_){ }
-    return base*0.25;
-  })();
-
+  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : (base*0.25));
+  const to   = __clamp01(base);
   __duckReleaseTimer = setTimeout(()=>{
     __ducking = false;
     __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, to, 420);
