@@ -927,6 +927,27 @@ input[type="range"]::-moz-range-thumb{
 }
 </style>
 
+
+<!-- === iPhone: hide volume sliders (buttons only) === -->
+<style id="ios-hide-sliders">
+/* iPhone/iPad (iOS Safari / WKWebView): hide range sliders and keep ON/OFF buttons only */
+html.ios #indexModal .slider-hit{
+  display:none !important;
+}
+html.ios #indexModal input[type="range"]{
+  display:none !important;
+}
+/* Reflow rows so the toggle buttons look intentional */
+html.ios #indexModal .volume-row{
+  justify-content:center;
+  gap:10px;
+}
+html.ios #indexModal .volume-text.vol-toggle{
+  min-width:140px;
+  height:36px;
+  font-size:15px;
+}
+</style>
 </head>
 <body>
   
@@ -1073,6 +1094,10 @@ window.store = window.store || {
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
 const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+try{ document.documentElement.classList.toggle('ios', IS_IOS); }catch(_){}
+
+// Mark iOS on <html> for CSS targeting
+try{ if (IS_IOS) document.documentElement.classList.add('ios'); }catch(_){ }
 
 
 // === iOS audio volume FIX: global ensureGraph shim ===
@@ -1171,6 +1196,7 @@ function onBgmSliderChange(v){
   v = Number(v);
   if (isNaN(v)) v = 0;
   const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
+  setBGMVol(vol);
   try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
 bgmOn = vol > 0;
   // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
@@ -1179,9 +1205,6 @@ bgmOn = vol > 0;
   store.set("bgmOn", bgmOn);
   store.set("bgmVol", vol);
   if (vol > 0) store.set("bgmLast", vol);
-
-  // Apply volume after state is updated
-  setBGMVol(vol);
 
   updateBgmIcon(vol);
 
@@ -1322,23 +1345,10 @@ function makePool(baseEl, n){
       const el = arr[idx++ % arr.length];
       try{ el.pause(); }catch(_){}
       try{ el.currentTime = 0; }catch(_){}
-
-      // iOS: route through WebAudio SE bus when available so the slider works reliably.
-      if (IS_IOS){
-        try{
-          var g = ensureGraph();
-          if (g){
-            connectToBus(el, g.se);
-            try{ el.volume = 1; }catch(_){ }
-          } else {
-            try{ el.volume = vol; }catch(_){ }
-          }
-        }catch(_){ try{ el.volume = vol; }catch(__){} }
-      } else {
-        try{ el.volume = vol; }catch(_){ }
-      }
-
-      try{ __playMedia(el); }catch(_){ el.play().catch(()=>{}); }
+      try{ el.volume = vol; }catch(_){ }
+      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
+      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
+      el.play().catch(()=>{});
     }
   };
 }
@@ -5193,6 +5203,8 @@ window.addEventListener("DOMContentLoaded", () => {
 })();
 </script>
 
+</script>
+
 <!-- removed broken howto push SE binder -->
 
 <script>
@@ -5791,33 +5803,62 @@ window.shuffleBoard = function(){
   }
 
   function onBgmSliderRaw(val){
-    // Delegate to the primary handler to keep behavior consistent.
+    var vol = clamp01(Number(val) / 100);
+
+    // Update global flags if present
+    try{ window.bgmMuted = false; }catch(_){ }
+    try{ window.bgmOn = (vol > 0); }catch(_){ }
+
+    // Persist if store is available
     try{
-      if (typeof window.onBgmSliderChange === 'function'){
-        window.onBgmSliderChange(val);
-        return;
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('bgmMuted', false);
+        window.store.set('bgmOn', vol > 0);
+        window.store.set('bgmVol', vol);
+        if (vol > 0) window.store.set('bgmLast', vol);
       }
     }catch(_){ }
 
-    // Fallback: minimal direct apply if handler is not present
-    var vol = clamp01(Number(val) / 100);
+    // Ensure graph + connections on iOS
     connectBgmIfPossible();
+
+    // Apply volume (GainNode preferred)
     applyBgmVolumeDirect(vol);
+
+    // Start if needed
+    if (vol > 0){
+      try{ if (typeof window.safeStartBGM === 'function') window.safeStartBGM((typeof window.currentBGM==='function') ? window.currentBGM() : (window.bgm1||null)); }catch(_){ }
+    }
+
+    // Update UI icon if helper exists
+    try{ if (typeof window.updateBgmIcon === 'function') window.updateBgmIcon(vol); }catch(_){ }
   }
 
   function onSeSliderRaw(val){
-    // Delegate to the primary handler to keep behavior consistent.
+    var vol = clamp01(Number(val) / 100);
+
+    // Update Sound + persistence
     try{
-      if (typeof window.onSeSliderChange === 'function'){
-        window.onSeSliderChange(val);
-        return;
+      if (window.Sound){
+        window.Sound.enabled = (vol > 0);
+        window.Sound.vol = vol;
       }
     }catch(_){ }
 
-    // Fallback: minimal direct apply if handler is not present
-    var vol = clamp01(Number(val) / 100);
+    try{
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('seOn', vol > 0);
+        window.store.set('seVol', vol);
+        if (vol > 0) window.store.set('seLastPct', Math.round(vol*100));
+      }
+    }catch(_){ }
+
+    // Ensure graph exists on iOS (SE bus gain)
     if (IS_IOS) safeEnsureGraph();
-    applySeVolumeDirect(vol > 0 ? vol : 0);
+
+    applySeVolumeDirect((vol > 0) ? vol : 0);
+
+    try{ if (typeof window.updateSeIcon === 'function') window.updateSeIcon((vol > 0) ? vol : 0); }catch(_){ }
   }
 
   // Attach listeners late to override any earlier ineffective wiring
@@ -5852,9 +5893,8 @@ window.shuffleBoard = function(){
 })();
 </script>
 
-
-
-<!-- === Moved patches (were after </html>) === -->
+</body>
+</html>
 <script>
 
 // === FIX: reserve fixed area for skill text to prevent layout shift ===
@@ -5965,6 +6005,3 @@ window.shuffleBoard = function(){
 })();
 </script>
 
-
-</body>
-</html>
