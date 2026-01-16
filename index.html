@@ -1466,57 +1466,7 @@ function __hookGestureOnce(){
 }
 __hookGestureOnce();
 
-// === SFX queueing & same-frame SE throttle (iOS perf) ===
-// 目的：重いフレームでの play() 取りこぼしを減らす（見た目・ゲームロジックは不変）
-(function(){
-  if (window.__sfxQueueInstalled) return;
-  window.__sfxQueueInstalled = true;
-
-  var q = [];
-  var scheduled = false;
-
-  function _id(el){ try{ return (el && el.id) ? String(el.id) : ''; }catch(_){ return ''; } }
-  function isSE(el){ var id=_id(el); return id.indexOf('se_')===0; }
-  function isVoice(el){ var id=_id(el); return id.indexOf('vo_')===0; }
-  function isBGM(el){ var id=_id(el); return id.indexOf('bgm')===0; }
-
-  function flush(){
-    scheduled = false;
-    var sePlayed = false; // 同フレーム内のSEは1回だけ（負荷低減＋音抜け回避）
-    while(q.length){
-      var el = q.shift();
-      if(!el) continue;
-
-      // BGMはキューで詰まらせない（既存挙動維持）
-      if (isBGM(el)){
-        try{ __playMediaImmediate(el); }catch(_){}
-        continue;
-      }
-
-      // 同フレームSEは1回だけ。ボイスは間引かない（体験維持）
-      if (isSE(el)){
-        if (sePlayed) continue;
-        sePlayed = true;
-      }
-
-      try{ __playMediaImmediate(el); }catch(_){}
-    }
-  }
-
-  function schedule(){
-    if (scheduled) return;
-    scheduled = true;
-    try{ (window.requestAnimationFrame || function(cb){ return setTimeout(cb, 0); })(flush); }catch(_){ setTimeout(flush, 0); }
-  }
-
-  window.__enqueueMediaPlay = function(el){
-    if (!el) return;
-    q.push(el);
-    schedule();
-  };
-})();
-
-function __playMediaImmediate(el){
+function __playMedia(el){
   if (!el) return;
   try{
     const p = el.play();
@@ -1545,18 +1495,6 @@ function __playMediaImmediate(el){
     }catch(__){ el.__retrying = false; }
     __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
   }
-}
-
-function __playMedia(el){
-  if (!el) return;
-  try{
-    // SFX/Voiceはキュー化して1フレーム遅延再生。BGMも基本はキューに載せるが即時でも問題なし。
-    if (typeof window.__enqueueMediaPlay === 'function'){
-      window.__enqueueMediaPlay(el);
-      return;
-    }
-  }catch(_){}
-  try{ __playMediaImmediate(el); }catch(__){}
 }
 
 window.__playMediaSafe = __playMedia;
@@ -4239,7 +4177,7 @@ function drawGame(){ /* (省略: 変更なし) */
       ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,c*tileSize,r*tileSize,tileSize,tileSize);
     }
   }
-  if(!isKanki){ ctx.save(); ctx.fillStyle='rgba(60,0,0,0.22)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
+  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='screen'; ctx.fillStyle='rgba(255,40,40,0.14)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
 
   for(let r=0;r<size;r++) for(let c=0;c<size;c++){
     if(get(r,c)===null) continue;
