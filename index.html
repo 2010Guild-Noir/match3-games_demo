@@ -1440,7 +1440,10 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.25 : 1);
+// ★ iPhoneだけ最大音量を90%に制限
+const iosLimit = IS_IOS ? 0.9 : 1.0;
+
+const eff = ((bgmOn && !bgmMuted) ? base * iosLimit : 0) * (__ducking ? 0.25 : 1);
 
   // WebAudioバスがあればGainで制御（iOSで確実）
   try{
@@ -5725,7 +5728,7 @@ window.shuffleBoard = function(){
     <h2>― 到達せし者の扉 ―</h2>
     <div id="allmaxInputArea">
       <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
+        <input id="allmaxInput" type="password" placeholder="鍵の在処を"知る者"に提示せよ" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
       <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
