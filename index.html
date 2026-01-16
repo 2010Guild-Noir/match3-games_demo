@@ -1318,11 +1318,25 @@ function makePool(baseEl, n){
   return {
     play(vol){
       const el = arr[idx++ % arr.length];
-      try{ el.pause(); }catch(_){}
-      try{ el.currentTime = 0; }catch(_){}
-      try{ el.volume = vol; }catch(_){ }
-      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
-      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
+      try{ el.pause(); }catch(_){ }
+      try{ el.currentTime = 0; }catch(_){ }
+
+      // iOS Safariでは HTMLAudio.volume が端末依存で効かない/不安定なことがあるため、
+      // 可能なら WebAudio(GainNode) 側で確実に音量制御する。
+      // - バスへ正常に接続できた場合: element.volume=1 に固定し、全体音量は seGain で制御
+      // - 接続できなかった場合: element.volume を直接設定（フォールバック）
+      let useBus = false;
+      if (IS_IOS){
+        try{
+          const g = ensureGraph();
+          if (g){
+            try{ connectToBus(el, g.se); }catch(_){ }
+            try{ useBus = !!(g.sources && g.sources.has && g.sources.has(el)); }catch(_){ useBus = false; }
+          }
+        }catch(_){ useBus = false; }
+      }
+
+      try{ el.volume = useBus ? 1 : vol; }catch(_){ }
       el.play().catch(()=>{});
     }
   };
@@ -1373,7 +1387,9 @@ const Sound={
 
     const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
     const g = window.__audioGraph;
-    const v = (g && g.se && g.se.gain) ? (volMul * m) : (this.vol * volMul * m);
+    // スライダーの基準音量(this.vol)は常に反映する。
+    // WebAudioバス接続時は pool側で element.volume=1 に固定し、seGainで最終制御する。
+    const v = (this.vol * volMul * m);
     p.play(v);
   },
 };
@@ -1417,18 +1433,34 @@ function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
   const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.25 : 1);
 
-  // WebAudioバスがあればGainで制御（iOSで確実）
+  // iOS Safariでは HTMLAudio.volume が効かない/端末依存になる場合があるため、
+  // 可能なら WebAudio(GainNode) のBGMバスで確実に制御する。
   try{
     const g = window.__audioGraph;
     if (g && g.bgm && g.bgm.gain){
       g.bgm.gain.value = eff;
-      return;
-    }
-  }catch(_){}
 
-  // フォールバック
-  try{ bgm1.volume = eff; }catch(_){}
-  try{ bgm2.volume = eff; }catch(_){}
+      // 本当にバス接続できている場合は element.volume を 1 に固定（ゲインで制御）
+      // ※未接続のまま 1 固定するとスライダーが効かなくなるため、接続有無を確認する
+      let connected = false;
+      try{
+        if (g.sources && g.sources.has){
+          connected = !!((bgm1 && g.sources.has(bgm1)) || (bgm2 && g.sources.has(bgm2)));
+        }
+      }catch(_){ connected = false; }
+
+      if (connected){
+        try{ if (bgm1) bgm1.volume = 1; }catch(_){ }
+        try{ if (bgm2) bgm2.volume = 1; }catch(_){ }
+        return;
+      }
+      // 未接続ならフォールバックへ
+    }
+  }catch(_){ }
+
+  // フォールバック：要素音量で制御
+  try{ if (bgm1) bgm1.volume = eff; }catch(_){ }
+  try{ if (bgm2) bgm2.volume = eff; }catch(_){ }
 }
 
 function __applySeVolume(){
