@@ -1165,6 +1165,9 @@ function dispatchRangeInput(el){
 function onBgmSliderChange(v){
   if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
 
+  // iOS: keep element volume at 1, control via WebAudio gain
+  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
+
   v = Number(v);
   if (isNaN(v)) v = 0;
   const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
@@ -1633,9 +1636,12 @@ function pauseAllBGM(){
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
 function safeStartBGM(bgmEl){
   try{
-    if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
+    if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
 
     if (!bgmEl) return;
+    // iOS: route BGM through WebAudio bus so sliders/mute work
+    if (IS_IOS){ try{ var g = ensureGraph(); if (g) { connectToBus(bgmEl, g.bgm); if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ } }
+    try{ __applyBgmVolume(); }catch(_){ }
     // 重複再生防止：ターゲット以外のBGMは必ず停止
     try{
       if (bgm1 && bgmEl!==bgm1){ bgm1.pause(); }
@@ -1709,7 +1715,9 @@ function toggleBGM(){
     try{ updateRangeFill(bgmSlider); }catch(_){}
     try{ dispatchRangeInput(bgmSlider); }catch(_){}
     try{ onBgmSliderChange(0); }catch(_){}
-    updateBgmIcon(0);
+        // Safety: if WebAudio is not yet active on iOS, also pause to ensure true mute
+    try{ if (IS_IOS) pauseAllBGM(); }catch(_){ }
+updateBgmIcon(0);
     return;
   }
 
@@ -1733,6 +1741,8 @@ function toggleBGM(){
 
 function selectBGM(which){
   pauseAllBGM();
+  // iOS: ensure WebAudio routing before (re)starting
+  if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
   activeBGM = (which===2)?bgm2:bgm1;
   store.set("activeBGM", which);
   setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
