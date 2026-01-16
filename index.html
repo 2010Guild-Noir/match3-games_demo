@@ -1440,8 +1440,8 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-// ★ iPhoneだけ最大音量を90%に制限
-const iosLimit = IS_IOS ? 0.9 : 1.0;
+// ★ iPhoneだけ最大音量を80%に制限
+const iosLimit = IS_IOS ? 0.8 : 1.0;
 
 const eff = ((bgmOn && !bgmMuted) ? base * iosLimit : 0) * (__ducking ? 0.25 : 1);
 
