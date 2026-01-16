@@ -317,6 +317,8 @@ details.help li {
 }
 .volume-row input[type="range"]{
   flex:1;
+  touch-action: none;           /* iOS/Chromeでドラッグをスクロール扱いにしない */
+  -webkit-tap-highlight-color: transparent;
 }
 #indexModal .btn-group .btn{ flex:1; padding:10px 12px; font-size:15px; }
 
@@ -428,7 +430,6 @@ html, body{
   padding:0;
   background:#000;
   /* 画像背景を使う場合は下の行をONにしてください */
- background-image:url('bg_black_vignette.png'); background-size:cover; background-position:center; background-repeat:no-repeat; 
 }
 .wrap{
   margin-top:0 !important;
@@ -554,6 +555,254 @@ html, body{
 #allmaxOverlay.allmax-unlocked #allmaxImage{ display:block !important; }
 
 
+
+/* === Mobile/iPhone: range slider hit target enlargement === */
+.slider-hit{ display:flex; align-items:center; width:100%; }
+@media (max-width: 900px){
+  .slider-hit{
+    padding: 14px 6px;           /* expands touch target vertically & slightly horizontally */
+    margin: -10px -6px;          /* keep layout unchanged while enlarging hit area */
+    touch-action: none;
+  }
+  .slider-hit input[type="range"]{
+    height: 32px;                /* bigger control box helps iOS hit testing */
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
+    height: 10px;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -8px;            /* centers thumb on 10px track */
+  }
+  .slider-hit input[type="range"]::-moz-range-track{ height: 10px; }
+  .slider-hit input[type="range"]::-moz-range-thumb{ width: 26px; height: 26px; }
+}
+
+
+/* === FIX: skill-name text should not push the board === */
+#skillNameContainer, .skill-name-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 72px;              /* 固定高さ：レイアウトシフト防止 */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#skillNameText, .skill-name-text {
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+
+/* === FIX: make range sliders visible on mobile (track/thumb were transparent) === */
+input[type="range"]::-webkit-slider-runnable-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+
+
+/* === FIX: mobile range sliders visibility (track/thumb) === */
+@media (max-width: 900px){
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-webkit-slider-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+  .slider-hit input[type="range"]::-moz-range-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+}
+
+
+/* === FIX: restore desktop slider look (no top/bottom borders) === */
+@media (min-width: 901px){
+  input[type="range"]::-webkit-slider-runnable-track{ border: none !important; }
+  input[type="range"]::-webkit-slider-thumb{ border: none !important; }
+  input[type="range"]::-moz-range-track{ border: none !important; }
+  input[type="range"]::-moz-range-thumb{ border: none !important; }
+}
+
+
+/* === FIX: range fill bar (track fill) === */
+input[type="range"]{
+  background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+  background-repeat: no-repeat;
+  background-size: 50% 100%; /* JSで更新 */
+}
+@media (max-width: 900px){
+  .slider-hit input[type="range"]{
+    background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
+}
+
+input[type="range"]{
+  flex:1;
+  touch-action: none;           /* iOS/Chromeでドラッグをスクロール扱いにしない */
+  -webkit-tap-highlight-color: transparent;
+}
+input[type="range"]{
+    height: 32px;                /* bigger control box helps iOS hit testing */
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+input[type="range"]::-webkit-slider-runnable-track{
+    height: 10px;
+  }
+input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -8px;            /* centers thumb on 10px track */
+  }
+input[type="range"]::-moz-range-track{ height: 10px; }
+input[type="range"]::-moz-range-thumb{ width: 26px; height: 26px; }
+input[type="range"]::-webkit-slider-runnable-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-track{
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-thumb{
+  background: rgba(245,247,251,0.92);
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-runnable-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+input[type="range"]::-webkit-slider-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+input[type="range"]::-moz-range-track{
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+input[type="range"]::-moz-range-thumb{
+    background: rgba(245,247,251,0.92);
+    border: 1px solid rgba(0,0,0,0.35);
+    border-radius: 999px;
+  }
+input[type="range"]::-webkit-slider-runnable-track{ border: none !important; }
+input[type="range"]::-webkit-slider-thumb{ border: none !important; }
+input[type="range"]::-moz-range-track{ border: none !important; }
+input[type="range"]::-moz-range-thumb{ border: none !important; }
+input[type="range"]{
+  background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+  background-repeat: no-repeat;
+  background-size: 50% 100%; /* JSで更新 */
+}
+input[type="range"]{
+    background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
+/* === Mobile slider uses PC style === */
+@media (max-width: 900px){
+  .slider-hit input[type="range"]{
+    all: unset;
+  }
+  .slider-hit input[type="range"]{
+    flex: 1;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+
+/* === FINAL RESET: restore native range slider appearance (match original PC) === */
+input[type="range"]{
+  all: revert;
+  appearance: auto;
+  -webkit-appearance: auto;
+  background: initial;
+}
+
+
+/* === FIX: thumb vertical centering with small per-engine nudge ===
+   Native range metrics differ across OS/engines; a 1px nudge is the most stable way
+   to achieve optical centering without redesigning the slider. */
+:root{
+  --range-track-h: 4px;
+  --range-thumb-h: 16px;
+  --range-thumb-nudge: 1px; /* +down. Set 0px if already centered */
+}
+/* WebKit / Blink */
+input[type="range"]::-webkit-slider-thumb{
+  margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
+}
+/* Firefox */
+input[type="range"]::-moz-range-thumb{
+  margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
+}
+
+
+/* === iOS: keep native range interaction reliable === */
+@supports (-webkit-touch-callout: none){
+  @media (max-width: 900px){
+    .slider-hit{ touch-action: pan-y; }
+    input[type="range"]{ touch-action: pan-y; }
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -678,13 +927,52 @@ html, body{
 }
 </style>
 
+
+<!-- === iPhone: hide volume sliders (buttons only) === -->
+<style id="ios-hide-sliders">
+/* iPhone/iPad (iOS Safari / WKWebView): hide range sliders and keep ON/OFF buttons only */
+html.ios #indexModal .slider-hit{
+  display:none !important;
+}
+html.ios #indexModal input[type="range"]{
+  display:none !important;
+}
+/* Reflow rows so the toggle buttons look intentional */
+html.ios #indexModal .volume-row{
+  justify-content:center;
+  gap:10px;
+}
+html.ios #indexModal .volume-text.vol-toggle{
+  min-width:140px;
+  height:36px;
+  font-size:15px;
+}
+</style>
+
+<style>
+html.ios .slider-hit,
+html.ios input[type="range"]{
+  display:none !important;
+}
+</style>
+
 </head>
 <body>
-  <div class="wrap">
+  
+<script>
+/* Storage helper (polyfill) */
+window.store = window.store || {
+  get: function(k, def){ try{ var v = localStorage.getItem(k); return (v===null||v===undefined)?def:JSON.parse(v); }catch(e){ try{ var v2 = localStorage.getItem(k); return (v2===null||v2===undefined)?def:v2; }catch(e2){ return def; } } },
+  set: function(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ try{ localStorage.setItem(k, String(v)); }catch(e2){} } },
+  del: function(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+</script>
+
+<div class="wrap">
     <div class="panel">
       <div class="hud">
-        <div class="badge" id="score">暗躍値: 0</div>
-        <div class="badge" id="rank">修羅王丸: ミミック <span class="rank-progress" id="rankProgress"></span></div>
+        <div class="badge" id="score">暗躍値:  </div>
+        <div class="badge" id="rank">修羅王丸: 　 <span class="rank-progress" id="rankProgress"></span></div>
       </div>
       <div id="titleRow"><span id="titleLabel"></span></div>
       <div id="comboGaugeContainer">
@@ -764,11 +1052,11 @@ html, body{
       <div class="btn-group volume-group">
         <div class="volume-row">
           <button type="button" class="volume-text vol-toggle" id="bgmBtnIndex">BGM🔊</button>
-          <input type="range" id="bgmSlider" min="0" max="100" step="1">
+          <div class="slider-hit"><input type="range" id="bgmSlider" min="0" max="100" step="1"></div>
         </div>
         <div class="volume-row">
           <button type="button" class="volume-text vol-toggle" id="seBtnIndex">SE🔊</button>
-          <input type="range" id="seSlider" min="0" max="100" step="1">
+          <div class="slider-hit"><input type="range" id="seSlider" min="0" max="100" step="1"></div>
         </div>
       </div>
       <button class="btn" id="bgmSelectBtn" onclick="toggleBGMSelect(); onClickSE()">♪1 / ♪2 BGM切替</button>
@@ -813,13 +1101,36 @@ html, body{
 
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
+const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+try{ document.documentElement.classList.toggle('ios', IS_IOS); }catch(_){}
+
+// Mark iOS on <html> for CSS targeting
+try{ if (IS_IOS) document.documentElement.classList.add('ios'); }catch(_){ }
+
+
+// === iOS audio volume FIX: global ensureGraph shim ===
+// Some parts of this file call ensureGraph() before the iOS audio graph is initialized.
+// We provide a stable global shim that delegates to the implementation once it is registered.
+function ensureGraph(){
+  try{
+    return (typeof window.__ensureGraphImpl === 'function') ? window.__ensureGraphImpl() : null;
+  }catch(_){
+    return null;
+  }
+}
+
 
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
 const bgm2 = document.getElementById("bgm2");
 let activeBGM = store.get("activeBGM", 1) === 2 ? bgm2 : bgm1;
 let bgmOn = !!store.get("bgmOn", false);
+let bgmMuted = !!store.get("bgmMuted", false); // OFFボタン用：再生は維持しつつミュート
+let bgmPlayPending = false;
+let bgmPlayToken = 0;
 
+
+let bgmEverStarted = false;
 /* ★インデックス内のBGM/SEボタンに変更 */
 const bgmBtn = document.getElementById("bgmBtnIndex"); // BGM ON/OFFボタン
 
@@ -833,13 +1144,17 @@ if (seBtn){
   seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
 }
 
+const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
 const bgmSlider = document.getElementById("bgmSlider");
 const seSlider  = document.getElementById("seSlider");
 
 function updateBgmIcon(vol){
   if(!bgmBtn) return;
-  const icon = (vol && vol > 0) ? "🔊" : "🔇";
+  let base = Number(vol);
+  if (!isFinite(base)) base = Number(store.get("bgmVol", BGM_DEFAULT_VOL));
+  const isOn = (!bgmMuted && base > 0);
+const icon = isOn ? "🔊" : "🔇";
   bgmBtn.textContent = "BGM" + icon;
 }
 function updateSeIcon(vol){
@@ -848,49 +1163,175 @@ function updateSeIcon(vol){
   seBtn.textContent = "SE" + icon;
 }
 
+
+
+// === range fill helper (keep the “伸び縮み” visual) ===
+function updateRangeFill(el){
+  try{
+    if(!el) return;
+    const min = Number(el.min||0);
+    const max = Number(el.max||100);
+    const v = Number(el.value||0);
+    const t = (v - min) / Math.max(1e-9, (max - min));
+    const pct = Math.max(0, Math.min(1, t)) * 100;
+
+    // New: CSS var driven (mobile custom range)
+    try{ el.style.setProperty('--fill-pct', pct + '%'); }catch(_){ }
+
+    // Back-compat: backgroundSize directly (if used)
+    try{
+      const trackH = getComputedStyle(el).getPropertyValue('--track-h').trim() || '4px';
+      el.style.backgroundSize = (pct + '% ' + trackH);
+    }catch(_){ }
+  }catch(_){}
+}
+
+// === Helper: force UI refresh on some mobile browsers after programmatic value changes ===
+function dispatchRangeInput(el){
+  try{
+    if(!el) return;
+    const ev = new Event('input', { bubbles:true });
+    el.dispatchEvent(ev);
+  }catch(_){}
+}
+
 function onBgmSliderChange(v){
+  if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
+
+  // iOS: keep element volume at 1, control via WebAudio gain
+  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
+
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
+  const vol = Math.max(0, Math.min(100, v)) / 100;// 反映（BGMはミュート時も「pauseしない」＝再開安定性優先）
   setBGMVol(vol);
-  bgmOn = vol > 0;
+  try{ if(bgmSlider) updateRangeFill(bgmSlider); }catch(_){ }
+bgmOn = vol > 0;
+  // スライダー操作は「音量そのもの」を意味するため、ボタンミュート状態は解除
+  bgmMuted = false;
+  store.set("bgmMuted", false);
   store.set("bgmOn", bgmOn);
+  store.set("bgmVol", vol);
+  if (vol > 0) store.set("bgmLast", vol);
+
   updateBgmIcon(vol);
 
   if (bgmOn){
-    try{
-      const bgm = currentBGM();
-      if (bgm && bgm.paused){
-        bgm.play().catch(()=>{});
-      }
-    }catch(_){}
+    try{ safeStartBGM(currentBGM()); }catch(_){}
   } else {
-    pauseAllBGM();
+    // 0の場合は停止せずミュートのみ（iOS/Chromeの再開不安定を回避）
+    try{
+      // 既に再生中ならそのまま。停止している場合もここでは再生開始しない。
+      // （ON復帰時に safeStartBGM が走る）
+    }catch(_){}
   }
 }
 
 function onSeSliderChange(v){
+  if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
+
   v = Number(v);
   if (isNaN(v)) v = 0;
-  const vol = Math.max(0, Math.min(100, v)) / 100;
+  const pct = Math.max(0, Math.min(100, v));
+  const vol = pct / 100;
+
   if (vol <= 0){
     Sound.enabled = false;
   } else {
     Sound.enabled = true;
-    Sound.vol = vol;
+    setSEVol(vol);
+    // 最後の非0値を保存（SEボタンON復帰用）
+    store.set("seLastPct", pct);
   }
+
+  // UI反映
+  try{ if(seSlider) seSlider.value = String(pct); }catch(_){ }
+  try{ if(seSlider) updateRangeFill(seSlider); }catch(_){ }
+
   store.set("seOn", Sound.enabled);
   store.set("seVol", Sound.vol);
+  // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
+  try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
 // attach slider events
 if (bgmSlider){
-  bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); onClickSE(); });
+  bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); });
+  bgmSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
 }
 if (seSlider){
-  seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); onClickSE(); });
+  seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); });
+  seSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
 }
+// iOS/Chromeでrangeのドラッグが鈍い/反応しない対策：pointer/touch移動で値を直接更新する
+function enhanceRangeSlider(el, onValue){
+  if (!el) return;
+  try{ if (el.dataset && el.dataset.rangeDirect==='1') return; }catch(_){ }
+  try{ if (el.dataset) el.dataset.rangeDirect='1'; }catch(_){ }
+  const hit = el.closest(".slider-hit") || el;
+  try{ hit.style.touchAction = "none"; }catch(_){}
+  const setFromClientX = (clientX)=>{
+    const r = hit.getBoundingClientRect();
+    const x = Math.min(r.right, Math.max(r.left, clientX));
+    const t = (x - r.left) / Math.max(1, (r.width));
+    const min = Number(el.min || 0);
+    const max = Number(el.max || 100);
+    const step = Number(el.step || 1);
+    let val = min + t * (max - min);
+    // stepにスナップ
+    val = Math.round(val / step) * step;
+    val = Math.max(min, Math.min(max, val));
+    el.value = String(val);
+    try{ updateRangeFill(el); }catch(_){ }
+try{ onValue(el.value); }catch(_){}
+    try{ if(dragging) onSliderDragSE(); }catch(_){ }
+  };
+
+  let dragging = false;
+
+  const onDown = (e)=>{
+    dragging = true;
+    try{ e.preventDefault(); }catch(_){}
+    const p = e.touches ? e.touches[0] : e;
+    if (p) setFromClientX(p.clientX);
+  };
+  const onMove = (e)=>{
+    if (!dragging) return;
+    try{ e.preventDefault(); }catch(_){}
+    const p = e.touches ? e.touches[0] : e;
+    if (p) setFromClientX(p.clientX);
+  };
+  const onUp = (e)=>{
+    if (!dragging) return;
+    dragging = false;
+    try{ e.preventDefault(); }catch(_){}
+    // つまみ操作終了時に一度だけクリックSE
+    try{ onClickSE(); }catch(_){}
+  };
+
+  hit.addEventListener("pointerdown", onDown, { passive:false });
+  window.addEventListener("pointermove", onMove, { passive:false });
+  window.addEventListener("pointerup", onUp, { passive:false });
+
+  hit.addEventListener("touchstart", onDown, { passive:false });
+  window.addEventListener("touchmove", onMove, { passive:false });
+  window.addEventListener("touchend", onUp, { passive:false });
+}
+enhanceRangeSlider(bgmSlider, onBgmSliderChange);
+enhanceRangeSlider(seSlider, onSeSliderChange);
+
+
+// === Native input fallback (iOS reliability): ensure volume changes on real range events ===
+try{
+  if (bgmSlider){
+    bgmSlider.addEventListener("input", (e)=>{ try{ onBgmSliderChange(e.target.value); }catch(_){ } }, {passive:true});
+  }
+  if (seSlider){
+    seSlider.addEventListener("input", (e)=>{ try{ onSeSliderChange(e.target.value); }catch(_){ } }, {passive:true});
+  }
+}catch(_){}
+
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
@@ -912,7 +1353,9 @@ function makePool(baseEl, n){
       const el = arr[idx++ % arr.length];
       try{ el.pause(); }catch(_){}
       try{ el.currentTime = 0; }catch(_){}
-      try{ el.volume = vol; }catch(_){}
+      try{ el.volume = vol; }catch(_){ }
+      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
+      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
       el.play().catch(()=>{});
     }
   };
@@ -935,30 +1378,340 @@ const SE_BANK = {
   not:document.getElementById("se_not"),
   scream:document.getElementById("se_scream"),
 };
-const Sound={ enabled:store.get("seOn", true), vol:store.get("seVol", SE_DEFAULT_VOL), pools:{},
-  init(){ for(const k in SE_BANK){ if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6); } },
-  play(n, volMul=1){ if(!this.enabled) return; const p=this.pools[n]; if(p) p.play(this.vol*volMul); },
-}; Sound.init();
+const Sound={
+  enabled:store.get("seOn", true),
+  vol:store.get("seVol", SE_DEFAULT_VOL),
+  pools:{},
+  // SEごとの補正（同じスライダーでも素材音圧差を吸収）
+  mul:{ rumble: 0.60 },
+  // 連打/同時発火で“音量が突出”しやすいSEは間引く
+  _last:{},
+  init(){
+    for(const k in SE_BANK){
+      if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6);
+    }
+  },
+  play(n, volMul=1){
+    if(!this.enabled) return;
+    const p=this.pools[n];
+    if(!p) return;
 
-function setBGMVol(v){ const nv=Number(v); bgm1.volume=nv; bgm2.volume=nv; store.set("bgmVol", nv); }
-function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); }
+    // rumbleは同フレーム多重発火で加算的に大きくなりやすいのでレート制限
+    if (n==="rumble"){
+      const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+      const prev = this._last.rumble || 0;
+      if (now - prev < 120) return; // 120ms以内は無視
+      this._last.rumble = now;
+    }
 
-function toggleSE(){ 
-  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
-  if (seSlider){
-    const now = Number(seSlider.value||"0");
-    const next = now > 0 ? 0 : 50;
-    seSlider.value = next;
-    onSeSliderChange(next);
-  } else {
-    Sound.enabled = !Sound.enabled;
-    store.set("seOn", Sound.enabled);
-    updateSeIcon(Sound.enabled ? Sound.vol : 0);
+    const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
+    const g = window.__audioGraph;
+    const v = (g && g.se && g.se.gain) ? (volMul * m) : (this.vol * volMul * m);
+    p.play(v);
+  },
+};
+Sound.init();
+
+/* ===== Voice priority & stable playback (Ducking + Gesture Queue) ===== */
+window.Sound = Sound; // expose for other helper scripts
+
+let __voiceCurrent = null;
+let __ducking = false;
+let __duckReleaseTimer = null;
+
+
+// iOSでaudio.volumeが効かない/端末依存になる場合に備え、WebAudio(GainNode)で音量制御する
+function connectToBus(el, bus){
+  try{
+    if (!IS_IOS) return;
+    if (!el || !bus) return;
+    const g = window.__audioGraph;
+    if (!g || !g.ctx || !g.sources) return;
+    if (g.sources.has(el)) return;
+    const src = g.ctx.createMediaElementSource(el);
+    src.connect(bus);
+    g.sources.set(el, src);
+  }catch(_){}
+}
+function connectKnownAudio(){
+  try{
+    if (!IS_IOS) return;
+    const g = ensureGraph();
+    if (!g) return;
+    // BGM要素（2曲）を必ずバスへ
+    try{ if (bgm1) connectToBus(bgm1, g.bgm); }catch(_){}
+    try{ if (bgm2) connectToBus(bgm2, g.bgm); }catch(_){}
+  }catch(_){}
+}
+
+function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
+
+function __applyBgmVolume(){
+  const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
+// ★ iPhoneだけ最大音量を80%に制限
+const iosLimit = IS_IOS ? 0.8 : 1.0;
+
+const eff = ((bgmOn && !bgmMuted) ? base * iosLimit : 0) * (__ducking ? 0.25 : 1);
+
+  // WebAudioバスがあればGainで制御（iOSで確実）
+  try{
+    const g = window.__audioGraph;
+    if (g && g.bgm && g.bgm.gain){
+      g.bgm.gain.value = eff;
+      return;
+    }
+  }catch(_){}
+
+  // フォールバック
+  try{ bgm1.volume = eff; }catch(_){}
+  try{ bgm2.volume = eff; }catch(_){}
+}
+
+function __applySeVolume(){
+  const eff = __getSeEffectiveVol();
+  try{
+    const g = window.__audioGraph;
+    if (g && g.se && g.se.gain){
+      g.se.gain.value = eff;
+      return;
+    }
+  }catch(_){}
+}
+
+function __getSeEffectiveVol(){
+  const base = __clamp01(store.get("seVol", SE_DEFAULT_VOL));
+  if (!Sound.enabled) return 0;
+  return base * (__ducking ? 0.6 : 1);
+}
+
+function __setElementVolumeSafe(el, vol){
+  try{ el.volume = __clamp01(vol); }catch(_){}
+}
+
+function __fade(fnSet, from, to, ms){
+  from = Number(from); to = Number(to); ms = Math.max(0, Number(ms)||0);
+  const t0 = performance.now();
+  function step(now){
+    const t = ms ? Math.min(1, (now - t0) / ms) : 1;
+    const v = from + (to - from) * t;
+    try{ fnSet(v); }catch(_){}
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// Gesture queue: if play() is blocked, retry on next user gesture once.
+const __gestureQueue = [];
+let __gestureHooked = false;
+function __hookGestureOnce(){
+  if (__gestureHooked) return;
+  __gestureHooked = true;
+  const flush = ()=>{
+    while(__gestureQueue.length){
+      const fn = __gestureQueue.shift();
+      try{ fn(); }catch(_){}
+    }
+  };
+  window.addEventListener("pointerdown", flush, { passive:true });
+  window.addEventListener("touchstart",  flush, { passive:true });
+  window.addEventListener("mousedown",   flush, { passive:true });
+}
+__hookGestureOnce();
+
+function __playMedia(el){
+  if (!el) return;
+  try{
+    const p = el.play();
+    if (p && typeof p.catch === "function"){
+      p.catch(()=>{
+        // iOS対策：ジェスチャ待ちだけにせず、短いリトライも行う（連鎖中に取りこぼさない）
+        try{ el.load && el.load(); }catch(_){}
+        try{
+          if (!el.__retrying){
+            el.__retrying = true;
+            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
+            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+          }
+        }catch(_){ el.__retrying = false; }
+        __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
+      });
+    }
+  }catch(_){
+    try{ el.load && el.load(); }catch(__){}
+    try{
+      if (!el.__retrying){
+        el.__retrying = true;
+        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
+        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+      }
+    }catch(__){ el.__retrying = false; }
+    __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
   }
 }
 
-function pauseAllBGM(){ try{bgm1.pause();}catch(_){} try{bgm2.pause();}catch(_){} }
+window.__playMediaSafe = __playMedia;
+window.__getSeEffectiveVol = __getSeEffectiveVol;
+
+function __setBgmVolPair(v){
+  v = __clamp01(v);
+  try{ bgm1.volume = v; }catch(_){}
+  try{ bgm2.volume = v; }catch(_){}
+}
+function __getBgmBaseVol(){
+  const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
+  return (bgmOn && !bgmMuted) ? base : 0;
+}
+let __duckToken = 0;
+
+function __startDucking(){
+  // Smooth "attack" to avoid sudden drops (ear-fatiguing)
+  if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
+  const token = ++__duckToken;
+  const base  = __getBgmBaseVol();
+  const target = __clamp01(base * 0.25);
+
+  // Mark ducking active for SE/voice scaling
+  __ducking = true;
+
+  // Fade from current -> target
+  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : base);
+  __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, target, 220);
+}
+
+function __releaseDucking(ms){
+  // Smooth "release" and keep ducking until voice actually ends
+  if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
+  const token = ++__duckToken;
+  const base = __getBgmBaseVol();
+  const from = __clamp01((bgm1 && typeof bgm1.volume === 'number') ? bgm1.volume : (base*0.25));
+  const to   = __clamp01(base);
+  __duckReleaseTimer = setTimeout(()=>{
+    __ducking = false;
+    __fade((v)=>{ if(token===__duckToken) __setBgmVolPair(v); }, from, to, 420);
+  }, Math.max(0, Number(ms)||0));
+}
+
+// Public: play voice by element id (combo/rank/reset etc.)
+window.playVoiceById = function(voiceId){
+  try{
+    const el = document.getElementById(voiceId);
+    if (!el) return;
+
+    if (__voiceCurrent && __voiceCurrent !== el){
+      try{ __voiceCurrent.pause(); }catch(_){}
+    }
+    __voiceCurrent = el;
+
+    __startDucking();
+
+    const baseSe = __clamp01(store.get("seVol", SE_DEFAULT_VOL));
+    // Voice gain is intentionally louder than SE so that voice remains intelligible.
+    const voiceBoost = Number(store.get("voiceBoost", 2.2));
+    const voiceFloor = Number(store.get("voiceFloor", 0.45));
+    const voiceVol = __clamp01(baseSe<=0 ? 0 : Math.max(voiceFloor, baseSe * voiceBoost));
+    __setElementVolumeSafe(el, voiceVol);
+    try{ var g=ensureGraph(); if(g) connectToBus(el, g.se); }catch(_){ }
+
+    try{ el.currentTime = 0; }catch(_){}
+    __playMedia(el);
+
+    // Release ducking when the voice really ends (and do it gently).
+    el.onended = ()=>{ try{ __releaseDucking(120); }catch(_){ } };
+
+    // Safety: if 'ended' does not fire (rare on some mobile browsers), release after duration.
+    try{
+      const d = Number(el.duration);
+      const ms = (isFinite(d) && d > 0) ? Math.min(7000, Math.max(800, d*1000 + 180)) : 4200;
+      if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; }
+      __duckReleaseTimer = setTimeout(()=>{
+        if (el === __voiceCurrent){ try{ __releaseDucking(120); }catch(_){ } }
+      }, ms);
+    }catch(_){}
+}catch(_){}
+};
+
+
+function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVolume(); }
+function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); __applySeVolume(); }
+
+function toggleSE(){
+  if (!seSlider){
+    Sound.enabled = !Sound.enabled;
+    store.set("seOn", Sound.enabled);
+    updateSeIcon(Sound.enabled ? Sound.vol : 0);
+    return;
+  }
+
+  const nowPct = Number(seSlider.value || "0");
+  if (nowPct > 0){
+    // OFF: 現在値を記憶して0へ（表示も追従）
+    store.set("seLastPct", nowPct);
+    seSlider.value = "0";
+    try{ updateRangeFill(seSlider); }catch(_){ }
+    dispatchRangeInput(seSlider);
+    onSeSliderChange(0);
+    return;
+  }
+
+  // ON: 直前の値へ復帰（なければデフォルト）
+  const last = Number(store.get("seLastPct", 50));
+  const restore = (isNaN(last) || last <= 0) ? 50 : Math.max(1, Math.min(100, last));
+  seSlider.value = String(restore);
+  try{ updateRangeFill(seSlider); }catch(_){ }
+  dispatchRangeInput(seSlider);
+  onSeSliderChange(restore);
+}
+
+function pauseAllBGM(){
+  try{ if(bgm1) bgm1.pause(); }catch(_){}
+  try{ if(bgm2) bgm2.pause(); }catch(_){}
+  // cancel any pending start attempts
+  bgmPlayToken++;
+  bgmPlayPending = false;
+}
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
+function safeStartBGM(bgmEl){
+  try{
+    if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
+
+    if (!bgmEl) return;
+    // iOS: route BGM through WebAudio bus so sliders/mute work
+    if (IS_IOS){ try{ var g = ensureGraph(); if (g) { connectToBus(bgmEl, g.bgm); if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ } }
+    try{ __applyBgmVolume(); }catch(_){ }
+    // 重複再生防止：ターゲット以外のBGMは必ず停止
+    try{
+      if (bgm1 && bgmEl!==bgm1){ bgm1.pause(); }
+      if (bgm2 && bgmEl!==bgm2){ bgm2.pause(); }
+    }catch(_){ }
+if (!bgmOn) return;
+
+    // 常に「片方だけ」再生する（多重再生防止）
+    const other = (bgmEl === bgm1) ? bgm2 : bgm1;
+    try{ if(other && !other.paused) other.pause(); }catch(_){}
+
+    // 既に再生中なら何もしない
+    try{ if(!bgmEl.paused) return; }catch(_){}
+
+    // 直近の開始要求が処理中なら重ねない
+    if (bgmPlayPending) return;
+
+    bgmPlayPending = true;
+    const token = ++bgmPlayToken;
+
+    const p = bgmEl.play();
+    if (p && typeof p.then === "function"){
+      p.then(()=>{ bgmEverStarted = true; }).catch(()=>{}).finally(()=>{
+        if (bgmPlayToken === token){
+          bgmPlayPending = false;
+        }
+      });
+    } else {
+      bgmPlayPending = false;
+    }
+  }catch(_){
+    bgmPlayPending = false;
+  }
+}
 
 function updateBGMSelectButton(){
   const which = activeBGM === bgm2 ? 2 : 1;
@@ -979,27 +1732,53 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
-  // 旧仕様の互換用：スライダーがあれば0/50に切り替える
-  if (bgmSlider){
-    const now = Number(bgmSlider.value||"0");
-    const next = now > 0 ? 0 : 50;
-    bgmSlider.value = next;
-    onBgmSliderChange(next);
-  } else {
+  if (!bgmSlider){
     bgmOn = !bgmOn;
     store.set("bgmOn", bgmOn);
-    updateBgmIcon(bgmOn ? store.get("bgmVol", BGM_DEFAULT_VOL) : 0);
+    updateBgmIcon(bgmOn ? bgmVol : 0);
     if (bgmOn){
-      pauseAllBGM(); currentBGM().currentTime = 0;
-      currentBGM().play().catch(()=>{});
-    } else {
-      pauseAllBGM();
+      try{ safeStartBGM(currentBGM()); }catch(_){}
     }
+    return;
   }
+
+  const nowPct = Number(bgmSlider.value || "0");
+
+  if (nowPct > 0){
+    // OFF: 現在位置を保存して0へ（表示=fillも0）。音はミュート扱い。
+    store.set("bgmLastPct", nowPct);
+    bgmSlider.value = "0";
+    try{ updateRangeFill(bgmSlider); }catch(_){}
+    try{ dispatchRangeInput(bgmSlider); }catch(_){}
+    try{ onBgmSliderChange(0); }catch(_){}
+        // Safety: if WebAudio is not yet active on iOS, also pause to ensure true mute
+    try{ if (IS_IOS) pauseAllBGM(); }catch(_){ }
+updateBgmIcon(0);
+    return;
+  }
+
+  // ON: 直前の位置へ復帰（なければ bgmLast/bgmVol から復元、最終的に25）
+  let lastPct = Number(store.get("bgmLastPct", NaN));
+  if (isNaN(lastPct) || lastPct <= 0){
+    const lastVol = Number(store.get("bgmLast", NaN)); // 0..1
+    if (!isNaN(lastVol) && lastVol > 0) lastPct = Math.round(lastVol * 100);
+  }
+  if (isNaN(lastPct) || lastPct <= 0){
+    const vol = Number(store.get("bgmVol", bgmVol || 0.25)); // 0..1
+    lastPct = Math.round(Math.max(0.01, Math.min(1, vol)) * 100);
+  }
+  lastPct = Math.max(1, Math.min(100, lastPct));
+
+  bgmSlider.value = String(lastPct);
+  try{ updateRangeFill(bgmSlider); }catch(_){}
+  try{ dispatchRangeInput(bgmSlider); }catch(_){}
+  try{ onBgmSliderChange(lastPct); }catch(_){}
 }
 
 function selectBGM(which){
   pauseAllBGM();
+  // iOS: ensure WebAudio routing before (re)starting
+  if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
   activeBGM = (which===2)?bgm2:bgm1;
   store.set("activeBGM", which);
   setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
@@ -1007,16 +1786,9 @@ function selectBGM(which){
 
   updateBGMSelectButton(); // 表示更新（ラベル/色）
 
-  if(bgmOn){ 
-    currentBGM().play().then(()=>{ 
-      updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); 
-    }).catch(()=>{
-      // 自動再生失敗時はOFFに戻す
-      bgmOn=false; 
-      store.set("bgmOn", false);
-      pauseAllBGM();
-      updateBgmIcon(0);
-    }); 
+  if(bgmOn){
+    // 再生は必ずガード付きで開始
+    safeStartBGM(currentBGM());
   } else { 
     pauseAllBGM(); 
     updateBgmIcon(0);
@@ -1028,33 +1800,33 @@ function selectBGM(which){
 let audioUnlocked=false;
 function unlockAllSE(){
   if(audioUnlocked) return;
-  audioUnlocked=true;
-  // 【修正】SEの一斉再生を避けるため、SE_BANKに対するループを削除し、
-  // BGM (bgm1, bgm2) のみに対してアンロック処理を行います。
-  const audioElements = [bgm1, bgm2]; // ★SEの要素は含めず、bgm1とbgm2のみを指定
-  
-  audioElements.forEach(a => {
-    if (!a) return;
-    try{ 
-      const v=a.volume; 
-      a.volume=0.0001; 
-      a.play().then(()=>{ 
-        a.pause(); a.currentTime=0; a.volume=v; 
-      }).catch(()=>{ 
-        a.volume=v; 
-      }); 
+  audioUnlocked = true;
+
+  // iOSで“解禁”目的に全audioをplayすると、一斉再生（全部鳴る）バグを誘発しやすい。
+  // ここでは preload のみに留める。
+  const audioElements = Array.from(document.querySelectorAll('audio'));
+  for (const a of audioElements){
+    if (!a) continue;
+    try{
+      try{ a.pause(); }catch(_){}
+      try{ a.currentTime = 0; }catch(_){}
+      try{ a.load(); }catch(_){}
     }catch(_){}
-  });
-}
-function userGesture(){
-  unlockAllSE();
-// ★タッチ/移動でBGMをキック（停止中なら再生を試みるが、ユーザー設定(bgmOn)を尊重する）
-  // ユーザーが明示的にBGMをOFFにしている場合は再生も状態の上書きもしないように修正
-  if (bgmOn && currentBGM().paused){ 
-    currentBGM().currentTime = 0;
-    currentBGM().play().catch(()=>{});
   }
 }
+
+function userGesture(){
+  // ユーザー操作を契機にアンロックし、BGMが有効なら「ガード付き」で開始を試みる。
+  // currentTimeのリセットは行わない（針飛び/多重再生の原因）
+  unlockAllSE();
+  try{
+    const base = store.get("bgmVol", BGM_DEFAULT_VOL);
+    if (!bgmMuted && base > 0){
+      safeStartBGM(currentBGM());
+    }
+  }catch(_){}
+}
+
 (function initAudio(){
   // BGM初期ボリュームを取得して反映
   const initBgmVol = store.get("bgmVol", BGM_DEFAULT_VOL);
@@ -1068,7 +1840,8 @@ function userGesture(){
     } else {
       const seVol = Sound.vol || SE_DEFAULT_VOL;
       seSlider.value = Math.round(seVol * 100);
-      updateSeIcon(seVol);
+      try{ updateRangeFill(seSlider); }catch(_){ }
+updateSeIcon(seVol);
     }
   } else {
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
@@ -1077,35 +1850,26 @@ function userGesture(){
   // BGMスライダーとアイコンへ反映
   if (bgmSlider){
     bgmSlider.value = Math.round(initBgmVol * 100);
-    updateBgmIcon(initBgmVol);
+    try{ updateRangeFill(bgmSlider); }catch(_){ }
+updateBgmIcon(initBgmVol);
   } else {
     updateBgmIcon(bgmOn ? initBgmVol : 0);
   }
+
+  // ミュート状態も含めて有効音量を反映
+  try{ __applyBgmVolume(); }catch(_){ }
 
 const which=store.get("activeBGM",1);
   activeBGM = which===2?bgm2:bgm1;
   updateBGMSelectButton(); /* BGM切替ボタンの表示更新 */
 
-  if(bgmOn){ 
-    currentBGM().play().then(()=>{ 
-      updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); 
-    }).catch(()=>{
-      // 自動再生がブロック：ユーザー操作で1回だけ復帰（ON設定時のみ）
-      const resumeOnce = ()=>{
-        if(!bgmOn) return;
-        try{ pauseAllBGM(); currentBGM().currentTime=0; currentBGM().play().catch(()=>{}); }catch(_){}
-        document.removeEventListener('pointerdown', resumeOnce, true);
-        document.removeEventListener('keydown', resumeOnce, true);
-        document.removeEventListener('touchstart', resumeOnce, true);
-        updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL));
-      };
-      document.addEventListener('pointerdown', resumeOnce, true);
-      document.addEventListener('keydown', resumeOnce, true);
-      document.addEventListener('touchstart', resumeOnce, true);
-    }); 
-  }
-  else{ 
-    pauseAllBGM(); 
+  if(bgmOn){
+    // 再生前に必ず非アクティブBGMを停止（重なり防止）
+    try{ pauseAllBGM(); }catch(_){ }
+    // 再生は必ずガード付きで開始
+    try{ safeStartBGM(currentBGM()); }catch(_){ }
+  } else {
+    pauseAllBGM();
     updateBgmIcon(0);
   }
 })();
@@ -1113,9 +1877,24 @@ const which=store.get("activeBGM",1);
 /* ★SE再生のショートカット関数 */
 const onClickSE = ()=>Sound.play('push', .9);
 
+// スライダー操作中のSE（連打抑制）
+let __sliderSELast = 0;
+function onSliderDragSE(){
+  try{
+    if(!Sound || !Sound.enabled) return;
+    const t = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+    if (t - __sliderSELast < 90) return; // 体感重視：過剰連打を防ぐ
+    __sliderSELast = t;
+    Sound.play('push', 0.35);
+  }catch(_){ }
+}
+
 /* ===== DOM & 基本設定（A 基準） ===== */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha:true });
+// PCの駒描画をシャープに（負荷はDPR設定に依存）
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
 const $pauseBtn = document.getElementById("pauseBtn");
 const $score = document.getElementById("score");
 const $rank = document.getElementById("rank");
@@ -1145,7 +1924,9 @@ const $howtoNext = document.getElementById('howtoNext');
 const size = 7;
 let logicalSize = 400;
 let tileSize = logicalSize/size;
-let DPR = Math.max(1, Math.min(3, Math.floor(window.devicePixelRatio || 1)));
+let isMobileViewport = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+let dprRaw = (window.devicePixelRatio || 1);
+let DPR = isMobileViewport ? Math.min(2, dprRaw) : Math.max(2, Math.min(3, dprRaw));
 let paused = false;
 let isKanki = true;
 const DRAG_THRESHOLD = 0.35;
@@ -1188,6 +1969,20 @@ function loadImages(done){
       url = p.replace(/boad_bg\.png$/i, "board_bg.png");
       try{ el.src = url; return true; }catch(_){}
     }
+// Special fallback for Neoretro asset naming variations
+if (key === "S_NE0"){
+  const candidates = [
+    "images/neoretro.png",
+    "images/Neoretro.png",
+    "images/special_neoretro.png",
+    "images/special_ne0.png"
+  ];
+  for (const c of candidates){
+    if (c === p) continue;
+    try{ el.src = c; return true; }catch(_){}
+  }
+}
+
 
     // General fallback: lowercased basename for case mismatches (e.g., KUJAKU.png vs kujaku.png)
     const m = p.match(/^(.*\/)([^\/]+)$/);
@@ -1208,7 +2003,7 @@ let loaded=0; const keys=Object.keys(IMG).filter(k=>!k.startsWith('PATH_')); con
       // attempt fallback once; otherwise count and continue
       if (!tryFallback(k)){
         if(++loaded===total) done();
-        if (/debugload=1/.test(location.search)){
+        if (/\bdebugload=1\b/.test(location.search)){
           (window.__missingAssets ||= []).push(IMG["PATH_"+k] || k);
         }
       }
@@ -1225,17 +2020,17 @@ const CHARACTERS = [
   { sym: "KUJAKU", name: "クジャク", tag: "式神", desc: "修羅王丸の盟約たる式神。/ 通常の暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
 
   { sym: "S_BIR", name: "ミミック", tag: "修羅王丸", desc: "かつて人と共に在った修羅王丸。/ 縦列消去。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
-  { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
-  { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
-  { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
-  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列を消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
+  { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列＋両隣消去。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 周囲を菱形に消去。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列+上下隣消去。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
+  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
   { sym: "SHURACHAN", name: "しゅらちゃん", tag: "似絵", desc: "シンギュラの自画像。/ 同種駒を4つ消去で召喚。十字列消去。", image: "SHURACHAN", unlock: { key: "spawn", value: "SHURACHAN" } },
-  { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を盤面から全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
+  { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
 
-  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "平行世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
 
 ];
 let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false, SHURACHAN: false, REKUSHURA: false });
@@ -1506,10 +2301,7 @@ function resetRank(){
   // UI更新・ボイス類
   try { if (typeof updateScoresUI === "function") updateScoresUI(); } catch(e){}
   try { if (typeof updateStatus === "function") updateStatus("status: 覚醒ランクと暗躍値をリセットしました。"); } catch(e){}
-  try {
-    var v = document.getElementById("vo_reset");
-    if(v){ v.currentTime = 0; v.play && v.play().catch(()=>{}); }
-  } catch(e){}
+  try{ window.playVoiceById && window.playVoiceById("vo_reset"); }catch(_){}
 }
 
 
@@ -1525,11 +2317,13 @@ const MAX_RANK_INDEX = RANKS.length - 1;
 const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
-const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
+const RANK_THRESH = [10, 10, 10, 10, 10];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
-let slashes=[], particles=[], trails=[], auroraBeams=[]; // Bのエフェクト要素
+let slashes=[], specialSlashes=[], particles=[], trails=[],
+  shuraCracks = [], // 特殊駒（ミミック等）消去：黒靄＋低彩度赤亀裂オーバーレイ
+ auroraBeams=[]; // Bのエフェクト要素
 let flameParts = [];
 // ★連鎖終了の残響（火の粉が上へ舞い上がって収束／SEなし）
 let chainAfterglowEmbers = [];
@@ -1544,6 +2338,8 @@ let bgPulse = null;               // 背景脈動用
 let auroraTriggeredThisMove = false; // この一手でオーロラを出したか
 let vanishMask=null, vanishP=0, animState="idle";
 let drag={active:false,start:null,t:null}, swapPair=null;
+let lastMoveAnchor=null; // 最後にユーザーが動かした駒の到達先(ギミック中心)
+
 let jusoHP=[], currentObstacleCount=0;
 let pendingShuraItem = null, pendingShuraItemPos = null;
 
@@ -1551,7 +2347,10 @@ let jusoShake=[]; // 0..1 の減衰パワー
 
 let lastShuraItemKind = null;
 let lastShuraItemMask  = null;
-let lastRekCrossCombo = false; // レク×しゅらの2段階演出フラグ
+let lastRekCrossCombo = false;
+let rekCrossStage = 0;          // 0:なし 1:十字後 2:全消去後
+let rekCrossSyms = null;        // Set<string> / Array
+ // レク×しゅらの2段階演出フラグ
 let isCascadeMatch = false;    // ドロップ後のカスケードマッチ中かどうか
 
 let isBgmReady = false; // BGMの準備完了フラグ
@@ -1603,15 +2402,7 @@ function endComboIfAny(){
       }
 
       // ★ボイス再生部分（ランクアップ直後は抑制）
-      if (!suppressComboVoice && info.voiceId){
-        const v = document.getElementById(info.voiceId);
-        if (v){
-          try{
-            v.currentTime = 0;   // 毎回頭から再生
-            v.play().catch(()=>{});
-          }catch(_){}
-        }
-      }
+      if (!suppressComboVoice && info.voiceId){ try{ window.playVoiceById && window.playVoiceById(info.voiceId); }catch(_){ } }
       // 一度チェックしたらフラグはリセット
       suppressComboVoice = false;
     }
@@ -1633,7 +2424,7 @@ function endComboIfAny(){
           : null;
       } else {
         // 通常は force=false でオーロラ生成＋火の粉・火柱・火の雨までまとめて行う
-        triggerAurora(false, comboEffectAnchor);
+        triggerAurora(false, comboEffectAnchor, comboCount);
       }
     }catch(_){}
   }
@@ -1713,13 +2504,13 @@ function getComboInfo(n){
   if (n === 3) return { name:"連鎖×3「慟哭剣・宵闇」", voiceId:"vo_combo3" };
   if (n === 4) return { name:"連鎖×4「慟哭剣・因果廻天」", voiceId:"vo_combo4" };
   if (n === 5) return { name:"連鎖×5「慟哭剣・地之叢雲」", voiceId:"vo_combo5" };
-  return { name:`連鎖×${n}「慟哭剣」`, voiceId:"vo_comboX" };
+  return { name:`連鎖×${n}「慟哭剣・敵國降伏」`, voiceId:"vo_comboX" };
 }
 
 function getTitleByScore(s){
   if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 5000) return "称号：影の見習い(2/8)";
-  if (s < 20000) return "称号：業火の丁稚(3/8)";
+  if (s < 5000) return "称号：影の放浪者(2/8)";
+  if (s < 20000) return "称号：業火の修験者(3/8)";
   if (s < 50000) return "称号：比良坂の防人(4/8)";
   if (s < 100000) return "称号：黄昏の審問官(5/8)";
   if (s < 300000) return "称号：血煙の傍観者(6/8)";
@@ -1765,8 +2556,9 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 
       stopAllRankVoices();
       const v = voiceForSpecial(sym);
-      if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
-
+      if (v){
+        try{ window.playVoiceById && window.playVoiceById(v.id); }catch(_){}
+      }
     });
     row.appendChild(btn);
   });
@@ -1855,6 +2647,42 @@ function setComboText(msg){
 }
 
 function updateStatus(text){ if($status) $status.textContent=text; }
+// ---------- Unknown gating (闘値) init (updateScoresUIより前に必須) ----------
+if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
+var UNKNOWN_THRESH = window.UNKNOWN_THRESH;
+if (typeof window.unknownStageProgress === 'undefined') {
+  try {
+    window.unknownStageProgress = (typeof store!=='undefined' && store && store.get) ? store.get('unknownStageProgress', 0) : 0;
+  } catch(_){ window.unknownStageProgress = 0; }
+}
+var unknownStageProgress = Number(window.unknownStageProgress) || 0;
+window.unknownStageProgress = unknownStageProgress;
+// ---------- /Unknown gating init ----------
+// ---------- Unknown gating (闘値) evaluator ----------
+window.maybeReachMax = function maybeReachMax(){
+  try{
+    if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
+      // 常に window 側を正として扱う（他スコープのズレを排除）
+      var thr = (typeof window.UNKNOWN_THRESH!=='undefined') ? Number(window.UNKNOWN_THRESH) : 0;
+      if (!isFinite(thr) || thr < 0) thr = 0;
+      var prog = (typeof window.unknownStageProgress!=='undefined') ? Number(window.unknownStageProgress) : 0;
+      if (!isFinite(prog) || prog < 0) prog = 0;
+
+      if (prog >= thr){
+        hasReachedMaxRank = true;
+        try{ if (typeof store!=='undefined' && store.set) store.set('hasReachedMaxRank', true); }catch(_){}
+        try{ var v5=document.getElementById('vo_rank5'); if(v5){ v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
+        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
+        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
+        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
+        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+      }
+    }
+  }catch(_){}
+};
+// ---------- /Unknown gating evaluator ----------
+
+
 function updateScoresUI(){
   // 暗躍値
   $score.textContent = `暗躍値: ${score}`;
@@ -2055,8 +2883,8 @@ function updateRank(){ /* (省略: 変更なし) */
         // すでに hasReachedMaxRank が true の場合は、何もリセットしない（アイコンを消さない）
       }
     }catch(_){}
-const v = document.getElementById(`vo_rank${Math.min(rankIndex,4)}`);
-    if(v){ try{ v.currentTime=0; v.play().catch(()=>{}); }catch(_){} }
+    const vId = `vo_rank${Math.min(rankIndex,4)}`;
+    try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
     Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
   }
   // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
@@ -2069,37 +2897,71 @@ const SEED_BASE_CHANCE = 0.06;
 function addCell(set, r, c){ /* (省略: 変更なし) */
   if(r>=0 && r<size && c>=0 && c<size) set.add(`${r},${c}`);
 }
-function applySpecialGimmicks(baseMatches){ /* (省略: 変更なし) */
+function applySpecialGimmicks(baseMatches){
+  // 特殊駒ギミックの消去範囲を追加する。
+  // 要件：ミミック/ネオレトロ/レクイエムは「移動した駒（到達先）」を中心に発動し、
+  // マッチ内に複数の特殊駒が含まれても列/行が過剰に増えないようにする。
   const extra = new Set();
-  baseMatches.forEach(pos=>{
-    const [r,c]=pos.split(',').map(Number);
-    const b=get(r,c);
-    if(!b || !SPECIALS.includes(b)) return;
 
-    if(b==="S_BIR"){ // 縦列
-      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
-    }
-    else if(b==="S_NE0"){ // 縦列 (+焦土で両隣の列)
-      for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
-      if(!isKanki){ for(let rr=0; rr<size; rr++){ addCell(extra, rr, c-1); addCell(extra, rr, c+1); } }
-    }
-    else if(b==="S_SHU"){ // 円形（半径2）
-      for(let rr=r-2; rr<=r+2; rr++) for(let cc=c-2; cc<=c+2; cc++){
-        const dx=cc-c, dy=rr-r;
-        if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
+  // まず「今回の発動中心」を決める（最優先：ユーザーが動かした到達先が特殊駒で、かつ baseMatches に含まれる場合）
+  let anchor = null;
+  try{
+    if (lastMoveAnchor){
+      const ar = lastMoveAnchor.r|0, ac = lastMoveAnchor.c|0;
+      const key = ar + "," + ac;
+      const sym = get(ar, ac);
+      if (sym && SPECIALS.includes(sym) && baseMatches && typeof baseMatches.has === 'function' && baseMatches.has(key)){
+        anchor = { r: ar, c: ac, sym };
       }
     }
-    else if(b==="S_REQ"){ // 横列 (+焦土で上下の行)
-      for(let cc=0; cc<size; cc++) addCell(extra, r, cc);
-      if(!isKanki){ for(let cc=0; cc<size; cc++){ addCell(extra, r-1, cc); addCell(extra, r+1, cc); } }
-    }
-    else if(b==="S_UNK"){ // 斜め×2
-      for(let k=-size; k<=size; k++){
-        addCell(extra, r+k, c+k);
-        addCell(extra, r+k, c-k);
+  }catch(_){}
+
+  // フォールバック：baseMatches 内で最初に見つかった特殊駒
+  if (!anchor && baseMatches){
+    try{
+      for (const pos of baseMatches){
+        const [r,c]=pos.split(',').map(Number);
+        const sym=get(r,c);
+        if (sym && SPECIALS.includes(sym)){
+          anchor = { r, c, sym };
+          break;
+        }
       }
+    }catch(_){}
+  }
+  if (!anchor) return extra;
+
+  const r = anchor.r, c = anchor.c, b = anchor.sym;
+
+  if (b==="S_BIR"){ // ミミック：縦一列のみ（中心列）
+    for(let rr=0; rr<size; rr++) addCell(extra, rr, c);
+  }
+  else if (b==="S_NE0"){ // ネオレトロ：無条件で縦三列（中心＋両隣）
+    for(let rr=0; rr<size; rr++){
+      addCell(extra, rr, c-1);
+      addCell(extra, rr, c);
+      addCell(extra, rr, c+1);
     }
-  });
+  }
+  else if (b==="S_SHU"){ // シンギュラ：円形（半径2）
+    for(let rr=r-2; rr<=r+2; rr++) for(let cc=c-2; cc<=c+2; cc++){
+      const dx=cc-c, dy=rr-r;
+      if(dx*dx+dy*dy<=4) addCell(extra, rr, cc);
+    }
+  }
+  else if (b==="S_REQ"){ // レクイエム：移動駒を中心に「横列＋上下隣」(＝3行)
+    for(let cc=0; cc<size; cc++){
+      addCell(extra, r-1, cc);
+      addCell(extra, r,   cc);
+      addCell(extra, r+1, cc);
+    }
+  }
+  else if (b==="S_UNK"){ // アンノウン：斜め×2
+    for(let k=-size; k<=size; k++){
+      addCell(extra, r+k, c+k);
+      addCell(extra, r+k, c-k);
+    }
+  }
   return extra;
 }
 
@@ -2109,9 +2971,18 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
  // ★同一 vanish サイクル中に同じお邪魔へ複数回ダメージを入れないためのメモ
   const damagedThisVanish = new Set();
 
-  // ★しゅらちゃん十字による vanish かどうかを判定
-  const isShuraCrossVanish = (lastShuraItemKind === "SHURACHAN" && lastShuraItemMask && lastShuraItemMask.size>0);
-
+  // ★しゅらちゃん十字による vanish かどうかを判定（“今回の vanishMask が十字マスクそのもの”の時だけ true）
+  const isShuraCrossVanish = (function(){
+    try{
+      if (lastShuraItemKind !== "SHURACHAN") return false;
+      if (!lastShuraItemMask || !vanishMask) return false;
+      if (lastShuraItemMask.size !== vanishMask.size) return false;
+      for (const p of vanishMask){
+        if (!lastShuraItemMask.has(p)) return false;
+      }
+      return true;
+    }catch(_){ return false; }
+  })();
   const specialsHit = new Set();
   if (!isShuraCrossVanish){
     vanishMask.forEach(pos=>{
@@ -2127,13 +2998,14 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
       else if (sym==="S_UNK")                  Sound.play('cross', 0.9);
     });
 
+
     // ★レベル3：修羅王丸の消去スキル発動時（S_BIR/S_NE0/S_SHU/S_REQ/S_UNK）に
-    // 残光（しゅら演出）＋オーロラ＋背景脈動を一斉発動
+    // （確認用）特殊駒消去時の白オーロラ／波紋（spawnFlameRipples含む）を無効化
     if (specialsHit && specialsHit.size){
-      try {
-        triggerAurora(true);   // レベル3側はフル強度
-        triggerBgPulse();
-      } catch(_){}
+      try{
+        if (specialsHit && specialsHit.has('S_UNK')) triggerAurora(true);
+        triggerBgPulse();      // 背景脈動だけは残す
+      }catch(_){}
     }
 
     /* === Unknown 闘値インクリメント（MAX直前のみ） === */
@@ -2142,10 +3014,11 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
         if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
           if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
           unknownStageProgress += 1;
-          try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
-          try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
-          try{ if (typeof maybeReachMax==='function') maybeReachMax(); }catch(_){}
-        }
+          try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){ }
+          try{ window.unknownStageProgress = unknownStageProgress; }catch(_){ }
+          try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){ }
+          try{ if (typeof window.maybeReachMax==='function') window.maybeReachMax(); }catch(_){ }
+}
       }
     }catch(_){}
   }
@@ -2156,14 +3029,30 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
 
   const safeMask = new Set(vanishMask);
 
+
   if (lastShuraItemKind && safeMask.size > 0){
     try{
       createShuraItemBurstEffects(safeMask, lastShuraItemKind);
       createSlashEffects(safeMask);
     }catch(_){}
-  } else if (extra.size) {
-    createSlashEffects(extra);
-    createParticles(extra);
+  }
+  // 特殊駒ギミック（ミミック/ネオレトロ/シンギュラ/レクイエム/アンノウン）が絡む消去：
+  // specialsHit 判定が環境差で取りこぼす可能性があるため、消去マスク内に特殊駒が含まれるかでも判定する。
+  if (!isShuraCrossVanish){
+    let hasSpecialInMask = false;
+    try{
+      const SPECIALS = new Set(['S_BIR','S_NE0','S_SHU','S_REQ','S_UNK']);
+      for (const p of safeMask){
+        const [r,c]=p.split(',').map(Number);
+        const sym=get(r,c);
+        if (SPECIALS.has(sym)){ hasSpecialInMask = true; break; }
+      }
+    }catch(_){ }
+    const isSpecialCycle = (specialsHit && specialsHit.size) || hasSpecialInMask;
+    if (isSpecialCycle){
+      createSlashEffects(vanishMask,'special');
+      if (extra.size) createParticles(extra);
+    }
   }
 
   vanishMask.forEach(pos=>{
@@ -2241,6 +3130,54 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
     if (JUSOS.includes(b)) { jusoHP[r][c] = 0; }
     set(r,c,null);
   });
+
+  // ★レク×しゅら：第1段階（十字）消去後に、第2段階（同種全消去）を“落下前”に実行する
+  if (lastRekCrossCombo && rekCrossStage === 1){
+    try{
+      const syms = Array.isArray(rekCrossSyms) ? rekCrossSyms : [];
+      const sset = new Set(syms);
+      const second = new Set();
+      if (sset.size > 0){
+        for(let rr=0; rr<size; rr++){
+          for(let cc=0; cc<size; cc++){
+            const sym = get(rr,cc);
+            if (sset.has(sym)) second.add(rr + "," + cc);
+          }
+        }
+      }
+      if (second.size > 0){
+        // 第2段階の視覚＆SE（第1段階と分離して見えるように）
+        try{ Sound.play('cross', 0.9); }catch(_){}
+        // 第2段階も第1段階と同程度の表示時間・存在感にする（しゅら/レクの専用演出を流用）
+        try{
+          const kind = lastShuraItemKind || "SHURACHAN";
+          createShuraItemBurstEffects(second, kind);
+        }catch(_){}
+        try{ createSlashEffects(second); createParticles(second); }catch(_){}
+
+        vanishMask = second;
+        vanishP = 0;
+        animState = "vanish";
+        rekCrossStage = 2;
+        return; // 落下は第2段階の後にまとめて行う
+      } else {
+        rekCrossStage = 0;
+        rekCrossSyms = null;
+        lastRekCrossCombo = false;
+      }
+    }catch(_){
+      rekCrossStage = 0;
+      rekCrossSyms = null;
+      lastRekCrossCombo = false;
+    }
+  }
+
+  // 第2段階が終わった後は通常処理へ戻す（落下→連鎖へ）
+  if (lastRekCrossCombo && rekCrossStage === 2){
+    rekCrossStage = 0;
+    rekCrossSyms = null;
+    lastRekCrossCombo = false;
+  }
 
   if (specialsHit.size > 0) {
     rankProgress++;
@@ -2386,13 +3323,22 @@ function maybeSpawnObstacles(){ /* (省略: 変更なし) */
 }
 
 /* 斬撃＆粒子エフェクト (省略: 変更なし) */
-function createSlashEffects(matches){ /* (省略: 変更なし) */
-  slashes=[];
+function createSlashEffects(matches, mode){ /* (省略: 変更なし) */
+  const slashMode = mode || 'normal';
+  const target = (slashMode === 'special') ? specialSlashes : slashes;
+
+  // それぞれ独立に管理（通常斬撃が後続で発火しても、特殊斬撃が上書きで消えないようにする）
+  target.length = 0;
+
+  const col = (slashMode==='special')
+    ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'}
+    : null;
+
   matches.forEach(p=>{
     const [r,c]=p.split(',').map(Number);
     const cx=c*tileSize+tileSize/2, cy=r*tileSize+tileSize/2;
-    slashes.push({x:cx,y:cy,dir:'h',t:0});
-    slashes.push({x:cx,y:cy,dir:'v',t:0});
+    target.push({col: col, x:cx,y:cy,dir:'h',t:0});
+    target.push({col: col, x:cx,y:cy,dir:'v',t:0});
   });
 }
 function createParticles(matches){ /* (省略: 変更なし) */
@@ -2413,49 +3359,203 @@ function createParticles(matches){ /* (省略: 変更なし) */
 
 /* 描画 (省略: 変更なし) */
 const SWAP_ANIM_TIME=0.15*60, VANISH_ANIM_TIME=0.25*60;
-function drawSlashes(){ /* 通常斬撃＋しゅらちゃん／レクしゅら用の水色グロウ十字両対応 */
-  if(!slashes.length) return;
-  ctx.save();
-  ctx.globalCompositeOperation='lighter';
-  for(const s of slashes){
-    const t=Math.min(1,s.t);
-    const len=tileSize*(1+t*1.2);
-    let w=Math.max(2,6-t*5);
 
-    if (s.kind === 'shuraCross'){
-      // しゅらちゃん／レクしゅら専用：水色グロウ十字
-      const alpha = 0.75 * (1 - t);
-      const outerW = w * 2.0;
-      // 外側の青寄りグロウ
-      ctx.strokeStyle = `rgba(60,150,255,${alpha * 0.6})`;
-      ctx.lineWidth = outerW;
-      ctx.beginPath();
-      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-      ctx.stroke();
-      // 内側の鮮烈なアクア系
-      ctx.strokeStyle = `rgba(120,255,255,${alpha})`;
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      if (s.dir === 'h'){ ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y); }
-      else             { ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len); }
-      ctx.stroke();
-    } else {
-      // 従来の斬撃カラー（歓喜＝淡い黄、焦土＝赤）
-      ctx.strokeStyle = isKanki ? "rgba(255,255,200,0.8)" : "rgba(200,40,40,0.85)";
-      ctx.lineWidth=w;
-      ctx.beginPath();
-      if(s.dir==='h'){ ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); }
-      else{ ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); }
-      ctx.stroke();
+
+
+
+function drawShuraCracks(){
+  // 修羅王丸スキルで消去される駒に「黒い靄＋赤い亀裂」を重ね、視認性を上げる
+  if(!shuraCracks.length) return;
+  ctx.save();
+  for(const e of shuraCracks){
+    const t = e.life / e.maxLife;
+    const fade = (1 - t);
+    const aSmoke = 0.85 * fade;
+    const aCrack = 1.0  * fade;
+
+    const x0 = e.x - tileSize/2;
+    const y0 = e.y - tileSize/2;
+
+    // 黒い靄（中心濃く、外側に拡散）
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    const g = ctx.createRadialGradient(e.x, e.y, tileSize*0.10, e.x, e.y, tileSize*0.65);
+    g.addColorStop(0, `rgba(0,0,0,${0.55*aSmoke})`);
+    g.addColorStop(0.55, `rgba(0,0,0,${0.22*aSmoke})`);
+    g.addColorStop(1, `rgba(0,0,0,0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.rect(x0, y0, tileSize, tileSize);
+    ctx.fill();
+    ctx.restore();
+
+    // 赤い亀裂（細い線＋外側の暗赤グロウ）
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 外側グロウ
+    ctx.lineWidth = Math.max(2.2, tileSize*0.075);
+    ctx.strokeStyle = `rgba(90,10,20,${0.35*aCrack})`;
+    ctx.beginPath();
+    for(const p of e.paths){
+      ctx.moveTo(p[0].x, p[0].y);
+      for(let k=1;k<p.length;k++) ctx.lineTo(p[k].x, p[k].y);
     }
-    s.t+=0.12;
+    ctx.stroke();
+
+    // 内側の鮮烈な赤
+    ctx.lineWidth = Math.max(1.6, tileSize*0.040);
+    ctx.strokeStyle = `rgba(220,70,80,${aCrack})`;
+    ctx.beginPath();
+    for(const p of e.paths){
+      ctx.moveTo(p[0].x, p[0].y);
+      for(let k=1;k<p.length;k++) ctx.lineTo(p[k].x, p[k].y);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    e.life++;
   }
-  slashes=slashes.filter(s=>s.t<1.0);
+  shuraCracks = shuraCracks.filter(e=>e.life < e.maxLife);
   ctx.restore();
 }
 
+function drawSlashes(){
+  const prevComp = ctx.globalCompositeOperation;
+  const prevAlpha = ctx.globalAlpha;
+  if(!slashes.length && !specialSlashes.length) return;
 
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 端を細く／中心を少し太くし、全体長さを約8%短縮（格子感低減）
+  const strokeTaper = (s, baseW, strokeStyle, comp, alpha, shadowBlur, shadowColor, tPhase)=>{
+    // v77相当：端先が“びよー”と伸びる（tに応じて長くなる）＋わずかなオーバーシュート
+    const ph = (typeof tPhase === 'number') ? Math.max(0, Math.min(1, tPhase)) : 0;
+    // 基本長（中心→端）：初期短め→終盤で長く
+    const lenBase = tileSize * (0.30 + ph * 1.10);  // 0.30〜1.40 tileSize
+    const overshoot = 1 + 0.14 * Math.sin(Math.PI * ph); // 中盤で少し伸びる
+    const len = lenBase * overshoot;
+
+    // 端を短くし格子感を抑える（中心太の領域を広げ、端区間を短縮）
+    const mid = len * 0.82;
+    const tip = len * 0.90;
+
+    const wThin  = Math.max(1, baseW * 0.82);
+    const wTip   = Math.max(1, wThin * 0.60);
+    const wThick = Math.max(1, baseW * 1.10);
+
+    ctx.globalCompositeOperation = comp || 'source-over';
+    ctx.globalAlpha = (alpha!=null) ? alpha : 1;
+    ctx.shadowBlur = shadowBlur || 0;
+    ctx.shadowColor = shadowColor || 'rgba(0,0,0,0)';
+    ctx.strokeStyle = strokeStyle;
+
+    // ends (thin) - inner part
+    ctx.lineWidth = wThin;
+    ctx.beginPath();
+    if (s.dir === 'h'){
+      ctx.moveTo(s.x - tip, s.y); ctx.lineTo(s.x - mid, s.y);
+      ctx.moveTo(s.x + mid, s.y); ctx.lineTo(s.x + tip, s.y);
+    } else {
+      ctx.moveTo(s.x, s.y - tip); ctx.lineTo(s.x, s.y - mid);
+      ctx.moveTo(s.x, s.y + mid); ctx.lineTo(s.x, s.y + tip);
+    }
+    ctx.stroke();
+
+    // ends (tip) - extra thin
+    ctx.lineWidth = wTip;
+    ctx.beginPath();
+    if (s.dir === 'h'){
+      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x - tip, s.y);
+      ctx.moveTo(s.x + tip, s.y); ctx.lineTo(s.x + len, s.y);
+    } else {
+      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y - tip);
+      ctx.moveTo(s.x, s.y + tip); ctx.lineTo(s.x, s.y + len);
+    }
+    // fix vertical last line: canvas lineTo signature
+    // We'll correct below after insert.
+    ctx.stroke();
+
+    // center (thick)
+    ctx.lineWidth = wThick;
+    ctx.beginPath();
+    if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+    else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+    ctx.stroke();
+  };
+  // 赤十字（特殊駒）用：負荷軽減版（端の分割描画を省略し、ぼかしも軽量化）
+  const strokeRedFast = (s, w, colInner, tPhase)=>{
+    const ph = (typeof tPhase === 'number') ? Math.max(0, Math.min(1, tPhase)) : 0;
+    const lenBase = tileSize * (0.30 + ph * 1.10);
+    const overshoot = 1 + 0.14 * Math.sin(Math.PI * ph);
+    const len = lenBase * overshoot;
+
+    // 端短縮（格子感低減）は維持。ただし分割線は描かず一本化（軽量）
+    const mid = len * 0.82;
+
+    // 外側（黒い靄）— 最初の数フレームだけ描画（後半は靄なし）
+    if (ph < 0.35){
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(0,0,0,0.65)';
+      ctx.strokeStyle = 'rgba(40,20,20,0.40)';
+      ctx.lineWidth = Math.max(2, w * 2.1);
+      ctx.beginPath();
+      if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+      else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'rgba(0,0,0,0)';
+    }
+
+    // 内側（赤線）— ぼかし無しで一本
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'rgba(0,0,0,0)';
+    ctx.strokeStyle = colInner;
+    ctx.lineWidth = Math.max(1.5, w);
+    ctx.beginPath();
+    if (s.dir === 'h'){ ctx.moveTo(s.x - mid, s.y); ctx.lineTo(s.x + mid, s.y); }
+    else             { ctx.moveTo(s.x, s.y - mid); ctx.lineTo(s.x, s.y + mid); }
+    ctx.stroke();
+  };
+
+
+  const drawList = (list)=>{
+    for(const s of list){
+      const t = Math.min(1, s.t);
+      let w = Math.max(2, 6 - t*5);
+
+      if (s.kind === 'shuraCross'){
+        const alpha = 0.75 * (1 - t);
+        const outerW = w * 2.0;
+        // 水色グロウ十字（従来維持）
+        strokeTaper(s, outerW, `rgba(60,150,255,${alpha * 0.6})`, 'lighter', 1, 0, 'rgba(0,0,0,0)', t);
+        strokeTaper(s, w,      `rgba(120,255,255,${alpha})`,     'lighter', 1, 0, 'rgba(0,0,0,0)', t);
+      } else if (s.col){
+        // 特殊駒 赤十字：負荷軽減版（v77の伸長感は維持）
+        strokeRedFast(s, w, s.col.inner, t);
+      } else {
+        // 通常消去：白固定
+        strokeTaper(s, w, "rgba(255,255,255,0.85)", 'source-over', 1, 0, 'rgba(0,0,0,0)', t);
+      }
+
+      s.t += 0.12;
+    }
+    return list.filter(s=>s.t < 1.0);
+  };
+
+  slashes = drawList(slashes);
+  specialSlashes = drawList(specialSlashes);
+
+  ctx.restore();
+  ctx.globalCompositeOperation = prevComp;
+  ctx.globalAlpha = prevAlpha;
+}
 function drawFlames(){
   if (!flameParts.length) return;
   ctx.save();
@@ -2591,7 +3691,7 @@ function drawFireRains(){
     ctx.strokeStyle = `rgba(${f.r|0},${f.g|0},${f.b|0},${a*0.75})`;
     ctx.lineWidth = f.width * 1.7;
     ctx.stroke();
-    ctx.strokeStyle = `rgba(255,255,255,${a})`;
+    ctx.strokeStyle = `rgba(170,10,30,${a})`;
     ctx.lineWidth = Math.max(0.6, f.width * 0.65);
     ctx.stroke();
 
@@ -2887,7 +3987,7 @@ function drawAurora(){
   ctx.globalCompositeOperation='lighter';
   for(const b of auroraBeams){
     const t = b.life / b.maxLife;
-    const alphaBase = 0.40 * b.strength; // 元の約3分の2程度を想定
+    const alphaBase = 0.20 * b.strength; // 元の約3分の2程度を想定
     const alpha = alphaBase * (1 - t);
     if (alpha <= 0){ b.life = b.maxLife; continue; }
     ctx.save();
@@ -2900,7 +4000,7 @@ function drawAurora(){
     if (isHellAurora){
       // 地獄味の強い赤黒系オーロラの柱
       grad.addColorStop(0.0, `rgba(0,0,0,0)`);
-      grad.addColorStop(0.25, `rgba(120,0,0,${alpha * 0.7})`);
+      grad.addColorStop(0.25, `rgba(90,10,20,${alpha * 0.7})`);
       grad.addColorStop(0.6, `rgba(210,20,20,${alpha})`);
       grad.addColorStop(1.0, `rgba(0,0,0,0)`);
     } else if (isKanki){
@@ -3038,7 +4138,7 @@ function drawChainAfterglowEmbers(){
       const h  = logicalSize * 0.55;
 
       // 白飛び防止：連鎖4は控えめ、5で中、6+で強め（ただし上限あり）
-      const aMax = (s.chain >= 6) ? 0.26 : (s.chain === 5 ? 0.22 : 0.18);
+      const aMax = (s.chain >= 6) ? 0.26 : (s.chain === 5 ? 0.44 : 0.18); // 連鎖5の白い光筋は透明度を倍に
       let aS = aMax * Math.pow(1 - tS, 1.35);
       if (aS < 0) aS = 0;
 
@@ -3105,8 +4205,8 @@ function drawChainAfterglowEmbers(){
     e.x += e.vx;
     e.y += e.vy;
 
-    // 上昇最上値：盤面70%（上端から30%）に確実に到達させる
-    const yCeil = logicalSize * 0.30;
+    // 上昇最上値：盤面100%（上端まで）に確実に到達させる
+    const yCeil = logicalSize * 0.00;
     if (!e.reachedCeil){
       // 上昇が失速しても、天井到達までは上向きを保証
       if (e.chain === 4){
@@ -3195,7 +4295,9 @@ function drawGame(){ /* (省略: 変更なし) */
   const __freeze = (__now < comboFreezeUntil);
   if (!__freeze){
     drawBgPulse();
-    drawSlashes();
+    try{ drawSlashes(); }catch(_){ }
+  // 特殊駒消去対象の視認性（黒靄＋低彩度赤亀裂）
+  try{ drawShuraCracks(); }catch(_){ }
     drawTrails();
     drawFlames();
     drawFlamePillars();
@@ -3232,6 +4334,7 @@ function canSwapAndMatch(r1,c1,r2,c2){ /* (省略: 変更なし) */
 function swapAndStart(r1,c1,r2,c2){ /* (省略: 変更なし) */
   resetComboForNewMove();
   swapPair={p1:{r:r1,c:c1},p2:{r:r2,c:c2},p:0,back:false};
+  lastMoveAnchor={r:r2,c:c2};
   animState="swap";
   userGesture();
 }
@@ -3394,6 +4497,9 @@ function gameLoop(){ /* (省略: 変更なし) */
        
 
 function createShuraItemBurstEffects(mask, kind){
+  // 特殊駒（ミミック/ネオレトロ/シンギュラ/レクイエム/アンノウン）が揃った時も十字を赤系に
+  const isSpecialKindForRed = (kind==='S_BIR' || kind==='S_NE0' || kind==='S_SHU' || kind==='S_REQ' || kind==='S_UNK');
+  const specialCol = isSpecialKindForRed ? {outer:'rgba(140,30,40,0.25)', inner:'rgba(170,10,30,0.9)'} : null;
   if (!mask || !kind) return;
   const palette = (kind==="SHURACHAN")
     ? [{r:120,g:200,b:255},{r:255,g:80,b:140}]
@@ -3409,8 +4515,8 @@ function createShuraItemBurstEffects(mask, kind){
     const cy = r*tileSize + tileSize/2;
 
     // 水色グロウの十字（しゅらちゃん／レクしゅら専用）
-    slashes.push({x:cx,y:cy,dir:'h',t:0,kind:'shuraCross'});
-    slashes.push({x:cx,y:cy,dir:'v',t:0,kind:'shuraCross'});
+    slashes.push({col: specialCol, x:cx,y:cy,dir:'h',t:0,kind:'shuraCross'});
+    slashes.push({col: specialCol, x:cx,y:cy,dir:'v',t:0,kind:'shuraCross'});
 
     // ★レベル1：しゅらちゃん／レクしゅらの十字から残光トレイルを生成（v2の約半分）
     const trailLen = tileSize * 1.2;
@@ -3488,17 +4594,22 @@ function createShuraItemBurstEffects(mask, kind){
               }
               // レク×しゅら or しゅら×レク → 「十字消去 → 消えた色の全消去（2段階演出）」
               else if ((b1==="REKUSHURA" && b2==="SHURACHAN") || (b2==="REKUSHURA" && b1==="SHURACHAN")){
-                mask = new Set();
+                // レク×しゅら / しゅら×レク：2段階
+                // 1) しゅらちゃん基準の十字消去（巻き込まれた しゅらちゃん も連鎖発動）
+                // 2) 十字で消えた通常駒の種類をトリガーとして、盤面から同種を全消去（resolveVanishAndDrop内で第2段階を実行）
                 lastRekCrossCombo = true;
+                rekCrossStage = 1;
+                rekCrossSyms = null;
+
                 const crossMask = new Set();
                 const shuraPos = (b1 === "SHURACHAN") ? p1 : p2;
                 const triggerSyms = new Set();
 
-                // 1) 十字消去（しゅらちゃん基準：巻き込まれた しゅらちゃん も連鎖発動）
                 const queue = [];
                 const visited = new Set();
                 const startKey = shuraPos.r + "," + shuraPos.c;
                 queue.push(startKey);
+
                 while (queue.length){
                   const key = queue.shift();
                   if (visited.has(key)) continue;
@@ -3506,10 +4617,10 @@ function createShuraItemBurstEffects(mask, kind){
                   const parts = key.split(",");
                   const cr = parseInt(parts[0], 10);
                   const cc0 = parseInt(parts[1], 10);
+
                   // 横方向
                   for (let x=0; x<size; x++){
                     const k = cr + "," + x;
-                    mask.add(k);
                     crossMask.add(k);
                     const sym = get(cr, x);
                     if (NORMALS.includes(sym)) triggerSyms.add(sym);
@@ -3518,7 +4629,6 @@ function createShuraItemBurstEffects(mask, kind){
                   // 縦方向
                   for (let y=0; y<size; y++){
                     const k = y + "," + cc0;
-                    mask.add(k);
                     crossMask.add(k);
                     const sym = get(y, cc0);
                     if (NORMALS.includes(sym)) triggerSyms.add(sym);
@@ -3526,29 +4636,22 @@ function createShuraItemBurstEffects(mask, kind){
                   }
                 }
 
-                // ★第1段階演出：十字だけ先に光らせる（しゅらちゃんカラー）
+                // レクしゅら＆しゅらちゃん自身も確実に第1段階で消す
+                crossMask.add(p1.r + "," + p1.c);
+                crossMask.add(p2.r + "," + p2.c);
+
+                // 第2段階用に「トリガー種類」を保存（この瞬間の十字巻き込み基準）
+                rekCrossSyms = Array.from(triggerSyms);
+
+                // 第1段階演出：十字だけ先に光らせる（しゅらちゃんカラー）
                 try{
                   if (crossMask && crossMask.size > 0){
                     createShuraItemBurstEffects(crossMask, "SHURACHAN");
                   }
                 }catch(_){}
 
-                // 2) 十字で消えた「通常駒の色」をトリガーとして、盤面から同種を全消去
-                if (triggerSyms.size > 0){
-                  for(let rr=0; rr<size; rr++){
-                    for(let cc=0; cc<size; cc++){
-                      const sym = get(rr, cc);
-                      if (triggerSyms.has(sym)){
-                        mask.add(rr + "," + cc);
-                      }
-                    }
-                  }
-                }
-
-                // レクしゅら＆しゅらちゃん自身も確実に消す
-                mask.add(p1.r + "," + p1.c);
-                mask.add(p2.r + "," + p2.c);
-
+                // 実際の消去マスクは第1段階（十字）のみ
+                mask = crossMask;
                 particleKind = "REKUSHURA";
               }
               // アイテム＋通常駒（片側のみアイテム）
@@ -3778,7 +4881,7 @@ function initGame(reset=false){ /* (省略: 変更なし) */
 const parentW = 480;
   logicalSize = Math.floor(480/size)*size;
   tileSize = logicalSize/size;
-  DPR=Math.max(1,Math.min(3,Math.floor(window.devicePixelRatio||1)));
+  DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(2,(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
   canvas.width=logicalSize*DPR; canvas.height=logicalSize*DPR; ctx.setTransform(1,0,0,1,0,0); ctx.scale(DPR,DPR);
   canvas.style.width = logicalSize + 'px'; canvas.style.height = 'auto';
   if(reset) initBoard();
@@ -4149,44 +5252,9 @@ window.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </script>
-<script>
-// === SE push sound helper ===
-(function(){
-  if (!window.playPushSE) {
-    window.playPushSE = function(){
-      try{
-        // Respect existing global SE toggles if present
-        if (typeof window.isSEEnabled === 'boolean' && !window.isSEEnabled) return;
-        if (typeof window.seEnabled === 'boolean' && !window.seEnabled) return;
-        // Prefer existing unified click SE if available
-        if (typeof window.onClickSE === 'function') { window.onClickSE(); return; }
-        // Fallback: play se_push.mp3 directly
-        var el = document.getElementById('sePush');
-        if (!el) {
-          el = document.createElement('audio');
-          el.id = 'sePush';
-          el.src = 'audio/se_push.mp3';
-          el.preload = 'auto';
-          el.style.display = 'none';
-          document.body.appendChild(el);
-        }
-        el.currentTime = 0;
-        el.play().catch(function(){ /* ignore autoplay restrictions */ });
-      }catch(e){ /* no-op */ }
-    };
-  }
-  // Bind to Howto modal close buttons
-  document.addEventListener('DOMContentLoaded', function(){
-    var howto = document.getElementById('howtoModal');
-    if (!howto) return;
-    var targets = howto.querySelectorAll('.close-btn, [data-close], #howtoClose, button[aria-label="Close"], .modal-close');
-    targets.forEach(function(btn){
-      // avoid double-binding
-      btn.addEventListener('click', function(){ window.playPushSE && window.playPushSE(); }, { once:false });
-    });
-  });
-})();
-</script>
+
+<!-- removed broken howto push SE binder -->
+
 <script>
 (function(){
   function ensureAudio(id, src){
@@ -4212,7 +5280,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!seAllowed()) return;
       var el = ensureAudio('sePush','audio/se_push.mp3');
       el.currentTime = 0;
-      el.play().catch(function(){});
+      try{ if(window.__getSeEffectiveVol) el.volume = window.__getSeEffectiveVol(); }catch(e){}
+      try{ if(window.__playMediaSafe){ window.__playMediaSafe(el); } else { el.play().catch(function(){}); } }catch(e){}
+      /* ignore autoplay restrictions */
     } catch(e){}
   };
   window.playSEIndex = function(){
@@ -4220,7 +5290,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!seAllowed()) return;
       var el = ensureAudio('seIndex','audio/se_index.mp3');
       el.currentTime = 0;
-      el.play().catch(function(){});
+      try{ if(window.__getSeEffectiveVol) el.volume = window.__getSeEffectiveVol(); }catch(e){}
+      try{ if(window.__playMediaSafe){ window.__playMediaSafe(el); } else { el.play().catch(function(){}); } }catch(e){}
+      /* ignore autoplay restrictions */
     } catch(e){}
   };
 
@@ -4315,12 +5387,14 @@ function triggerJusoShake(r,c, power=1){
 
   // ---------- ParticleFX (single canvas, pooled) ----------
   if(!window.ParticleFX){
-    var DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-    var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
+    var DPR=(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)?Math.min(2,(window.devicePixelRatio||1)):Math.max(2,Math.min(3,(window.devicePixelRatio||1)));
+var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
     var cvs=document.createElement('canvas');
     cvs.id = 'infernoCanvas'; Object.assign(cvs.style,{position:'fixed',inset:'0',pointerEvents:'none',zIndex:1,background:'transparent',display:'none'});
     document.body.appendChild(cvs);
     var ctx=cvs.getContext('2d',{alpha:true});
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     function resize(){ var w=Math.floor(innerWidth*DPR), h=Math.floor(innerHeight*DPR);
       if(cvs.width!==w||cvs.height!==h){ cvs.width=w; cvs.height=h; cvs.style.width=innerWidth+'px'; cvs.style.height=innerHeight+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); } }
     resize(); addEventListener('resize', resize);
@@ -4349,76 +5423,75 @@ function triggerJusoShake(r,c, power=1){
         var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
         else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
         var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
-        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
-        ACTIVE.push(p); }
-      if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
-    window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
-  }
-
-  
-    
-// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*sp// ---------- Audio unlock on first interaction (iOS-hardened) ----------
 (function(){
   var unlocked = false;
   var ctx = null;
-  var isIOS = /iP(hone|od|ad)/.test(navigator.platform) ||
-              (navigator.userAgent.indexOf('Mac')>-1 && 'ontouchend' in document);
 
-  function resumeCtx(){
+  // WebAudio バス（iOSでHTMLAudio.volumeが効かない／効きにくい端末対策）
+  var masterGain = null, bgmGain = null, seGain = null;
+  var srcMap = new WeakMap();
+
+  function ensureGraphImpl(){
     try{
-      if (!ctx){
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (AC){
-          ctx = window.__sharedAudioCtx || new AC();
-          window.__sharedAudioCtx = ctx;
-        }
+      if (!IS_IOS) return null;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      // canvasの2Dコンテキスト(ctx)と衝突しないようAudioContextは audioCtx で管理
+      let audioCtx = window.__sharedAudioCtx || null;
+      if (!audioCtx && AC){
+        audioCtx = new AC();
+        window.__sharedAudioCtx = audioCtx;
       }
-      if (ctx && ctx.state === 'suspended'){ ctx.resume(); }
-      if (ctx){
-        var b = ctx.createBuffer(1, 1, 22050);
-        var src = ctx.createBufferSource();
-        src.buffer = b; src.connect(ctx.destination); src.start(0);
-      }
-    }catch(e){}
+      if (!audioCtx) return null;
+      if (audioCtx.state === 'suspended'){ try{ audioCtx.resume(); }catch(_){ } }
+
+      if (masterGain) return window.__audioGraph;
+
+      masterGain = audioCtx.createGain();
+      bgmGain = audioCtx.createGain();
+      seGain  = audioCtx.createGain();
+      bgmGain.connect(masterGain);
+      seGain.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+
+      // 初期値（保存値）を反映
+      try{
+        bgmGain.gain.value = store.get('bgmVol', BGM_DEFAULT_VOL);
+        seGain.gain.value  = store.get('seVol',  SE_DEFAULT_VOL);
+      }catch(_){}
+
+      window.__audioGraph = {ctx: audioCtx, master: masterGain, bgm: bgmGain, se: seGain, sources: new Map()};
+      // 既存audio要素を接続（iOSでvolumeが効かないケース用）
+      try{ connectKnownAudio(); }catch(_){}
+      return window.__audioGraph;
+    }catch(_){
+      return null;
+    }
   }
 
-  function primeBGM(){
-    ['bgm1','bgm2'].forEach(function(id){
-      var el = document.getElementById(id);
-      if (!el) return;
-      try{
-        el.muted = true;
-        el.currentTime = 0;
-        var p = el.play();
-        if (p && p.then){
-          p.then(function(){
-            try{ el.pause(); el.currentTime = 0; }catch(_){}
-            el.muted = false;
-          }).catch(function(){ el.muted = false; });
-        }else{
-          try{ el.pause(); el.currentTime = 0; }catch(_){}
-          el.muted = false;
-        }
-      }catch(_){}
-    });
-  }
+  window.__ensureGraphImpl = ensureGraphImpl;
 
   function unlock(){
     if (unlocked) return;
     unlocked = true;
     resumeCtx();
+    connectKnownAudio();
     try{ if (typeof unlockAllSE === 'function') unlockAllSE(); }catch(_){}
     primeBGM();
+    try{ __applySeVolume && __applySeVolume(); }catch(_){ }
+    try{ __applyBgmVolume && __applyBgmVolume(); }catch(_){ }
     detach();
   }
 
   function detach(){
     window.removeEventListener('pointerdown', unlock, true);
+    window.removeEventListener('touchstart', unlock, true);
     window.removeEventListener('touchend', unlock, true);
     window.removeEventListener('keydown', unlock, true);
   }
 
   window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('touchstart', unlock, true);
   window.addEventListener('touchend', unlock, true);
   window.addEventListener('keydown', unlock, true);
 
@@ -4514,71 +5587,7 @@ if (ok){
     if(retry<20) setTimeout(function(){ hookSet(retry+1); }, 80);
   })();
 
-  // ---------- Unknown gating (闘値) ----------
-  if(typeof window.UNKNOWN_THRESH==='undefined'){ window.UNKNOWN_THRESH=5; }
-  if(typeof window.unknownStageProgress==='undefined'){ window.unknownStageProgress = store ? store.get('unknownStageProgress',0) : 0; }
-  function maybeReachMax(){
-    if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
-      if (unknownStageProgress >= UNKNOWN_THRESH){
-        hasReachedMaxRank = true; try{ store.set('hasReachedMaxRank', true); }catch(_){}
-        try{ var v5=document.getElementById('vo_rank5'); if(v5){ v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
-        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
-        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
-        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
-        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
-      }
-    }
-  }
 
-  // Patch updateScoresUI to show (x/闘値) at MAX until reached
-  try{
-    var usrc = (window.updateScoresUI||function(){}).toString();
-    if(usrc.indexOf('unknownStageProgress')===-1){
-      window.__updateScoresUI_orig = window.updateScoresUI;
-      window.updateScoresUI = function(){
-        try{
-          __updateScoresUI_orig();
-        }catch(e){}
-        try{
-          var span = document.getElementById('rankProgress'); 
-          if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
-            if (rankIndex===MAX_RANK_INDEX){
-              if (hasReachedMaxRank){ span.textContent = 'MAX'; }
-              else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
-            }
-          }
-        }catch(_){}
-        try{
-          // ランクMAX行のアイコンボタンが消えないよう、常に表示に戻す
-          var row = document.getElementById('rankSelectRow');
-          if(row){
-            row.style.display = '';
-          }
-        }catch(_){}
-      };
-    }
-  }catch(_){}
-
-  // Increase unknown progress when S_UNK triggered inside resolveVanishAndDrop
-  (function patchResolve(retry){
-    retry=retry||0;
-    if(typeof window.resolveVanishAndDrop==='function'){
-      if(window.__resolvePatched) return; window.__resolvePatched=true;
-      var orig=window.resolveVanishAndDrop;
-      window.resolveVanishAndDrop = function(){
-        // Before run, snapshot specialsHit size via global hook not available,
-        // so we run original and then check globals if present
-        orig();
-        try{
-          // Heuristic: when unknown special triggers, some flag may be set; fallback: increment when rank at MAX and not reached and Sound.cross was played recently is non-trivial -> skip.
-          // Instead, rely on gameplay calling applySpecialGimmicks etc. If S_UNK logged to console or stored, this is complex, so keep progress via a helper someone else calls. As backup, we do nothing here.
-        }catch(_){}
-        maybeReachMax();
-      };
-      return;
-    }
-    if(retry<20) setTimeout(function(){ patchResolve(retry+1); }, 120);
-  })();
 
   // ---------- Auto-shuffle (no immediate matches, ensure at least one move) ----------
   function hasAnyMove(){
@@ -4655,7 +5664,7 @@ window.shuffleBoard = function(){
 
 <script>
 (function(){
-  if (!/debugload=1/.test(location.search)) return;
+  if (!/\bdebugload=1\b/.test(location.search)) return;
   window.addEventListener('load', function(){
     var miss = window.__missingAssets || [];
     var box = document.createElement('div');
@@ -4675,18 +5684,318 @@ window.shuffleBoard = function(){
 <div id="allmaxOverlay" aria-hidden="true">
   <div id="allmaxPanel" role="dialog" aria-modal="true">
     <div id="allmaxClose" title="close">✕</div>
-    <h2>到達せし者の扉</h2>
+    <h2>― 到達せし者の扉 ―</h2>
     <div id="allmaxInputArea">
       <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
+        <input id="allmaxInput" type="password" placeholder="「鍵を持つ者」に提示せよ" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
-      <div id="allmaxError">コードが異なっています。"知る者"に提示してください。</div>
+      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
     </div>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
 </div>
 
+
+<script>
+(function(){
+  'use strict';
+  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+
+  function clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
+
+  // --- Robust play() retry on iOS (gesture unlock) ---
+  try{
+    if (!HTMLMediaElement.prototype.__patchedPlayRetry){
+      HTMLMediaElement.prototype.__patchedPlayRetry = true;
+      var _origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function(){
+        var el = this;
+        var ret;
+        try{ ret = _origPlay.call(el); }catch(e){ ret = Promise.reject(e); }
+        if (ret && typeof ret.catch === 'function'){
+          ret.catch(function(){
+            var once = function(){
+              try{ _origPlay.call(el).catch(function(){}); }catch(_){ }
+              cleanup();
+            };
+            function cleanup(){
+              window.removeEventListener('pointerdown', once, true);
+              window.removeEventListener('touchend', once, true);
+              window.removeEventListener('keydown', once, true);
+            }
+            window.addEventListener('pointerdown', once, true);
+            window.addEventListener('touchend', once, true);
+            window.addEventListener('keydown', once, true);
+          });
+        }
+        return ret;
+      };
+    }
+  }catch(_){ }
+
+  function safeEnsureGraph(){
+    try{ return (typeof window.ensureGraph === 'function') ? window.ensureGraph() : null; }catch(_){ return null; }
+  }
+
+  function connectBgmIfPossible(){
+    if (!IS_IOS) return;
+    var g = safeEnsureGraph();
+    if (!g) return;
+    try{
+      if (typeof window.connectToBus === 'function'){
+        if (window.bgm1) window.connectToBus(window.bgm1, g.bgm);
+        if (window.bgm2) window.connectToBus(window.bgm2, g.bgm);
+      }
+    }catch(_){ }
+  }
+
+  function applyBgmVolumeDirect(vol){
+    // Prefer existing helper if present
+    try{ if (typeof window.__applyBgmVolume === 'function'){ window.__applyBgmVolume(); return; } }catch(_){ }
+    try{ if (window.bgm1) window.bgm1.volume = vol; }catch(_){ }
+    try{ if (window.bgm2) window.bgm2.volume = vol; }catch(_){ }
+    try{ var g = window.__audioGraph; if (g && g.bgm && g.bgm.gain) g.bgm.gain.value = vol; }catch(_){ }
+  }
+
+  function applySeVolumeDirect(vol){
+    try{ if (typeof window.__applySeVolume === 'function'){ window.__applySeVolume(); return; } }catch(_){ }
+    try{ var g = window.__audioGraph; if (g && g.se && g.se.gain) g.se.gain.value = vol; }catch(_){ }
+  }
+
+  function onBgmSliderRaw(val){
+    var vol = clamp01(Number(val) / 100);
+
+    // Update global flags if present
+    try{ window.bgmMuted = false; }catch(_){ }
+    try{ window.bgmOn = (vol > 0); }catch(_){ }
+
+    // Persist if store is available
+    try{
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('bgmMuted', false);
+        window.store.set('bgmOn', vol > 0);
+        window.store.set('bgmVol', vol);
+        if (vol > 0) window.store.set('bgmLast', vol);
+      }
+    }catch(_){ }
+
+    // Ensure graph + connections on iOS
+    connectBgmIfPossible();
+
+    // Apply volume (GainNode preferred)
+    applyBgmVolumeDirect(vol);
+
+    // Start if needed
+    if (vol > 0){
+      try{ if (typeof window.safeStartBGM === 'function') window.safeStartBGM((typeof window.currentBGM==='function') ? window.currentBGM() : (window.bgm1||null)); }catch(_){ }
+    }
+
+    // Update UI icon if helper exists
+    try{ if (typeof window.updateBgmIcon === 'function') window.updateBgmIcon(vol); }catch(_){ }
+  }
+
+  function onSeSliderRaw(val){
+    var vol = clamp01(Number(val) / 100);
+
+    // Update Sound + persistence
+    try{
+      if (window.Sound){
+        window.Sound.enabled = (vol > 0);
+        window.Sound.vol = vol;
+      }
+    }catch(_){ }
+
+    try{
+      if (window.store && typeof window.store.set === 'function'){
+        window.store.set('seOn', vol > 0);
+        window.store.set('seVol', vol);
+        if (vol > 0) window.store.set('seLastPct', Math.round(vol*100));
+      }
+    }catch(_){ }
+
+    // Ensure graph exists on iOS (SE bus gain)
+    if (IS_IOS) safeEnsureGraph();
+
+    applySeVolumeDirect((vol > 0) ? vol : 0);
+
+    try{ if (typeof window.updateSeIcon === 'function') window.updateSeIcon((vol > 0) ? vol : 0); }catch(_){ }
+  }
+
+  // Attach listeners late to override any earlier ineffective wiring
+  function attach(){
+    var bgmSlider = document.getElementById('bgmSlider');
+    var seSlider  = document.getElementById('seSlider');
+
+    if (bgmSlider && !bgmSlider.__v6){
+      bgmSlider.__v6 = true;
+      bgmSlider.addEventListener('input', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
+      bgmSlider.addEventListener('change', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
+      bgmSlider.addEventListener('pointerdown', function(){ connectBgmIfPossible(); }, {passive:true});
+    }
+
+    if (seSlider && !seSlider.__v6){
+      seSlider.__v6 = true;
+      seSlider.addEventListener('input', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
+      seSlider.addEventListener('change', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
+      seSlider.addEventListener('pointerdown', function(){ if (IS_IOS) safeEnsureGraph(); }, {passive:true});
+    }
+
+    // Apply once from current UI state so initial load matches sliders
+    try{ if (bgmSlider) onBgmSliderRaw(bgmSlider.value); }catch(_){ }
+    try{ if (seSlider)  onSeSliderRaw(seSlider.value); }catch(_){ }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+</script>
+
+
+<script>
+// === BGM kickstart reinforcement (iOS first-load) ===
+(function __kickstartBgmOnFirstGesture(){
+  if (window.__kickstartBgmInstalled) return;
+  window.__kickstartBgmInstalled = true;
+
+  function tryStart(){
+    try{
+      if (typeof bgmOn==='undefined' || typeof bgmMuted==='undefined') return;
+      if (!bgmOn || bgmMuted) return;
+      try{ if(window.__audioCtx && window.__audioCtx.state==='suspended'){ window.__audioCtx.resume && window.__audioCtx.resume(); } }catch(_){}
+      try{
+        if (typeof safeStartBGM==='function' && typeof currentBGM==='function'){
+          safeStartBGM(currentBGM());
+        }
+      }catch(_){}
+    }catch(_){}
+  }
+
+  setTimeout(tryStart, 0);
+
+  const evs = ['pointerdown','touchstart','mousedown','keydown','click'];
+  function once(){
+    tryStart();
+    setTimeout(tryStart, 150);
+    setTimeout(tryStart, 600);
+    evs.forEach(e=>{ try{ window.removeEventListener(e, once, true); }catch(_){ } });
+  }
+  evs.forEach(e=>{ try{ window.addEventListener(e, once, true); }catch(_){ } });
+})();
+</script>
+
 </body>
 </html>
+<script>
+
+// === FIX: reserve fixed area for skill text to prevent layout shift ===
+(function(){
+  function ensureSkillTextContainer(){
+    let c = document.getElementById('skillNameContainer');
+    if(!c){
+      c = document.createElement('div');
+      c.id = 'skillNameContainer';
+      const t = document.createElement('div');
+      t.id = 'skillNameText';
+      c.appendChild(t);
+      // append to body overlay layer
+      document.body.appendChild(c);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', ensureSkillTextContainer);
+})();
+
+</script>
+
+<style>
+/* === Mobile only slider styling (forced). PC untouched. ===
+   - Track base: neutral
+   - Fill only: water-blue
+   - Track thickness: 1.5x (6px)
+   - Fill follows thumb via CSS var (--fill-pct) updated in JS
+   - Thumb centered to track using track height var
+*/
+:root{ --range-thumb-nudge: 3px; }
+
+@media (max-width: 900px){
+  input[type="range"], .slider-hit input[type="range"]{
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 28px !important;
+    background: transparent !important;
+
+    /* geometry vars */
+    --track-h: 8px;              /* 4px * 1.5 = 6px */
+    --fill-pct: 50%;
+    --thumb-s: 16px;
+    --thumb-nudge-mobile: 0px;   /* 必要ならここだけ微調整 */
+
+    /* fill (伸縮部分) */
+    background-image: linear-gradient(#5ecbff, #5ecbff) !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    background-size: var(--fill-pct) var(--track-h) !important;
+  }
+
+  /* Track base: neutral */
+  input[type="range"]::-webkit-slider-runnable-track,
+  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
+    height: var(--track-h) !important;
+    background: rgba(255,255,255,0.22) !important;
+    border: none !important;
+    border-radius: 999px !important;
+  }
+
+  /* Thumb: blue (centered) */
+  input[type="range"]::-webkit-slider-thumb,
+  .slider-hit input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none !important;
+    width: var(--thumb-s) !important;
+    height: var(--thumb-s) !important;
+    background: #1e90ff !important;
+    border: none !important;
+    border-radius: 50% !important;
+    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
+  }
+
+  /* Firefox (Android) */
+  input[type="range"]::-moz-range-track,
+  .slider-hit input[type="range"]::-moz-range-track{
+    height: var(--track-h) !important;
+    background: rgba(255,255,255,0.22) !important;
+    border: none !important;
+    border-radius: 999px !important;
+  }
+  input[type="range"]::-moz-range-thumb,
+  .slider-hit input[type="range"]::-moz-range-thumb{
+    width: var(--thumb-s) !important;
+    height: var(--thumb-s) !important;
+    background: #1e90ff !important;
+    border: none !important;
+    border-radius: 50% !important;
+    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
+  }
+}
+</style>
+
+
+
+<script>
+// === Ensure mobile range fill follows thumb (without changing existing logic) ===
+(function(){
+  function bindFill(el){
+    if(!el) return;
+    try{ updateRangeFill(el); }catch(_){}
+    el.addEventListener('input', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
+    el.addEventListener('change', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    bindFill(document.getElementById('bgmSlider'));
+    bindFill(document.getElementById('seSlider'));
+  });
+})();
+</script>
