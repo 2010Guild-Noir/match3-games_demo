@@ -927,6 +927,18 @@ input[type="range"]::-moz-range-thumb{
 }
 </style>
 
+
+<style>
+/* iOS: hide volume sliders (BGM/SE) */
+html.ios input[type="range"],
+html.ios .volume-slider,
+html.ios .slider,
+html.ios .slider-wrap,
+html.ios .volume-control {
+  display: none !important;
+}
+</style>
+
 </head>
 <body>
   
