@@ -2,16 +2,11 @@
 <head>
 
 <script>
-/* iOS detection + slider hide hook */
-(function(){
-  try{
-    window.IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
-    if(window.IS_IOS){ document.documentElement.classList.add('ios'); }
-  }catch(_){}
-})();
+/* iOS detection (global) */
+var IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+window.IS_IOS = IS_IOS;
+if (IS_IOS) { document.documentElement.classList.add('ios'); }
 </script>
-
-
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
@@ -968,6 +963,23 @@ html.ios #indexModal .vol-toggle{
 }
 </style>
 
+
+<style>
+/* iOS: use readable Gothic font stack */
+html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.ios textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif !important;
+}
+</style>
+
+
+<style>
+/* Passcode panel title: Mincho */
+#allmaxPanel h2{
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", "Noto Serif JP", serif !important;
+  letter-spacing: 0.04em;
+}
+</style>
+
 </head>
 <body>
   
@@ -1625,6 +1637,16 @@ function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVo
 function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); __applySeVolume(); }
 
 function toggleSE(){
+  // __IOS_SE_TOGGLE_FIX: iOSではスライダー非表示のため、ボタンで確実にON/OFFする
+  try{
+    if (typeof IS_IOS!=='undefined' && IS_IOS){
+      Sound.enabled = !Sound.enabled;
+      try{ store.set('seOn', Sound.enabled); }catch(_){ }
+      try{ updateSeIcon(Sound.enabled ? Sound.vol : 0); }catch(_){ }
+      return;
+    }
+  }catch(_){ }
+
   if (!seSlider){
     Sound.enabled = !Sound.enabled;
     store.set("seOn", Sound.enabled);
