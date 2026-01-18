@@ -1,5 +1,17 @@
 <!DOCTYPE html>
 <head>
+
+<script>
+/* iOS detection + slider hide hook */
+(function(){
+  try{
+    window.IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+    if(window.IS_IOS){ document.documentElement.classList.add('ios'); }
+  }catch(_){}
+})();
+</script>
+
+
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
@@ -1411,7 +1423,7 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.25 : 1);
+  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.65 : 1);
 
   // WebAudioバスがあればGainで制御（iOSで確実）
   try{
@@ -1973,17 +1985,17 @@ const CHARACTERS = [
   { sym: "KUJAKU", name: "クジャク", tag: "式神", desc: "修羅王丸の盟約たる式神。/ 通常の暗躍を担う。", image: "KUJAKU", unlock: { key: "initial" } },
 
   { sym: "S_BIR", name: "ミミック", tag: "修羅王丸", desc: "かつて人と共に在った修羅王丸。/ 縦列消去。", image: "S_BIR", unlock: { key: "rank", value: 0 } }, /* 0に修正 */
-  { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列消去（十字強化モードで縦列+両隣）。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
-  { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 広範囲を円形に消去する。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
-  { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列消去（十字強化モードで横列+上下隣）。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
-  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列を消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
+  { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列＋両隣消去。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
+  { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 周囲を菱形に消去。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
+  { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列+上下隣消去。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
+  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
   { sym: "SHURACHAN", name: "しゅらちゃん", tag: "似絵", desc: "シンギュラの自画像。/ 同種駒を4つ消去で召喚。十字列消去。", image: "SHURACHAN", unlock: { key: "spawn", value: "SHURACHAN" } },
-  { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を盤面から全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
+  { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
 
-  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "鏡写しの世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "平行世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
 
 ];
 let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false, SHURACHAN: false, REKUSHURA: false });
@@ -2461,9 +2473,9 @@ function getComboInfo(n){
 }
 
 function getTitleByScore(s){
-  if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 5000) return "称号：影の見習い(2/8)";
-  if (s < 20000) return "称号：業火の丁稚(3/8)";
+   if (s < 1000) return "称号：名も無き欠片(1/8)";
+  if (s < 5000) return "称号：影の放浪者(2/8)";
+  if (s < 20000) return "称号：業火の修験者(3/8)";
   if (s < 50000) return "称号：比良坂の防人(4/8)";
   if (s < 100000) return "称号：黄昏の審問官(5/8)";
   if (s < 300000) return "称号：血煙の傍観者(6/8)";
@@ -5683,7 +5695,7 @@ window.shuffleBoard = function(){
     <h2>― 到達せし者の扉 ―</h2>
     <div id="allmaxInputArea">
       <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="PASS CODE" autocomplete="off" />
+        <input id="allmaxInput" type="password" placeholder="「鍵を持つ者」に提示せよ" autocomplete="off" />
         <button id="allmaxOkBtn" type="button">OK</button>
       </div>
       <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
@@ -5692,6 +5704,69 @@ window.shuffleBoard = function(){
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
 </div>
+
+
+<script>
+/* iOS: forcibly hide all volume sliders (range inputs), keep ON/OFF buttons */
+(function(){
+  if(window.__IOS_SLIDER_HIDE) return;
+  window.__IOS_SLIDER_HIDE = true;
+
+  function hide(){
+    try{
+      if(!window.IS_IOS) return;
+      var ranges = document.querySelectorAll('input[type="range"]');
+      ranges.forEach(function(el){
+        el.style.display = 'none';
+        var p = el.parentElement;
+        if(p && (p.classList.contains('slider-hit') || p.classList.contains('slider-wrap') || p.classList.contains('volume-control') || p.classList.contains('slider'))){
+          p.style.display = 'none';
+        }
+      });
+      ['bgmVol','seVol','bgmSlider','seSlider','bgm_volume','se_volume'].forEach(function(id){
+        var e = document.getElementById(id);
+        if(e) e.style.display='none';
+      });
+    }catch(_){}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', hide, {once:true});
+  }else{
+    hide();
+  }
+  setTimeout(hide, 400);
+  setTimeout(hide, 1200);
+})();
+</script>
+
+
+<script>
+/* Fix: bounded ducking for voice triggers (prevents long/stacked low volume) */
+(function(){
+  if(window.__duckFixInstalled) return;
+  window.__duckFixInstalled = true;
+
+  var t = null;
+  window.__triggerDucking = function(ms){
+    try{
+      ms = (typeof ms==='number' && isFinite(ms)) ? ms : 700;
+      if(ms < 200) ms = 200;
+      if(ms > 1200) ms = 1200;
+
+      window.__ducking = true;
+      try{ if(typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+      try{ if(typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
+
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        window.__ducking = false;
+        try{ if(typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+        try{ if(typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
+      }, ms);
+    }catch(_){}
+  };
+})();
+</script>
 
 </body>
 </html>
