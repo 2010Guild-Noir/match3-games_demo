@@ -1001,8 +1001,8 @@ html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.
   transition: box-shadow 140ms ease, border-color 140ms ease, filter 140ms ease;
 }
 .vol-toggle.is-on{
-  border-color: #33CFFF !important;
-  box-shadow: 0 0 10px rgba(51,207,255,0.85), 0 0 18px rgba(51,207,255,0.45);
+  border-color: #4169E1 !important;
+  box-shadow: 0 0 10px rgba(65,105,225,0.85), 0 0 18px rgba(65,105,225,0.45);
   filter: brightness(1.05);
 }
 </style>
@@ -1216,19 +1216,19 @@ function __syncAudioToggleUI(){
     if (bgmBtn){
       var on = (typeof bgmOn!=='undefined' ? !!bgmOn : true) && (typeof bgmMuted!=='undefined' ? !bgmMuted : true);
       bgmBtn.classList.toggle('is-on', on);
-    }
+    
+      try{ bgmBtn.textContent = (on ? 'BGM🔊' : 'BGM🔇'); }catch(__){}
+}
   }catch(_){}
   try{
     var seBtn = document.getElementById('seBtnIndex');
     if (seBtn){
       var seOn = true;
       try{
-        if (typeof Sound!=='undefined'){
-          if (typeof Sound.enabled!=='undefined') seOn = !!Sound.enabled;
-          if (typeof Sound.vol!=='undefined') seOn = seOn && (Number(Sound.vol) > 0);
-        }
+        if (typeof Sound!=='undefined' && typeof Sound.enabled!=='undefined') seOn = !!Sound.enabled;
       }catch(__){}
       seBtn.classList.toggle('is-on', !!seOn);
+      try{ seBtn.textContent = (seOn ? 'SE🔊' : 'SE🔇'); }catch(__){}
     }
   }catch(_){}
 }
