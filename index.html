@@ -2,8 +2,21 @@
 <head>
 
 <script>
+/* iOS detection (single source of truth) */
+(function(){
+  if (typeof window.IS_IOS === 'undefined'){
+    window.IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+  }
+  // legacy alias safety
+  window.isIOS = window.IS_IOS;
+  if (window.IS_IOS) { document.documentElement.classList.add('ios'); }
+})();
+</script>
+
+
+
+<script>
 /* iOS detection (global) */
-var IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
 window.IS_IOS = IS_IOS;
 if (IS_IOS) { document.documentElement.classList.add('ios'); }
 </script>
@@ -1125,8 +1138,6 @@ window.store = window.store || {
 
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
-const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
-
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
 const bgm2 = document.getElementById("bgm2");
@@ -1151,7 +1162,6 @@ if (seBtn){
   seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
 }
 
-const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
 const bgmSlider = document.getElementById("bgmSlider");
 const seSlider  = document.getElementById("seSlider");
@@ -5831,6 +5841,23 @@ window.shuffleBoard = function(){
       }, ms);
     }catch(_){}
   };
+})();
+</script>
+
+
+<script>
+/* AudioContext resume helper (safe stub) */
+(function(){
+  if (typeof window.resumeCtx !== 'function'){
+    window.resumeCtx = function(){
+      try{
+        if (window.__audioCtx && window.__audioCtx.state === 'suspended'){
+          return window.__audioCtx.resume();
+        }
+      }catch(_){}
+      return Promise.resolve();
+    };
+  }
 })();
 </script>
 
