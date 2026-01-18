@@ -951,6 +951,23 @@ html.ios .volume-control {
 }
 </style>
 
+
+<style>
+/* iOS: make BGM/SE toggles centered and easier to tap (visual design preserved) */
+html.ios #indexModal .volume-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 14px;
+}
+html.ios #indexModal .vol-toggle{
+  font-size: 18px;
+  padding: 14px 18px;
+  min-width: 140px;
+  border-radius: 14px;
+}
+</style>
+
 </head>
 <body>
   
@@ -1423,7 +1440,8 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.65 : 1);
+  const iosLimit = (typeof IS_IOS!=='undefined' && IS_IOS) ? 0.7 : 1.0;
+  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.65 : 1) * iosLimit;
 
   // WebAudioバスがあればGainで制御（iOSで確実）
   try{
@@ -1701,6 +1719,32 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
+  // __IOS_BGM_TOGGLE_FIX: iOSではスライダー非表示のため、ボタンで確実にミュート/復帰する
+  try{
+    if (typeof IS_IOS!=='undefined' && IS_IOS){
+      // 現在のミュート状態でトグル
+      bgmMuted = !bgmMuted;
+      store.set("bgmMuted", bgmMuted);
+
+      if (bgmMuted){
+        // ミュート（再生は維持）
+        bgmOn = true;
+        store.set("bgmOn", true);
+        try{ updateBgmIcon(0); }catch(_){}
+        try{ __applyBgmVolume(); }catch(_){}
+        return;
+      }else{
+        // 復帰：ON扱い、再生を確実に開始
+        bgmOn = true;
+        store.set("bgmOn", true);
+        try{ __applyBgmVolume(); }catch(_){}
+        try{ safeStartBGM(currentBGM()); }catch(_){}
+        try{ updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); }catch(_){}
+        return;
+      }
+    }
+  }catch(_){}
+
   if (!bgmSlider){
     bgmOn = !bgmOn;
     store.set("bgmOn", bgmOn);
