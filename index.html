@@ -1753,7 +1753,18 @@ function pauseAllBGM(){
   bgmPlayPending = false;
 }
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
-function safeStartBGM(bgmEl){
+
+// __SAFE_START_BGM_GUARD: prevent starting BGM when OFF/muted (covers all call sites incl. BGM switch)
+function safeStartBGM(name){
+  try{
+    if ((typeof bgmMuted!=='undefined' && bgmMuted) || (typeof bgmOn!=='undefined' && !bgmOn)){
+      return; // keep selection but remain silent
+    }
+  }catch(_){}
+  try{ return __safeStartBGMImmediate(name); }catch(_){ }
+}
+
+function __safeStartBGMImmediate(bgmEl){
   try{
     if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
 
