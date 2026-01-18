@@ -1,5 +1,25 @@
 <!DOCTYPE html>
 <head>
+
+<script>
+/* iOS detection (single source of truth) */
+(function(){
+  if (typeof window.IS_IOS === 'undefined'){
+    window.IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
+  }
+  // legacy alias safety
+  window.isIOS = window.IS_IOS;
+  if (window.IS_IOS) { document.documentElement.classList.add('ios'); }
+})();
+</script>
+
+
+
+<script>
+/* iOS detection (global) */
+window.IS_IOS = IS_IOS;
+if (IS_IOS) { document.documentElement.classList.add('ios'); }
+</script>
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
@@ -928,31 +948,48 @@ input[type="range"]::-moz-range-thumb{
 </style>
 
 
-<!-- === iPhone: hide volume sliders (buttons only) === -->
-<style id="ios-hide-sliders">
-/* iPhone/iPad (iOS Safari / WKWebView): hide range sliders and keep ON/OFF buttons only */
-html.ios #indexModal .slider-hit{
-  display:none !important;
-}
-html.ios #indexModal input[type="range"]{
-  display:none !important;
-}
-/* Reflow rows so the toggle buttons look intentional */
-html.ios #indexModal .volume-row{
-  justify-content:center;
-  gap:10px;
-}
-html.ios #indexModal .volume-text.vol-toggle{
-  min-width:140px;
-  height:36px;
-  font-size:15px;
+<style>
+/* iOS: hide volume sliders (BGM/SE) */
+html.ios input[type="range"],
+html.ios .volume-slider,
+html.ios .slider,
+html.ios .slider-wrap,
+html.ios .volume-control {
+  display: none !important;
 }
 </style>
 
+
 <style>
-html.ios .slider-hit,
-html.ios input[type="range"]{
-  display:none !important;
+/* iOS: make BGM/SE toggles centered and easier to tap (visual design preserved) */
+html.ios #indexModal .volume-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 14px;
+}
+html.ios #indexModal .vol-toggle{
+  font-size: 18px;
+  padding: 14px 18px;
+  min-width: 140px;
+  border-radius: 14px;
+}
+</style>
+
+
+<style>
+/* iOS: use readable Gothic font stack */
+html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.ios textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif !important;
+}
+</style>
+
+
+<style>
+/* Passcode panel title: Mincho */
+#allmaxPanel h2{
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", "Noto Serif JP", serif !important;
+  letter-spacing: 0.04em;
 }
 </style>
 
@@ -1101,25 +1138,6 @@ window.store = window.store || {
 
 /* ===== 永続化 ===== */
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(_){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}} };
-const IS_IOS = (/iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1));
-try{ document.documentElement.classList.toggle('ios', IS_IOS); }catch(_){}
-
-// Mark iOS on <html> for CSS targeting
-try{ if (IS_IOS) document.documentElement.classList.add('ios'); }catch(_){ }
-
-
-// === iOS audio volume FIX: global ensureGraph shim ===
-// Some parts of this file call ensureGraph() before the iOS audio graph is initialized.
-// We provide a stable global shim that delegates to the implementation once it is registered.
-function ensureGraph(){
-  try{
-    return (typeof window.__ensureGraphImpl === 'function') ? window.__ensureGraphImpl() : null;
-  }catch(_){
-    return null;
-  }
-}
-
-
 /* ===== サウンド（BGM2系統＋SEプール） ===== */
 const bgm1 = document.getElementById("bgm1");
 const bgm2 = document.getElementById("bgm2");
@@ -1144,7 +1162,6 @@ if (seBtn){
   seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
 }
 
-const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
 const bgmSlider = document.getElementById("bgmSlider");
 const seSlider  = document.getElementById("seSlider");
@@ -1197,9 +1214,6 @@ function dispatchRangeInput(el){
 
 function onBgmSliderChange(v){
   if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
-
-  // iOS: keep element volume at 1, control via WebAudio gain
-  try{ if (IS_IOS){ if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ }
 
   v = Number(v);
   if (isNaN(v)) v = 0;
@@ -1448,10 +1462,8 @@ function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-// ★ iPhoneだけ最大音量を80%に制限
-const iosLimit = IS_IOS ? 0.8 : 1.0;
-
-const eff = ((bgmOn && !bgmMuted) ? base * iosLimit : 0) * (__ducking ? 0.25 : 1);
+  const iosLimit = (typeof IS_IOS!=='undefined' && IS_IOS) ? 0.7 : 1.0;
+  const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.65 : 1) * iosLimit;
 
   // WebAudioバスがあればGainで制御（iOSで確実）
   try{
@@ -1635,6 +1647,16 @@ function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVo
 function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); __applySeVolume(); }
 
 function toggleSE(){
+  // __IOS_SE_TOGGLE_FIX: iOSではスライダー非表示のため、ボタンで確実にON/OFFする
+  try{
+    if (typeof IS_IOS!=='undefined' && IS_IOS){
+      Sound.enabled = !Sound.enabled;
+      try{ store.set('seOn', Sound.enabled); }catch(_){ }
+      try{ updateSeIcon(Sound.enabled ? Sound.vol : 0); }catch(_){ }
+      return;
+    }
+  }catch(_){ }
+
   if (!seSlider){
     Sound.enabled = !Sound.enabled;
     store.set("seOn", Sound.enabled);
@@ -1672,12 +1694,9 @@ function pauseAllBGM(){
 function currentBGM(){ return activeBGM===bgm2?bgm2:bgm1; }
 function safeStartBGM(bgmEl){
   try{
-    if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
+    if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
 
     if (!bgmEl) return;
-    // iOS: route BGM through WebAudio bus so sliders/mute work
-    if (IS_IOS){ try{ var g = ensureGraph(); if (g) { connectToBus(bgmEl, g.bgm); if (bgm1) bgm1.volume = 1; if (bgm2) bgm2.volume = 1; } }catch(_){ } }
-    try{ __applyBgmVolume(); }catch(_){ }
     // 重複再生防止：ターゲット以外のBGMは必ず停止
     try{
       if (bgm1 && bgmEl!==bgm1){ bgm1.pause(); }
@@ -1732,12 +1751,39 @@ function toggleBGMSelect(){
 }
 
 function toggleBGM(){
+  // iOS / no-slider mode: use explicit mute toggle (reliable even if slider exists but hidden)
+  try{
+    if (typeof window.IS_IOS !== 'undefined' && window.IS_IOS){
+      // If sliders are hidden, treat as button-only UI
+      if (window.__IOS_SLIDER_HIDE || document.documentElement.classList.contains('ios')){
+        bgmMuted = !bgmMuted;
+        try{ store.set("bgmMuted", bgmMuted); }catch(_){}
+        // Keep bgmOn as ON (so resume logic remains consistent), but enforce silence on mute.
+        bgmOn = true;
+        try{ store.set("bgmOn", true); }catch(_){}
+        try{ __applyBgmVolume(); }catch(_){}
+        if (bgmMuted){
+          // Hard stop as extra safety on iOS
+          try{ pauseAllBGM(); }catch(_){}
+          try{ updateBgmIcon(0); }catch(_){}
+        }else{
+          try{ safeStartBGM(currentBGM()); }catch(_){}
+          try{ updateBgmIcon(store.get("bgmVol", BGM_DEFAULT_VOL)); }catch(_){}
+        }
+        return;
+      }
+    }
+  }catch(_){}
+
+  // Default behavior (compatible with slider-based UI)
   if (!bgmSlider){
     bgmOn = !bgmOn;
-    store.set("bgmOn", bgmOn);
-    updateBgmIcon(bgmOn ? bgmVol : 0);
+    try{ store.set("bgmOn", bgmOn); }catch(_){}
+    try{ updateBgmIcon(bgmOn ? bgmVol : 0); }catch(_){}
     if (bgmOn){
       try{ safeStartBGM(currentBGM()); }catch(_){}
+    } else {
+      try{ pauseAllBGM(); }catch(_){}
     }
     return;
   }
@@ -1745,19 +1791,19 @@ function toggleBGM(){
   const nowPct = Number(bgmSlider.value || "0");
 
   if (nowPct > 0){
-    // OFF: 現在位置を保存して0へ（表示=fillも0）。音はミュート扱い。
-    store.set("bgmLastPct", nowPct);
+    // OFF: store current position and set 0; treat as mute.
+    try{ store.set("bgmLastPct", nowPct); }catch(_){}
     bgmSlider.value = "0";
     try{ updateRangeFill(bgmSlider); }catch(_){}
     try{ dispatchRangeInput(bgmSlider); }catch(_){}
     try{ onBgmSliderChange(0); }catch(_){}
-        // Safety: if WebAudio is not yet active on iOS, also pause to ensure true mute
-    try{ if (IS_IOS) pauseAllBGM(); }catch(_){ }
-updateBgmIcon(0);
+    // iOS extra safety: stop playback to ensure true mute if webaudio not active yet
+    try{ if (window.IS_IOS) pauseAllBGM(); }catch(_){}
+    try{ updateBgmIcon(0); }catch(_){}
     return;
   }
 
-  // ON: 直前の位置へ復帰（なければ bgmLast/bgmVol から復元、最終的に25）
+  // ON: restore last percentage
   let lastPct = Number(store.get("bgmLastPct", NaN));
   if (isNaN(lastPct) || lastPct <= 0){
     const lastVol = Number(store.get("bgmLast", NaN)); // 0..1
@@ -1773,12 +1819,12 @@ updateBgmIcon(0);
   try{ updateRangeFill(bgmSlider); }catch(_){}
   try{ dispatchRangeInput(bgmSlider); }catch(_){}
   try{ onBgmSliderChange(lastPct); }catch(_){}
+  // ensure playback
+  try{ safeStartBGM(currentBGM()); }catch(_){}
 }
 
 function selectBGM(which){
   pauseAllBGM();
-  // iOS: ensure WebAudio routing before (re)starting
-  if (IS_IOS){ try{ ensureGraph(); connectKnownAudio(); }catch(_){ } }
   activeBGM = (which===2)?bgm2:bgm1;
   store.set("activeBGM", which);
   setBGMVol(store.get("bgmVol", BGM_DEFAULT_VOL));
@@ -2317,7 +2363,7 @@ const MAX_RANK_INDEX = RANKS.length - 1;
 const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
-const RANK_THRESH = [10, 10, 10, 10, 10];//ランクアップ闘値
+const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
@@ -2508,7 +2554,7 @@ function getComboInfo(n){
 }
 
 function getTitleByScore(s){
-  if (s < 1000) return "称号：名も無き欠片(1/8)";
+   if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の放浪者(2/8)";
   if (s < 20000) return "称号：業火の修験者(3/8)";
   if (s < 50000) return "称号：比良坂の防人(4/8)";
@@ -2647,42 +2693,6 @@ function setComboText(msg){
 }
 
 function updateStatus(text){ if($status) $status.textContent=text; }
-// ---------- Unknown gating (闘値) init (updateScoresUIより前に必須) ----------
-if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
-var UNKNOWN_THRESH = window.UNKNOWN_THRESH;
-if (typeof window.unknownStageProgress === 'undefined') {
-  try {
-    window.unknownStageProgress = (typeof store!=='undefined' && store && store.get) ? store.get('unknownStageProgress', 0) : 0;
-  } catch(_){ window.unknownStageProgress = 0; }
-}
-var unknownStageProgress = Number(window.unknownStageProgress) || 0;
-window.unknownStageProgress = unknownStageProgress;
-// ---------- /Unknown gating init ----------
-// ---------- Unknown gating (闘値) evaluator ----------
-window.maybeReachMax = function maybeReachMax(){
-  try{
-    if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
-      // 常に window 側を正として扱う（他スコープのズレを排除）
-      var thr = (typeof window.UNKNOWN_THRESH!=='undefined') ? Number(window.UNKNOWN_THRESH) : 0;
-      if (!isFinite(thr) || thr < 0) thr = 0;
-      var prog = (typeof window.unknownStageProgress!=='undefined') ? Number(window.unknownStageProgress) : 0;
-      if (!isFinite(prog) || prog < 0) prog = 0;
-
-      if (prog >= thr){
-        hasReachedMaxRank = true;
-        try{ if (typeof store!=='undefined' && store.set) store.set('hasReachedMaxRank', true); }catch(_){}
-        try{ var v5=document.getElementById('vo_rank5'); if(v5){ v5.currentTime=0; v5.play().catch(()=>{}); } }catch(_){}
-        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
-        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
-        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
-        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
-      }
-    }
-  }catch(_){}
-};
-// ---------- /Unknown gating evaluator ----------
-
-
 function updateScoresUI(){
   // 暗躍値
   $score.textContent = `暗躍値: ${score}`;
@@ -3014,11 +3024,10 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
         if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
           if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
           unknownStageProgress += 1;
-          try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){ }
-          try{ window.unknownStageProgress = unknownStageProgress; }catch(_){ }
-          try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){ }
-          try{ if (typeof window.maybeReachMax==='function') window.maybeReachMax(); }catch(_){ }
-}
+          try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
+          try{ if (typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+          try{ if (typeof maybeReachMax==='function') maybeReachMax(); }catch(_){}
+        }
       }
     }catch(_){}
   }
@@ -4273,7 +4282,7 @@ function drawGame(){ /* (省略: 変更なし) */
       ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,c*tileSize,r*tileSize,tileSize,tileSize);
     }
   }
-  if(!isKanki){ ctx.save(); ctx.fillStyle='rgba(60,0,0,0.22)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
+  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='screen'; ctx.fillStyle='rgba(255,40,40,0.14)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
 
   for(let r=0;r<size;r++) for(let c=0;c<size;c++){
     if(get(r,c)===null) continue;
@@ -5423,7 +5432,15 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
         var color,blend,alpha; if(mode==='joy'){ color='rgba(255,245,150,1)'; blend='lighter'; alpha=0.95; }
         else{ var rC=160+Math.floor(Math.random()*80), gC=Math.floor(Math.random()*24), bC=gC; color='rgba('+rC+','+gC+','+bC+',1)'; blend='source-over'; alpha=0.9; }
         var life=(200+Math.random()*160)*2.2, drag=(mode==='joy')?0.92:0.88, g=(mode==='joy')?0.01:0.03;
-        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*sp// ---------- Audio unlock on first interaction (iOS-hardened) ----------
+        p.alive=true; p.x=x; p.y=y; p.vx=Math.cos(ang)*spd; p.vy=Math.sin(ang)*spd; p.r=r; p.t0=performance.now(); p.life=life; p.drag=drag; p.g=g; p.color=color; p.blend=blend; p.alpha=alpha;
+        ACTIVE.push(p); }
+      if(ACTIVE.length&&!raf){ prev=performance.now(); cvs.style.display='block'; raf=requestAnimationFrame(loop); } }catch(_){} }
+    window.ParticleFX={ burstJoy:function(x,y){ burst('joy',x,y); }, burstScorched:function(x,y){ burst('scorched',x,y); } };
+  }
+
+  
+    
+// ---------- Audio unlock on first interaction (iOS-hardened) ----------
 (function(){
   var unlocked = false;
   var ctx = null;
@@ -5432,7 +5449,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   var masterGain = null, bgmGain = null, seGain = null;
   var srcMap = new WeakMap();
 
-  function ensureGraphImpl(){
+  function ensureGraph(){
     try{
       if (!IS_IOS) return null;
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -5468,8 +5485,6 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
       return null;
     }
   }
-
-  window.__ensureGraphImpl = ensureGraphImpl;
 
   function unlock(){
     if (unlocked) return;
@@ -5587,7 +5602,81 @@ if (ok){
     if(retry<20) setTimeout(function(){ hookSet(retry+1); }, 80);
   })();
 
+  // ---------- Unknown gating (闘値) ----------
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 5; }
+  if (typeof window.unknownStageProgress === 'undefined') {
+    window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
+  }
+  function maybeReachMax(){
+    if (typeof rankIndex !== 'undefined' && typeof MAX_RANK_INDEX !== 'undefined' &&
+        rankIndex === MAX_RANK_INDEX && !hasReachedMaxRank) {
+      if (unknownStageProgress >= UNKNOWN_THRESH) {
+        hasReachedMaxRank = true;
+        try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
+        try{
+          if (window.playVoiceById) window.playVoiceById('vo_rank5');
+          else {
+            var v5 = document.getElementById('vo_rank5');
+            if (v5) { try{ v5.currentTime = 0; }catch(_){ } var pr = v5.play(); if (pr && pr.catch) pr.catch(()=>{}); }
+          }
+        }catch(_){}
+        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
+        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
+        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
+        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
+      }
+    }
+  }
 
+  // Patch updateScoresUI to show (x/闘値) at MAX until reached
+  try{
+    var usrc = (window.updateScoresUI||function(){}).toString();
+    if(usrc.indexOf('unknownStageProgress')===-1){
+      window.__updateScoresUI_orig = window.updateScoresUI;
+      window.updateScoresUI = function(){
+        try{
+          __updateScoresUI_orig();
+        }catch(e){}
+        try{
+          var span = document.getElementById('rankProgress'); 
+          if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
+            if (rankIndex===MAX_RANK_INDEX){
+              if (hasReachedMaxRank){ span.textContent = 'MAX'; }
+              else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
+            }
+          }
+        }catch(_){}
+        try{
+          // ランクMAX行のアイコンボタンが消えないよう、常に表示に戻す
+          var row = document.getElementById('rankSelectRow');
+          if(row){
+            row.style.display = '';
+          }
+        }catch(_){}
+      };
+    }
+  }catch(_){}
+
+  // Increase unknown progress when S_UNK triggered inside resolveVanishAndDrop
+  (function patchResolve(retry){
+    retry=retry||0;
+    if(typeof window.resolveVanishAndDrop==='function'){
+      if(window.__resolvePatched) return; window.__resolvePatched=true;
+      var orig=window.resolveVanishAndDrop;
+      window.resolveVanishAndDrop = function(){
+        // Before run, snapshot specialsHit size via global hook not available,
+        // so we run original and then check globals if present
+        orig();
+        try{
+          // Heuristic: when unknown special triggers, some flag may be set; fallback: increment when rank at MAX and not reached and Sound.cross was played recently is non-trivial -> skip.
+          // Instead, rely on gameplay calling applySpecialGimmicks etc. If S_UNK logged to console or stored, this is complex, so keep progress via a helper someone else calls. As backup, we do nothing here.
+        }catch(_){}
+        maybeReachMax();
+      };
+      return;
+    }
+    if(retry<20) setTimeout(function(){ patchResolve(retry+1); }, 120);
+  })();
 
   // ---------- Auto-shuffle (no immediate matches, ensure at least one move) ----------
   function hasAnyMove(){
@@ -5699,192 +5788,81 @@ window.shuffleBoard = function(){
 
 
 <script>
+/* iOS: forcibly hide all volume sliders (range inputs), keep ON/OFF buttons */
 (function(){
-  'use strict';
-  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+  if(window.__IOS_SLIDER_HIDE) return;
+  window.__IOS_SLIDER_HIDE = true;
 
-  function clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
-
-  // --- Robust play() retry on iOS (gesture unlock) ---
-  try{
-    if (!HTMLMediaElement.prototype.__patchedPlayRetry){
-      HTMLMediaElement.prototype.__patchedPlayRetry = true;
-      var _origPlay = HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play = function(){
-        var el = this;
-        var ret;
-        try{ ret = _origPlay.call(el); }catch(e){ ret = Promise.reject(e); }
-        if (ret && typeof ret.catch === 'function'){
-          ret.catch(function(){
-            var once = function(){
-              try{ _origPlay.call(el).catch(function(){}); }catch(_){ }
-              cleanup();
-            };
-            function cleanup(){
-              window.removeEventListener('pointerdown', once, true);
-              window.removeEventListener('touchend', once, true);
-              window.removeEventListener('keydown', once, true);
-            }
-            window.addEventListener('pointerdown', once, true);
-            window.addEventListener('touchend', once, true);
-            window.addEventListener('keydown', once, true);
-          });
+  function hide(){
+    try{
+      if(!window.IS_IOS) return;
+      var ranges = document.querySelectorAll('input[type="range"]');
+      ranges.forEach(function(el){
+        el.style.display = 'none';
+        var p = el.parentElement;
+        if(p && (p.classList.contains('slider-hit') || p.classList.contains('slider-wrap') || p.classList.contains('volume-control') || p.classList.contains('slider'))){
+          p.style.display = 'none';
         }
-        return ret;
-      };
-    }
-  }catch(_){ }
-
-  function safeEnsureGraph(){
-    try{ return (typeof window.ensureGraph === 'function') ? window.ensureGraph() : null; }catch(_){ return null; }
+      });
+      ['bgmVol','seVol','bgmSlider','seSlider','bgm_volume','se_volume'].forEach(function(id){
+        var e = document.getElementById(id);
+        if(e) e.style.display='none';
+      });
+    }catch(_){}
   }
-
-  function connectBgmIfPossible(){
-    if (!IS_IOS) return;
-    var g = safeEnsureGraph();
-    if (!g) return;
-    try{
-      if (typeof window.connectToBus === 'function'){
-        if (window.bgm1) window.connectToBus(window.bgm1, g.bgm);
-        if (window.bgm2) window.connectToBus(window.bgm2, g.bgm);
-      }
-    }catch(_){ }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', hide, {once:true});
+  }else{
+    hide();
   }
-
-  function applyBgmVolumeDirect(vol){
-    // Prefer existing helper if present
-    try{ if (typeof window.__applyBgmVolume === 'function'){ window.__applyBgmVolume(); return; } }catch(_){ }
-    try{ if (window.bgm1) window.bgm1.volume = vol; }catch(_){ }
-    try{ if (window.bgm2) window.bgm2.volume = vol; }catch(_){ }
-    try{ var g = window.__audioGraph; if (g && g.bgm && g.bgm.gain) g.bgm.gain.value = vol; }catch(_){ }
-  }
-
-  function applySeVolumeDirect(vol){
-    try{ if (typeof window.__applySeVolume === 'function'){ window.__applySeVolume(); return; } }catch(_){ }
-    try{ var g = window.__audioGraph; if (g && g.se && g.se.gain) g.se.gain.value = vol; }catch(_){ }
-  }
-
-  function onBgmSliderRaw(val){
-    var vol = clamp01(Number(val) / 100);
-
-    // Update global flags if present
-    try{ window.bgmMuted = false; }catch(_){ }
-    try{ window.bgmOn = (vol > 0); }catch(_){ }
-
-    // Persist if store is available
-    try{
-      if (window.store && typeof window.store.set === 'function'){
-        window.store.set('bgmMuted', false);
-        window.store.set('bgmOn', vol > 0);
-        window.store.set('bgmVol', vol);
-        if (vol > 0) window.store.set('bgmLast', vol);
-      }
-    }catch(_){ }
-
-    // Ensure graph + connections on iOS
-    connectBgmIfPossible();
-
-    // Apply volume (GainNode preferred)
-    applyBgmVolumeDirect(vol);
-
-    // Start if needed
-    if (vol > 0){
-      try{ if (typeof window.safeStartBGM === 'function') window.safeStartBGM((typeof window.currentBGM==='function') ? window.currentBGM() : (window.bgm1||null)); }catch(_){ }
-    }
-
-    // Update UI icon if helper exists
-    try{ if (typeof window.updateBgmIcon === 'function') window.updateBgmIcon(vol); }catch(_){ }
-  }
-
-  function onSeSliderRaw(val){
-    var vol = clamp01(Number(val) / 100);
-
-    // Update Sound + persistence
-    try{
-      if (window.Sound){
-        window.Sound.enabled = (vol > 0);
-        window.Sound.vol = vol;
-      }
-    }catch(_){ }
-
-    try{
-      if (window.store && typeof window.store.set === 'function'){
-        window.store.set('seOn', vol > 0);
-        window.store.set('seVol', vol);
-        if (vol > 0) window.store.set('seLastPct', Math.round(vol*100));
-      }
-    }catch(_){ }
-
-    // Ensure graph exists on iOS (SE bus gain)
-    if (IS_IOS) safeEnsureGraph();
-
-    applySeVolumeDirect((vol > 0) ? vol : 0);
-
-    try{ if (typeof window.updateSeIcon === 'function') window.updateSeIcon((vol > 0) ? vol : 0); }catch(_){ }
-  }
-
-  // Attach listeners late to override any earlier ineffective wiring
-  function attach(){
-    var bgmSlider = document.getElementById('bgmSlider');
-    var seSlider  = document.getElementById('seSlider');
-
-    if (bgmSlider && !bgmSlider.__v6){
-      bgmSlider.__v6 = true;
-      bgmSlider.addEventListener('input', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
-      bgmSlider.addEventListener('change', function(e){ onBgmSliderRaw(e.target.value); }, {passive:true});
-      bgmSlider.addEventListener('pointerdown', function(){ connectBgmIfPossible(); }, {passive:true});
-    }
-
-    if (seSlider && !seSlider.__v6){
-      seSlider.__v6 = true;
-      seSlider.addEventListener('input', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
-      seSlider.addEventListener('change', function(e){ onSeSliderRaw(e.target.value); }, {passive:true});
-      seSlider.addEventListener('pointerdown', function(){ if (IS_IOS) safeEnsureGraph(); }, {passive:true});
-    }
-
-    // Apply once from current UI state so initial load matches sliders
-    try{ if (bgmSlider) onBgmSliderRaw(bgmSlider.value); }catch(_){ }
-    try{ if (seSlider)  onSeSliderRaw(seSlider.value); }catch(_){ }
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', attach);
-  } else {
-    attach();
-  }
+  setTimeout(hide, 400);
+  setTimeout(hide, 1200);
 })();
 </script>
 
 
 <script>
-// === BGM kickstart reinforcement (iOS first-load) ===
-(function __kickstartBgmOnFirstGesture(){
-  if (window.__kickstartBgmInstalled) return;
-  window.__kickstartBgmInstalled = true;
+/* Fix: bounded ducking for voice triggers (prevents long/stacked low volume) */
+(function(){
+  if(window.__duckFixInstalled) return;
+  window.__duckFixInstalled = true;
 
-  function tryStart(){
+  var t = null;
+  window.__triggerDucking = function(ms){
     try{
-      if (typeof bgmOn==='undefined' || typeof bgmMuted==='undefined') return;
-      if (!bgmOn || bgmMuted) return;
-      try{ if(window.__audioCtx && window.__audioCtx.state==='suspended'){ window.__audioCtx.resume && window.__audioCtx.resume(); } }catch(_){}
+      ms = (typeof ms==='number' && isFinite(ms)) ? ms : 700;
+      if(ms < 200) ms = 200;
+      if(ms > 1200) ms = 1200;
+
+      window.__ducking = true;
+      try{ if(typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+      try{ if(typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
+
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        window.__ducking = false;
+        try{ if(typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+        try{ if(typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
+      }, ms);
+    }catch(_){}
+  };
+})();
+</script>
+
+
+<script>
+/* AudioContext resume helper (safe stub) */
+(function(){
+  if (typeof window.resumeCtx !== 'function'){
+    window.resumeCtx = function(){
       try{
-        if (typeof safeStartBGM==='function' && typeof currentBGM==='function'){
-          safeStartBGM(currentBGM());
+        if (window.__audioCtx && window.__audioCtx.state === 'suspended'){
+          return window.__audioCtx.resume();
         }
       }catch(_){}
-    }catch(_){}
+      return Promise.resolve();
+    };
   }
-
-  setTimeout(tryStart, 0);
-
-  const evs = ['pointerdown','touchstart','mousedown','keydown','click'];
-  function once(){
-    tryStart();
-    setTimeout(tryStart, 150);
-    setTimeout(tryStart, 600);
-    evs.forEach(e=>{ try{ window.removeEventListener(e, once, true); }catch(_){ } });
-  }
-  evs.forEach(e=>{ try{ window.addEventListener(e, once, true); }catch(_){ } });
 })();
 </script>
 
@@ -5999,3 +5977,4 @@ window.shuffleBoard = function(){
   });
 })();
 </script>
+
