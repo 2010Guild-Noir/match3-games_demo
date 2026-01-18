@@ -1003,7 +1003,6 @@ html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.
 .vol-toggle.is-on{
   border-color: #4169E1 !important;
   box-shadow: 0 0 10px rgba(65,105,225,0.85), 0 0 18px rgba(65,105,225,0.45);
-  filter: brightness(1.05);
 }
 </style>
 
@@ -1432,7 +1431,7 @@ function makePool(baseEl, n){
       try{ el.volume = vol; }catch(_){ }
       // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
       if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
-      el.play().catch(()=>{});
+      var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){});
     }
   };
 }
@@ -1603,11 +1602,11 @@ function __playMedia(el){
         try{
           if (!el.__retrying){
             el.__retrying = true;
-            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
-            setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+            setTimeout(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } }, 60);
+            setTimeout(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
           }
         }catch(_){ el.__retrying = false; }
-        __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
+        __gestureQueue.push(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } });
       });
     }
   }catch(_){
@@ -1615,11 +1614,11 @@ function __playMedia(el){
     try{
       if (!el.__retrying){
         el.__retrying = true;
-        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } }, 60);
-        setTimeout(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
+        setTimeout(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } }, 60);
+        setTimeout(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } finally{ el.__retrying = false; } }, 260);
       }
     }catch(__){ el.__retrying = false; }
-    __gestureQueue.push(()=>{ try{ el.play().catch(()=>{}); }catch(_){ } });
+    __gestureQueue.push(()=>{ try{ var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){}); }catch(_){ } });
   }
 }
 
@@ -5933,6 +5932,35 @@ window.shuffleBoard = function(){
 document.addEventListener('DOMContentLoaded', function(){
   try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){}
 });
+</script>
+
+
+<script>
+// === Audio kickstart reinforcement (ensures both BGM and SE unlock on iOS) ===
+(function __kickstartAllAudioOnFirstGesture(){
+  if (window.__kickstartAllAudioInstalled) return;
+  window.__kickstartAllAudioInstalled = true;
+
+  function apply(){
+    try{ if (typeof window.resumeCtx==='function') window.resumeCtx(); }catch(_){}
+    try{ if (typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+    try{ if (typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
+    try{
+      if (typeof bgmOn!=='undefined' && typeof bgmMuted!=='undefined' && bgmOn && !bgmMuted){
+        if (typeof safeStartBGM==='function' && typeof currentBGM==='function') safeStartBGM(currentBGM());
+      }
+    }catch(_){}
+  }
+
+  const evs = ['pointerdown','touchstart','mousedown','keydown','click'];
+  function once(){
+    apply();
+    setTimeout(apply, 120);
+    setTimeout(apply, 480);
+    evs.forEach(e=>{ try{ window.removeEventListener(e, once, true); }catch(_){ } });
+  }
+  evs.forEach(e=>{ try{ window.addEventListener(e, once, true); }catch(_){ } });
+})();
 </script>
 
 </body>
