@@ -2435,7 +2435,7 @@ const MAX_RANK_INDEX = RANKS.length - 1;
 const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
-const RANK_THRESH = [2, 2, 2, 2, 2];//ランクアップ闘値
+const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
@@ -4354,7 +4354,7 @@ function drawGame(){ /* (省略: 変更なし) */
       ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,c*tileSize,r*tileSize,tileSize,tileSize);
     }
   }
-  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='screen'; ctx.fillStyle='rgba(255,40,40,0.14)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
+  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='screen'; ctx.fillStyle='rgba(255, 80, 80, 0.22)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
 
   for(let r=0;r<size;r++) for(let c=0;c<size;c++){
     if(get(r,c)===null) continue;
