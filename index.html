@@ -5974,6 +5974,42 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
+
+<script>
+// __ENFORCE_BGM_SILENT_ON_LOAD: ensure BGM stays silent across reload when OFF/muted
+(function(){
+  if(window.__enforceBgmSilentInstalled) return;
+  window.__enforceBgmSilentInstalled = true;
+
+  function enforce(){
+    try{
+      // restore persisted flags if present
+      try{
+        if (typeof store!=='undefined'){
+          if (typeof bgmMuted!=='undefined') bgmMuted = !!store.get('bgmMuted', bgmMuted);
+          if (typeof bgmOn!=='undefined') bgmOn = !!store.get('bgmOn', bgmOn);
+        }
+      }catch(_){}
+      if ((typeof bgmMuted!=='undefined' && bgmMuted) || (typeof bgmOn!=='undefined' && !bgmOn)){
+        try{ if(typeof pauseAllBGM==='function') pauseAllBGM(); }catch(_){}
+        try{ if(typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
+      }
+      try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){}
+    }catch(_){}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){ enforce(); setTimeout(enforce, 200); }, {once:true});
+  // Also enforce right after first gesture (some iOS builds auto-start media)
+  const evs = ['pointerdown','touchstart','mousedown','keydown','click'];
+  function once(){
+    enforce();
+    setTimeout(enforce, 120);
+    evs.forEach(e=>{ try{ window.removeEventListener(e, once, true); }catch(_){ } });
+  }
+  evs.forEach(e=>{ try{ window.addEventListener(e, once, true); }catch(_){ } });
+})();
+</script>
+
 </body>
 </html>
 <script>
