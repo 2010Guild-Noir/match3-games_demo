@@ -23,15 +23,12 @@ if (IS_IOS) { document.documentElement.classList.add('ios'); }
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
 
-<link rel="icon" href="images/favicon.png" type="image/png">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
-<meta name="theme-color" content="#0b1220">
-<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-<!-- 互換用にPNGも併記 -->
-<link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="shortcut icon" href="favicon.ico">
+<!-- Favicons (keep paths explicit + cache-bust) -->
+<link rel="icon" href="./favicon.ico?v=1" sizes="any">
+<link rel="icon" href="./images/favicon.svg?v=1" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32.png?v=1">
+<link rel="icon" type="image/png" sizes="16x16" href="./images/favicon-16.png?v=1">
+<link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png?v=1">
 
 
 <!-- Open Graph / Facebook / LINE / Slack など -->
@@ -39,7 +36,7 @@ if (IS_IOS) { document.documentElement.classList.add('ios'); }
 <meta property="og:description" content="あなたの指先が 焦土に《 華 》を咲かせる。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://2010guild-noir.github.io/match3-games_demo">
-<meta property="og:image" content="https://2010guild-noir.github.io/match3-games_demo/images/og_v2.jpg?v=2">
+<meta property="og:image" content="https://2010guild-noir.github.io/match3-games_demo/images/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 
