@@ -29,9 +29,9 @@ if (IS_IOS) { document.documentElement.classList.add('ios'); }
   <!-- === Open Graph (SNS) === -->
   <meta property="og:title" content="修羅王丸 永遠の焦土パズル" />
   <meta property="og:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
-  <!-- Replace the URL below with your published absolute URL -->
-  <meta property="og:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
-  <meta property="og:url" content="https://shuraomaru.itch.io/match3game" />
+  <!--https://2010guild-noir.github.io/match3-games_demo/-->
+  <meta property="og:image" content="https://2010guild-noir.github.io/match3-games_demo//og.jpg" />
+  <meta property="og:url" content="https://2010guild-noir.github.io/match3-games_demo/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="修羅王丸マッチ3ゲーム" />
 
@@ -39,7 +39,7 @@ if (IS_IOS) { document.documentElement.classList.add('ios'); }
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="修羅王丸 永遠の焦土パズル" />
   <meta name="twitter:description" content="あなたの指先が 焦土に《 華 》を咲かせる。" />
-  <meta name="twitter:image" content="https://shuraomaru.itch.io/match3game/og.jpg" />
+  <meta name="twitter:image" content="https://2010guild-noir.github.io/match3-games_demo//og.jpg" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
@@ -2435,7 +2435,7 @@ const MAX_RANK_INDEX = RANKS.length - 1;
 const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
-const RANK_THRESH = [3, 3, 3, 3, 2];//ランクアップ闘値
+const RANK_THRESH = [5, 10, 10, 10, 10];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
@@ -5675,7 +5675,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 5; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
