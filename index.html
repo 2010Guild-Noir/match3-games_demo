@@ -1,5 +1,152 @@
 <!DOCTYPE html>
 <head>
+  <!-- ==== PASSKEY LOCK + UNLOCK FX (added) ==== -->
+  <style>
+    /* Prevent a brief flash of the passkey screen on already-unlocked devices */
+    html{ visibility:hidden; }
+    html.ready{ visibility:visible; }
+
+    /* Locked: hide everything except our lock/fx/debug UI */
+    html.locked body > *:not(#lock):not(#unlockFx):not(#clearBtnWrap){
+      opacity:0 !important;
+      visibility:hidden !important;
+      pointer-events:none !important;
+    }
+    html.locked body{ overflow:hidden; }
+
+    /* Pre-unlocked (already unlocked): ensure lock never flashes */
+    html.pre-unlocked #lock{ opacity:0 !important; visibility:hidden !important; pointer-events:none !important; }
+
+
+    /* ===== Game reveal fade-in (no layout changes; opacity only) ===== */
+    /* Step 1: prep state forces opacity to 0 instantly (NO transition) */
+    html.game-prep body > *:not(#lock):not(#unlockFx):not(#clearBtnWrap){
+      opacity:0 !important;
+      visibility:visible !important;
+      pointer-events:auto !important;
+      transition:none !important;
+    }
+    /* Step 2: fade state transitions opacity 0 -> 1 linearly over ~2s */
+    html.game-fade body > *:not(#lock):not(#unlockFx):not(#clearBtnWrap){
+      opacity:1 !important;
+      visibility:visible !important;
+      pointer-events:auto !important;
+      transition: opacity 2s linear !important;
+    }
+
+
+    /* ===== Passkey overlay ===== */
+    #lock{
+      position:fixed; inset:0; z-index:9998;
+      display:flex; align-items:center; justify-content:center;
+      padding:24px;
+      background:linear-gradient(180deg,#0b0b0d,#000);
+      color:#eaeaf0;
+      opacity:1; visibility:visible; pointer-events:auto;
+      transition:opacity .25s ease;
+    }
+    #lock.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+
+    #lock .panel{
+      width:min(720px,100%);
+      background:rgba(20,20,24,.92);
+      border:1px solid #2a2a33;
+      border-radius:18px;
+      padding:22px 18px;
+      box-shadow:0 10px 35px rgba(0,0,0,.55);
+    }
+    #lock .desc{ margin:0 0 14px; color:#b9b9c6; line-height:1.6; }
+    #lock label{ display:block; margin:12px 0 6px; color:#b9b9c6; font-size:13px; }
+    #lock .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    #lock input{
+      flex:1; min-width:220px; padding:12px 12px;
+      border-radius:12px; border:1px solid #2a2a33;
+      background:#0e0e13; color:#eaeaf0; font-size:16px; outline:none;
+    }
+    #lock input:focus{ border-color:#5a5a74; box-shadow:0 0 0 3px rgba(90,90,116,.25); }
+
+    #lock .msg{ margin-top:12px; line-height:1.6; }
+    #lock .msg.ok{ color:#7CFFB2; }
+    #lock .msg.err{ color:#ff6b6b; }
+
+    /* PASSKEY SCREEN: Mincho (solemn) */
+    #lock, #lock .desc, #lock label, #lock input, #lock .foot, #lock .msg, #lock button{
+      font-family:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho","YuMincho","MS Mincho",serif;
+      letter-spacing:.04em;
+    }
+
+    /* button style (match existing btn-reset look) */
+    #lock button{
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid #2a2a33;
+      font-size:15px;
+      cursor:pointer;
+      transition:transform .05s ease, box-shadow .18s ease, border-color .2s ease;
+    }
+    #lock .btn-reset{
+      background:linear-gradient(180deg,#6e2222,#421515);
+      border-color:#a53939;
+      color:#ffeded;
+      box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 10px 24px rgba(0,0,0,.35), 0 0 0 rgba(255, 100, 100, 0);
+    }
+    #lock .btn-reset:hover, #lock .btn-reset.hover-glow{
+      transform:translateY(-1px);
+      border-color:#c84f4f;
+      box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 10px rgba(255, 100, 100, 0.5);
+    }
+    #lock .btn-reset:active{
+      transform:translateY(0);
+      box-shadow:0 6px 14px rgba(0,0,0,.44) inset;
+    }
+
+    #lock .mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      font-size:13px; word-break:break-all;
+      background:#0e0e13; border:1px dashed #2a2a33;
+      border-radius:12px; padding:10px 12px; margin-top:8px;
+    }
+    #lock .foot{ margin-top:14px; color:#b9b9c6; font-size:12px; line-height:1.5; }
+
+    /* Debug button wrapper */
+    #clearBtnWrap .smallbtn{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #2a2a33;
+      background:#1f1f2a;
+      color:#eaeaf0;
+      font-size:13px;
+      cursor:pointer;
+      font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Segoe UI",sans-serif;
+      letter-spacing:0;
+    }
+    #clearBtnWrap .smallbtn:hover{ background:#2a2a3a; }
+
+    /* ===== Unlock FX overlay (full-screen white only) ===== */
+    #unlockFx{
+      position:fixed; inset:0;
+      background:#fff;
+      opacity:0;
+      display:none;
+      pointer-events:none;
+      z-index:2147483646;
+    }
+</style>
+  <script>
+  (function(){
+    try{
+      var k = "supporter_unlocked_v1";
+      if (localStorage.getItem(k) === "1") {
+        document.documentElement.classList.add("pre-unlocked");
+      } else {
+        document.documentElement.classList.add("locked");
+      }
+    }catch(e){ document.documentElement.classList.add("locked"); }
+    document.documentElement.classList.add("ready");
+  })();
+  </script>
+  <!-- ==== /PASSKEY LOCK + UNLOCK FX ==== -->
+
 
 <script>
 /* iOS detection (single source of truth) */
@@ -197,9 +344,9 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   /* モーダル共通スタイル（図鑑用をベースに調整） */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
   .modal-overlay.open { display: flex; }
-  /* ★インデックスの上に重ねて表示するため、図鑑と操作説明のZ-indexを上げる */
+  /* ★記録帖の上に重ねて表示するため、図鑑と操作説明のZ-indexを上げる */
   /* Z-index: 10010 (indexModal) < 10012 (charModal, howtoModal) */
-  /* ★修正: .openクラスがなくてもz-indexを適用し、インデックスモーダルより前面に表示されるようにする */
+  /* ★修正: .openクラスがなくてもz-indexを適用し、記録帖モーダルより前面に表示されるようにする */
   #charModal { z-index: 20000; } 
   #howtoModal { z-index: 20000; }
   
@@ -290,8 +437,8 @@ details.help li {
   text-align: left;
 }
 
-/* === インデックスボタン＋モーダル  === */
-/* 右上に固定するボタン（インデックス） */
+/* === 記録帖ボタン＋モーダル  === */
+/* 右上に固定するボタン（記録帖） */
 #indexBtn{
   position:fixed;top:10px;right:10px;width:40px;height:40px;
   display:inline-grid;place-items:center;border-radius:10px;border:1px solid var(--line);
@@ -315,7 +462,7 @@ details.help li {
   position:relative;padding:25px;text-align:center;
 }
 #indexModal .index-panel h2{margin:0 0 20px; font-size:24px;}
-/* インデックス内のボタンリスト */
+/* 記録帖内のボタンリスト */
 #indexModal .btn-list{display:grid; gap:12px;}
 #indexModal .btn-list .btn{ 
   width:100%; justify-content:center; 
@@ -347,11 +494,81 @@ details.help li {
 }
 #indexModal .btn-group .btn{ flex:1; padding:10px 12px; font-size:15px; }
 
-/* 覚醒リセットボタンのスタイルとマージン */
-#indexModal #resetRankBtn{ 
-  margin-top: 30px; /* 他のボタンと間隔を空ける */
-  padding:12px 16px; 
-  font-size:16px; 
+/* 覚醒リセットボタン：記録帖枠内の左上に小型配置 + 長押しゲージ */
+#indexModal .index-panel{
+  padding:60px 25px 25px;
+}
+#indexModal #resetRankBtn{
+  position:absolute;
+  top:8px;
+  left:12px;
+  z-index:1000;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:48px;
+  height:48px;
+
+  background:transparent url("images/resetbutton.png") center/36px 36px no-repeat;
+  border:none;
+  padding:0;
+  margin:0;
+  box-shadow:none;
+  border-radius:12px;
+
+  color:transparent;
+  text-indent:-9999px;
+  overflow:visible;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  filter:drop-shadow(0 0 0 rgba(255,80,80,0));
+  transition:filter .2s ease, transform .08s ease;
+}
+#indexModal #resetRankBtn:hover,
+#indexModal #resetRankBtn.hover-glow,
+#indexModal #resetRankBtn:focus-visible{
+  filter:drop-shadow(0 0 6px rgba(255,80,80,0.72));
+  transform:scale(1.05);
+}
+#indexModal #resetRankBtn.holding{
+  filter:drop-shadow(0 0 10px rgba(255,0,0,0.92));
+  transform:scale(1.08);
+}
+#indexModal .reset-hold-ring{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s ease;
+}
+#indexModal #resetRankBtn.holding .reset-hold-ring{
+  opacity:1;
+}
+#indexModal .reset-hold-ring svg{
+  display:block;
+  width:48px;
+  height:48px;
+  overflow:visible;
+}
+#indexModal .reset-hold-ring .reset-hold-track{
+  fill:none;
+  stroke:rgba(255,255,255,.16);
+  stroke-width:3;
+}
+#indexModal .reset-hold-ring .reset-hold-progress{
+  fill:none;
+  stroke:#ff5d5d;
+  stroke-width:3;
+  stroke-linecap:round;
+  transform:rotate(-90deg);
+  transform-origin:22px 22px;
+  stroke-dasharray:113.1;
+  stroke-dashoffset:113.1;
+  filter:drop-shadow(0 0 4px rgba(255,90,90,.95));
+  transition:stroke-dashoffset .06s linear;
 }
 
 
@@ -362,7 +579,7 @@ details.help li {
 }
 #howtoModal .howto-img-wrap{position:relative;display:grid;place-items:center;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;}
 #howtoModal img#howtoImg{width:100%;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;}
-#howtoModal .howto-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:9999px;border:1px solid var(--line);background:rgba(28,28,28,.9);color:var(--ink);cursor:pointer;z-index:10;}
+#howtoModal .howto-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:9999px;border:1px solid rgba(255,255,255,.18);background:rgba(28,28,28,.28);color:var(--ink);cursor:pointer;z-index:10;}
 #howtoModal .howto-nav.prev{left:8px;}
 #howtoModal .howto-nav.next{right:8px;}
 #howtoModal .howto-caption{margin-top:8px;text-align:center;font-size:13px;opacity:.9;}
@@ -509,6 +726,14 @@ html, body{
   outline: none;
 }
 #allmaxInput::placeholder{ color: rgba(200,230,255,0.4); }
+#allmaxMessage{
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #dcecff;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
 #allmaxError{
   margin-top: 10px;
   font-size: 13px;
@@ -828,6 +1053,184 @@ input[type="range"]::-moz-range-thumb{
   }
 }
 
+/* スキル演出用：中央出現アニメーション */
+.skill-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 30000;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: opacity .16s linear, background-color .16s linear;
+}
+
+.skill-overlay.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+/* スキル画像の表示サイズ */
+.skill-content{
+  position: relative;
+  width: min(66vw, 330px);
+  height: min(66vw, 330px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 光輪：疑似要素2枚だけなので軽い */
+.skill-content::before,
+.skill-content::after{
+  content:"";
+  position:absolute;
+  inset:8%;
+  border-radius:50%;
+  opacity:0;
+  transform:scale(.72) rotate(0deg);
+  pointer-events:none;
+  will-change:transform, opacity;
+}
+
+.skill-overlay.active .skill-content::before{
+  animation: skillRingA 1.05s ease-out forwards;
+}
+
+.skill-overlay.active .skill-content::after{
+  animation: skillRingB 1.05s ease-out forwards;
+}
+
+/* キャラ画像：静止時間を作らず、出ている間もゆっくり呼吸させる */
+#skill-character {
+  max-width: 92%;
+  max-height: 92%;
+  opacity: 0;
+  transform: scale(.62) translateY(8px);
+  will-change: transform, opacity;
+}
+
+.skill-overlay.active #skill-character {
+  animation: skillImageHold 1.05s ease-out forwards;
+}
+
+.skill-overlay.fadeout #skill-character {
+  animation: skillImageOut .52s ease-out forwards;
+}
+
+.skill-overlay.fadeout .skill-content::before,
+.skill-overlay.fadeout .skill-content::after{
+  animation-duration:.52s;
+  animation-timing-function:ease-out;
+}
+
+/* 歓喜：青白い浄化 */
+.skill-overlay.mode-kanki #skill-character {
+  filter:
+    drop-shadow(0 0 14px rgba(220,255,255,1))
+    drop-shadow(0 0 32px rgba(80,200,255,.88))
+    drop-shadow(0 0 46px rgba(180,245,255,.38))
+    brightness(1.12);
+}
+
+.skill-overlay.mode-kanki .skill-content::before{
+  border:2px solid rgba(190,245,255,.72);
+  box-shadow:0 0 22px rgba(120,220,255,.68);
+}
+
+.skill-overlay.mode-kanki .skill-content::after{
+  border:1px solid rgba(255,255,255,.48);
+  box-shadow:
+    0 0 34px rgba(120,220,255,.38) inset,
+    0 0 28px rgba(210,250,255,.32);
+}
+
+/* 焦土：赤黒＋青の破滅 */
+.skill-overlay.mode-shodo #skill-character {
+  filter:
+    drop-shadow(0 0 14px rgba(255,45,24,1))
+    drop-shadow(0 0 34px rgba(255,30,20,.78))
+    drop-shadow(0 0 32px rgba(65,105,225,.78))
+    drop-shadow(0 0 46px rgba(0,0,0,1))
+    brightness(1.08);
+}
+
+.skill-overlay.mode-shodo .skill-content::before{
+  border:2px solid rgba(255,58,34,.74);
+  box-shadow:0 0 26px rgba(255,35,20,.72);
+}
+
+.skill-overlay.mode-shodo .skill-content::after{
+  border:1px solid rgba(65,105,225,.58);
+  box-shadow:
+    0 0 38px rgba(0,0,0,.92) inset,
+    0 0 30px rgba(65,105,225,.32);
+}
+
+/* 出現中も止まらない画像アニメ */
+@keyframes skillImageHold{
+  0%{
+    opacity:0;
+    transform:scale(.62) translateY(14px);
+  }
+  28%{
+    opacity:1;
+    transform:scale(1.10) translateY(6px);
+  }
+  58%{
+    opacity:1;
+    transform:scale(1.045) translateY(4px);
+  }
+  100%{
+    opacity:1;
+    transform:scale(1.085) translateY(6px);
+  }
+}
+
+/* 消える時：少し拡大しながら目視できるフェード */
+@keyframes skillImageOut{
+  0%{
+    opacity:1;
+    transform:scale(1.085) translateY(6px);
+  }
+  100%{
+    opacity:0;
+    transform:scale(1.26) translateY(0);
+  }
+}
+
+/* 光輪A：広がる */
+@keyframes skillRingA{
+  0%{
+    opacity:0;
+    transform:scale(.62) rotate(0deg);
+  }
+  24%{
+    opacity:.95;
+  }
+  100%{
+    opacity:.18;
+    transform:scale(1.38) rotate(18deg);
+  }
+}
+
+/* 光輪B：少し遅れて広がる */
+@keyframes skillRingB{
+  0%{
+    opacity:0;
+    transform:scale(.78) rotate(0deg);
+  }
+  36%{
+    opacity:.82;
+  }
+  100%{
+    opacity:.10;
+    transform:scale(1.62) rotate(-24deg);
+  }
+}
+
 </style>
 <style>
 /* === BGM selection glow colors === */
@@ -1014,7 +1417,7 @@ html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.
 
 <style>
 /* Prevent label wrapping/clipping on audio toggle buttons */
-#bgmBtnIndex, #seBtnIndex{
+#bgmBtnIndex, #seBtnIndex, #voiceBtnIndex{
   white-space: nowrap !important;
   line-height: 1.2 !important;
   overflow: visible !important;
@@ -1028,9 +1431,273 @@ html.ios #indexModal .vol-toggle{
   min-height: 52px;
 }
 </style>
+<style>
+/* === Android/Chrome: 音量スライダーの水色ゲージ復活 === */
+@media (hover: none) and (pointer: coarse){
+  html:not(.ios) #indexModal input[type="range"]{
+    --track-h: 10px;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    height: 32px !important;
+    border-radius: 999px !important;
+    outline: none !important;
+    background:
+      linear-gradient(
+        to right,
+        #33CFFF 0%,
+        #33CFFF var(--fill-pct, 50%),
+        rgba(255,255,255,.22) var(--fill-pct, 50%),
+        rgba(255,255,255,.22) 100%
+      ) !important;
+  }
 
+  html:not(.ios) #indexModal input[type="range"]::-webkit-slider-runnable-track{
+    height: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 999px !important;
+  }
+
+  html:not(.ios) #indexModal input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    margin-top: -7px !important;
+    border-radius: 50% !important;
+    background: #f5f7fb !important;
+    border: 1px solid rgba(0,0,0,.35) !important;
+    box-shadow:
+      0 0 6px rgba(255,255,255,.55),
+      0 0 10px rgba(51,207,255,.65) !important;
+  }
+}
+</style>
+<style>
+/* === スキル画像:盤面中央に出す === */
+.skill-overlay{
+  display:block !important;
+}
+
+.skill-overlay .skill-content{
+  position:fixed !important;
+  left:var(--skill-cx, 50vw) !important;
+  top:var(--skill-cy, 50vh) !important;
+  transform:translate(-50%, -50%) !important;
+}
+</style>
 </head>
 <body>
+  <!-- ==== PASSKEY LOCK UI (added) ==== -->
+  <div id="lock" role="dialog" aria-modal="true" aria-label="パスキー入力">
+    <div class="panel">
+      <p class="desc">
+        <b>「永遠の焦土パズル」へようこそ</b><br/><br/>
+        お客様専用パスキーを入力してください。<br/>
+        パスキーは使い切りのため、他の端末には使えなくなります。<br/>
+        この端末で一度解錠したら、以後は入力不要でプレイできます。<br/>
+      </p>
+
+      <label for="passcode">パスキー</label>
+      <div class="row">
+        <input id="passcode" inputmode="latin" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"
+               name="supporter-passcode" placeholder="8桁の英数字を入力してください" />
+        <button id="unlockBtn" class="btn-reset">焦土の門を開く</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <div class="foot">
+        うまくいかない時：URL末尾に <span class="mono" style="display:inline; padding:2px 6px;">?v=8</span> を付けてリロードしてください（キャッシュ回避）<br/>
+        ※解錠後はブラウザの履歴削除をしないようご注意ください。<br/><br/>
+        Ⓒ2010 Guild Noir. 修羅王丸®
+      </div>
+    </div>  </div>
+  <div id="unlockFx" aria-hidden="true"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7eELMc8rQ5AT4700vi7skMyIVha7GJ-s5vzFR5qsMSNcSpYS5b55c7VnY8E5kcvWVBw/exec";
+  const LS_UNLOCKED = "supporter_unlocked_v1";
+
+  function normalizePasscode(s){
+    return (s || "").toString().normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function setMsg(text, kind){
+    const el = document.getElementById("msg");
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "msg" + (kind ? " " + kind : "");
+  }
+
+  function showGame(){
+    document.documentElement.classList.remove("locked");
+    window.__PASSKEY_LOCKED = false;
+    document.getElementById("lock")?.classList.add("hide");
+    const cbw = document.getElementById("clearBtnWrap");
+    if (cbw) cbw.style.display = "block";
+  }
+
+  function startGameFadeIn(){
+    // Reveal the game with a truly linear ~2s fade-in (no end "pop").
+    // We MUST avoid adding a class that has a transition while the game is still at opacity:1.
+    const root = document.documentElement;
+
+    // Step 1: force game opacity to 0 instantly (no transition)
+    root.classList.add("game-prep");
+
+    // Show the game content (game system unchanged; only visibility/opacity layering)
+    showGame();
+
+    // Step 2: in the next frame, switch to the transitioning state (0 -> 1 linear)
+    requestAnimationFrame(()=>{
+      root.classList.remove("game-prep");
+      root.classList.add("game-fade");
+    });
+
+    // Cleanup after transition completes
+    window.setTimeout(()=>{
+      root.classList.remove("game-prep","game-fade");
+    }, 2300);
+  }
+
+
+  function showLock(){
+    document.documentElement.classList.add("locked");
+    window.__PASSKEY_LOCKED = true;
+    document.getElementById("lock")?.classList.remove("hide");
+    const cbw = document.getElementById("clearBtnWrap");
+    if (cbw) cbw.style.display = "none";
+  }
+
+  function playUnlockAudioOnce(){
+    if (window.__unlockAudioPlayed) return;
+    window.__unlockAudioPlayed = true;
+    const vo = document.getElementById("vo_reset");
+    const bell = document.getElementById("se_shine");
+    if (!vo || !bell) return;
+    try{ vo.currentTime = 0; }catch(_e){}
+    try{ bell.currentTime = 0; }catch(_e){}
+    try{ vo.play(); }catch(_e){}
+    try{ bell.play(); }catch(_e){}
+  }
+
+  function runUnlockFxThenShowGame(){
+    if (window.__unlockFxRunning) return;
+    window.__unlockFxRunning = true;
+
+    const fx = document.getElementById("unlockFx");
+    if (!fx){
+      // Fallback: no FX layer, just show game
+      showGame();
+      window.__unlockFxRunning = false;
+      return;
+    }
+
+    // --- Timing knobs (ms) ---
+    const FADE_TO_WHITE_MS = 600;  // 白がじわっとフェードイン
+    const WHITE_HOLD_MS    = 2000; // 真っ白を維持
+    const FADE_OUT_MS      = 2000; // 白がゆっくり晴れる
+
+    // 初期状態
+    fx.style.display = "block";
+    fx.style.opacity = "0";
+    fx.style.transition = "none";
+
+    // 0 の状態を確実に描画させる
+    fx.offsetWidth;
+
+    // 1) パスキー画面の上から白をフェードイン
+    requestAnimationFrame(() => {
+      fx.style.transition = `opacity ${FADE_TO_WHITE_MS}ms linear`;
+      fx.style.opacity = "1";
+
+      // 2) 真っ白になったら、その裏でゲーム全体をフェードイン開始
+      setTimeout(() => {
+        fx.style.transition = "none";
+        fx.style.opacity = "1";
+
+        // 白の裏でゲームを立ち上げる
+        startGameFadeIn();
+
+        // 3) 白を維持したあと、白をフェードアウトしてゲームを見せる
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            fx.style.transition = `opacity ${FADE_OUT_MS}ms linear`;
+            fx.style.opacity = "0";
+
+            // 後始末
+            setTimeout(() => {
+              fx.style.display = "none";
+              window.__unlockFxRunning = false;
+            }, FADE_OUT_MS);
+          });
+        }, WHITE_HOLD_MS);
+
+      }, FADE_TO_WHITE_MS);
+    });
+  }
+
+
+  async function apiPost(payload){
+    if (!API_URL || API_URL.includes("PASTE_YOUR")) {
+      throw new Error("API_URL が未設定です。Apps Script のWebアプリURLを index.html に貼ってください。");
+    }
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // CORS preflight回避
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("API通信に失敗しました（HTTP " + res.status + "）");
+    return await res.json();
+  }
+
+  async function unlock(){
+    setMsg("", "");
+    const raw = document.getElementById("passcode")?.value || "";
+    const pass = normalizePasscode(raw);
+    if (!pass){ setMsg("パスキーを入力してください。", "err"); return; }
+
+    setMsg("パスキーを照合しています…", "");
+    let data;
+    try{
+      data = await apiPost({ action:"redeem", passcode: pass });
+    }catch(e){
+      setMsg(e.message || String(e), "err");
+      return;
+    }
+
+    if (!data || !data.ok){
+      const err = (data && data.error) ? data.error : "UNKNOWN";
+      if (err === "NO_MATCH") setMsg("パスキーが異なります。パスキーを確認してください。", "err");
+      else if (err === "USED") setMsg("このパスキーは既に使用されています。別のパスキーが必要です。", "err");
+      else if (err === "EMPTY") setMsg("パスキーを入力してください。", "err");
+      else setMsg("エラー: " + err, "err");
+      return;
+    }
+
+    localStorage.setItem(LS_UNLOCKED, "1");
+    setMsg("解錠しました。", "ok");
+    playUnlockAudioOnce();
+    runUnlockFxThenShowGame();
+  }
+
+  document.getElementById("unlockBtn")?.addEventListener("click", unlock);
+  document.getElementById("passcode")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") unlock(); });
+
+
+  (function boot(){
+    window.__PASSKEY_LOCKED = true;
+    try{
+      if (localStorage.getItem(LS_UNLOCKED) === "1") showGame();
+      else showLock();
+    }catch(_e){ showLock(); }
+  })();
+  </script>
+  <!-- ==== /PASSKEY LOCK UI ==== -->
+
   
 <script>
 /* Storage helper (polyfill) */
@@ -1116,11 +1783,11 @@ window.store = window.store || {
 <audio id="vo_combo5" src="audio/vo_combo5.mp3" preload="auto"></audio>
 <audio id="vo_comboX" src="audio/vo_comboX.mp3" preload="auto"></audio>
 
-<button id="indexBtn" title="インデックス" aria-label="インデックス"></button>
-<div id="indexModal" role="dialog" aria-modal="true" aria-label="インデックスメニュー" hidden class="modal-overlay">
+<button id="indexBtn" title="記録帖" aria-label="記録帖"></button>
+<div id="indexModal" role="dialog" aria-modal="true" aria-label="記録帖メニュー" hidden class="modal-overlay">
   <div class="index-panel">
     <button class="close-btn" onclick="closeIndexModal(); onClickSE()" aria-label="閉じる"></button>
-    <h2>⚙ インデックス</h2>
+    <h2>⚙ 記録帖</h2>
     <div class="btn-list">
       <div class="btn-group volume-group">
         <div class="volume-row">
@@ -1131,6 +1798,10 @@ window.store = window.store || {
           <button type="button" class="volume-text vol-toggle" id="seBtnIndex">SE🔊</button>
           <div class="slider-hit"><input type="range" id="seSlider" min="0" max="100" step="1"></div>
         </div>
+        <div class="volume-row">
+          <button type="button" class="volume-text vol-toggle" id="voiceBtnIndex">Vo🔊</button>
+          <div class="slider-hit"><input type="range" id="voiceSlider" min="0" max="100" step="1"></div>
+        </div>
       </div>
       <button class="btn" id="bgmSelectBtn" onclick="toggleBGMSelect(); onClickSE()">♪1 / ♪2 BGM切替</button>
       
@@ -1138,8 +1809,14 @@ window.store = window.store || {
       
       <button class="btn" id="openHowtoBtn" onclick="openHowto(); onClickSE()">ⓘ 操作説明</button>
       
-      <button class="btn btn-reset" id="resetRankBtn" onclick="openResetConfirmModal(); onClickSE()">
-        🔥 覚醒ランクのリセット
+      <button class="btn btn-reset" id="resetRankBtn" aria-label="覚醒ランクのリセット" title="覚醒ランクのリセット">
+        <span class="reset-hold-ring" aria-hidden="true">
+          <svg viewBox="0 0 44 44" focusable="false">
+            <circle class="reset-hold-track" cx="22" cy="22" r="18"></circle>
+            <circle class="reset-hold-progress" cx="22" cy="22" r="18"></circle>
+          </svg>
+        </span>
+        reset
       </button>
     </div>
   </div>
@@ -1148,7 +1825,7 @@ window.store = window.store || {
 <div id="resetConfirmModal" role="dialog" aria-modal="true" aria-label="覚醒ランクのリセット確認" hidden>
   <div class="modal-content">
     <h3>覚醒ランクをリセットしますか？</h3>
-    <p>これまでの覚醒ランクと暗躍値が初期化されます。</p>
+    <p>これまでの覚醒ランクと暗躍値/称号が初期化されます。</p>
     <div class="confirm-btns">
       <button class="btn" id="confirmResetNo" onclick="closeResetConfirmModal(); onClickSE()">いいえ</button>
       <button class="btn btn-reset" id="confirmResetYes" onclick="resetRank(); onClickSE()">はい</button>
@@ -1185,7 +1862,8 @@ let bgmPlayToken = 0;
 
 
 let bgmEverStarted = false;
-/* ★インデックス内のBGM/SEボタンに変更 */
+let voiceOn = !!store.get("voiceOn", true);
+/* ★記録帖内のBGM/SE/ボイスボタンに変更 */
 const bgmBtn = document.getElementById("bgmBtnIndex"); // BGM ON/OFFボタン
 
 if (bgmBtn){
@@ -1198,9 +1876,16 @@ if (seBtn){
   seBtn.addEventListener("click", ()=>{ try{ toggleSE(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
 }
 
+const voiceBtn = document.getElementById("voiceBtnIndex"); // ボイス ON/OFFボタン
+
+if (voiceBtn){
+  voiceBtn.addEventListener("click", ()=>{ try{ toggleVoice(); }catch(_){ } try{ onClickSE(); }catch(_){ } });
+}
+
 const bgmSelectBtn = document.getElementById("bgmSelectBtn"); // BGM切替ボタン
 const bgmSlider = document.getElementById("bgmSlider");
 const seSlider  = document.getElementById("seSlider");
+const voiceSlider = document.getElementById("voiceSlider");
 
 function updateBgmIcon(vol){
   if(!bgmBtn) return;
@@ -1235,6 +1920,14 @@ function __syncAudioToggleUI(){
       try{ seBtn.textContent = (seOn ? 'SE🔊' : 'SE🔇'); }catch(__){}
     }
   }catch(_){}
+  try{
+    var voiceBtn = document.getElementById('voiceBtnIndex');
+    if (voiceBtn){
+      var vOn = (typeof voiceOn!=='undefined') ? !!voiceOn : true;
+      voiceBtn.classList.toggle('is-on', vOn);
+      try{ voiceBtn.textContent = (vOn ? 'Vo🔊' : 'Vo🔇'); }catch(__){}
+    }
+  }catch(_){}
 }
 
 
@@ -1242,6 +1935,14 @@ function updateSeIcon(vol){
   if(!seBtn) return;
   const icon = (vol && vol > 0) ? "🔊" : "🔇";
   seBtn.textContent = "SE" + icon;
+
+  try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){}
+}
+
+function updateVoiceIcon(vol){
+  if(!voiceBtn) return;
+  const icon = (vol && vol > 0) ? "🔊" : "🔇";
+  voiceBtn.textContent = "Vo" + icon;
 
   try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){}
 }
@@ -1296,7 +1997,7 @@ bgmOn = vol > 0;
 
   updateBgmIcon(vol);
 
-  if (bgmOn){
+  if (bgmOn && !document.documentElement.classList.contains("locked") && !window.__PASSKEY_LOCKED){
     try{ safeStartBGM(currentBGM()); }catch(_){}
   } else {
     // 0の場合は停止せずミュートのみ（iOS/Chromeの再開不安定を回避）
@@ -1335,6 +2036,40 @@ function onSeSliderChange(v){
   updateSeIcon(Sound.enabled ? Sound.vol : 0);
 }
 
+function onVoiceSliderChange(v){
+  if (IS_IOS){ try{ ensureGraph(); }catch(_){ } }
+
+  v = Number(v);
+  if (isNaN(v)) v = 0;
+  const pct = Math.max(0, Math.min(100, v));
+  const vol = pct / 100;
+
+  if (vol <= 0){
+    voiceOn = false;
+    try{ store.set("voiceOn", false); }catch(_){ }
+    try{
+      if (__voiceCurrent){
+        __voiceCurrent.pause();
+        __voiceCurrent.currentTime = 0;
+      }
+    }catch(_){ }
+    try{ if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; } }catch(_){ }
+    try{ __releaseDucking(0); }catch(_){ }
+  } else {
+    voiceOn = true;
+    try{ store.set("voiceOn", true); }catch(_){ }
+    setVoiceVol(vol);
+    store.set("voiceLastPct", pct);
+  }
+
+  try{ if(voiceSlider) voiceSlider.value = String(pct); }catch(_){ }
+  try{ if(voiceSlider) updateRangeFill(voiceSlider); }catch(_){ }
+
+  store.set("voiceVol", vol);
+  try{ __applyVoiceVolume(); }catch(_){ }
+  updateVoiceIcon(voiceOn ? vol : 0);
+}
+
 // attach slider events
 if (bgmSlider){
   bgmSlider.addEventListener("input", e => { onBgmSliderChange(e.target.value); });
@@ -1344,13 +2079,30 @@ if (seSlider){
   seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); });
   seSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
 }
+if (voiceSlider){
+  voiceSlider.addEventListener("input", e => { onVoiceSliderChange(e.target.value); });
+  voiceSlider.addEventListener("change", ()=>{
+    try{
+      if (typeof Sound !== "undefined" && Sound && typeof Sound.play === "function") {
+        Sound.play("push", 0.85);
+      } else {
+        onClickSE();
+      }
+    }catch(_){}
+  });
+}
+
+
 // iOS/Chromeでrangeのドラッグが鈍い/反応しない対策：pointer/touch移動で値を直接更新する
 function enhanceRangeSlider(el, onValue){
   if (!el) return;
+
   try{ if (el.dataset && el.dataset.rangeDirect==='1') return; }catch(_){ }
   try{ if (el.dataset) el.dataset.rangeDirect='1'; }catch(_){ }
+
   const hit = el.closest(".slider-hit") || el;
   try{ hit.style.touchAction = "none"; }catch(_){}
+
   const setFromClientX = (clientX)=>{
     const r = hit.getBoundingClientRect();
     const x = Math.min(r.right, Math.max(r.left, clientX));
@@ -1358,15 +2110,19 @@ function enhanceRangeSlider(el, onValue){
     const min = Number(el.min || 0);
     const max = Number(el.max || 100);
     const step = Number(el.step || 1);
+
     let val = min + t * (max - min);
     // stepにスナップ
     val = Math.round(val / step) * step;
     val = Math.max(min, Math.min(max, val));
+
     el.value = String(val);
+
     try{ updateRangeFill(el); }catch(_){ }
-try{ onValue(el.value); }catch(_){}
-    try{ if(dragging) onSliderDragSE(); }catch(_){ }
-  };
+    try{ onValue(el.value); }catch(_){}
+    try{ if(dragging) onSliderDragSE(); }catch(_){}
+};
+
 
   let dragging = false;
 
@@ -1376,30 +2132,30 @@ try{ onValue(el.value); }catch(_){}
     const p = e.touches ? e.touches[0] : e;
     if (p) setFromClientX(p.clientX);
   };
-  const onMove = (e)=>{
+  // スライダー用の操作関数（名前が衝突しないよう変更）
+  const onSliderMove = (e) => {
     if (!dragging) return;
-    try{ e.preventDefault(); }catch(_){}
+    try { e.preventDefault(); } catch (_) {}
     const p = e.touches ? e.touches[0] : e;
     if (p) setFromClientX(p.clientX);
   };
-  const onUp = (e)=>{
+
+  const onSliderUp = (e) => {
     if (!dragging) return;
     dragging = false;
-    try{ e.preventDefault(); }catch(_){}
-    // つまみ操作終了時に一度だけクリックSE
-    try{ onClickSE(); }catch(_){}
+    try { e.preventDefault(); } catch (_) {}
+    try { onClickSE(); } catch (_) {}
   };
 
-  hit.addEventListener("pointerdown", onDown, { passive:false });
-  window.addEventListener("pointermove", onMove, { passive:false });
-  window.addEventListener("pointerup", onUp, { passive:false });
+  // イベントリスナーの登録（新しい関数名を使用）
+  hit.addEventListener("pointerdown", onDown, { passive: false });
+  window.addEventListener("pointermove", onSliderMove, { passive: false });
+  window.addEventListener("pointerup", onSliderUp, { passive: false });
 
-  hit.addEventListener("touchstart", onDown, { passive:false });
-  window.addEventListener("touchmove", onMove, { passive:false });
-  window.addEventListener("touchend", onUp, { passive:false });
+  hit.addEventListener("touchstart", onDown, { passive: false });
+  window.addEventListener("touchmove", onSliderMove, { passive: false });
+  window.addEventListener("touchend", onSliderUp, { passive: false });
 }
-enhanceRangeSlider(bgmSlider, onBgmSliderChange);
-enhanceRangeSlider(seSlider, onSeSliderChange);
 
 
 // === Native input fallback (iOS reliability): ensure volume changes on real range events ===
@@ -1410,11 +2166,15 @@ try{
   if (seSlider){
     seSlider.addEventListener("input", (e)=>{ try{ onSeSliderChange(e.target.value); }catch(_){ } }, {passive:true});
   }
+  if (voiceSlider){
+    voiceSlider.addEventListener("input", (e)=>{ try{ onVoiceSliderChange(e.target.value); }catch(_){ } }, {passive:true});
+  }
 }catch(_){}
 
 
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
+const VOICE_DEFAULT_VOL = 0.75;
     
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
@@ -1491,6 +2251,7 @@ const Sound={
   },
 };
 Sound.init();
+try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){}
 
 /* ===== Voice priority & stable playback (Ducking + Gesture Queue) ===== */
 window.Sound = Sound; // expose for other helper scripts
@@ -1560,6 +2321,23 @@ function __getSeEffectiveVol(){
   const base = __clamp01(store.get("seVol", SE_DEFAULT_VOL));
   if (!Sound.enabled) return 0;
   return base * (__ducking ? 0.6 : 1);
+}
+
+function __getVoiceEffectiveVol(){
+  const base = __clamp01(store.get("voiceVol", VOICE_DEFAULT_VOL));
+  if (!voiceOn) return 0;
+  return base;
+}
+
+function __applyVoiceVolume(){
+  const eff = __getVoiceEffectiveVol();
+  try{
+    const g = window.__audioGraph;
+    if (g && g.voice && g.voice.gain){
+      g.voice.gain.value = eff;
+      return;
+    }
+  }catch(_){}
 }
 
 function __setElementVolumeSafe(el, vol){
@@ -1672,6 +2450,7 @@ function __releaseDucking(ms){
 // Public: play voice by element id (combo/rank/reset etc.)
 window.playVoiceById = function(voiceId){
   try{
+    if (typeof voiceOn!=='undefined' && !voiceOn) return;
     const el = document.getElementById(voiceId);
     if (!el) return;
 
@@ -1682,13 +2461,9 @@ window.playVoiceById = function(voiceId){
 
     __startDucking();
 
-    const baseSe = __clamp01(store.get("seVol", SE_DEFAULT_VOL));
-    // Voice gain is intentionally louder than SE so that voice remains intelligible.
-    const voiceBoost = Number(store.get("voiceBoost", 2.2));
-    const voiceFloor = Number(store.get("voiceFloor", 0.45));
-    const voiceVol = __clamp01(baseSe<=0 ? 0 : Math.max(voiceFloor, baseSe * voiceBoost));
+    const voiceVol = __getVoiceEffectiveVol();
     __setElementVolumeSafe(el, voiceVol);
-    try{ var g=ensureGraph(); if(g) connectToBus(el, g.se); }catch(_){ }
+    try{ var g=ensureGraph(); if(g) connectToBus(el, (g.voice || g.se)); }catch(_){ }
 
     try{ el.currentTime = 0; }catch(_){}
     __playMedia(el);
@@ -1711,6 +2486,48 @@ window.playVoiceById = function(voiceId){
 
 function setBGMVol(v){ const nv=Number(v); store.set("bgmVol", nv); __applyBgmVolume(); }
 function setSEVol(v){ const nv=Number(v); Sound.vol=nv; store.set("seVol", nv); __applySeVolume(); }
+function setVoiceVol(v){ const nv=Number(v); store.set("voiceVol", nv); __applyVoiceVolume(); }
+
+function toggleVoice(){
+  if (!voiceSlider){
+    voiceOn = !voiceOn;
+    try{ store.set("voiceOn", voiceOn); }catch(_){ }
+    if (!voiceOn){
+      try{
+        if (__voiceCurrent){
+          __voiceCurrent.pause();
+          __voiceCurrent.currentTime = 0;
+        }
+      }catch(_){ }
+      try{ if (__duckReleaseTimer){ clearTimeout(__duckReleaseTimer); __duckReleaseTimer = null; } }catch(_){ }
+      try{ __releaseDucking(0); }catch(_){ }
+    }
+    try{ if(typeof __syncAudioToggleUI==='function') __syncAudioToggleUI(); }catch(_){ }
+    return;
+  }
+
+  const nowPct = Number(voiceSlider.value || "0");
+  if (nowPct > 0){
+    try{ store.set("voiceLastPct", nowPct); }catch(_){ }
+    voiceSlider.value = "0";
+    try{ updateRangeFill(voiceSlider); }catch(_){ }
+    try{ dispatchRangeInput(voiceSlider); }catch(_){ }
+    try{ onVoiceSliderChange(0); }catch(_){ }
+    return;
+  }
+
+  let lastPct = Number(store.get("voiceLastPct", NaN));
+  if (isNaN(lastPct) || lastPct <= 0){
+    const lastVol = Number(store.get("voiceVol", VOICE_DEFAULT_VOL));
+    lastPct = Math.round(Math.max(0.01, Math.min(1, lastVol)) * 100);
+  }
+  lastPct = Math.max(1, Math.min(100, lastPct));
+
+  voiceSlider.value = String(lastPct);
+  try{ updateRangeFill(voiceSlider); }catch(_){ }
+  try{ dispatchRangeInput(voiceSlider); }catch(_){ }
+  try{ onVoiceSliderChange(lastPct); }catch(_){ }
+}
 
 function toggleSE(){
   // __IOS_SE_TOGGLE_FIX: iOSではスライダー非表示のため、ボタンで確実にON/OFFする
@@ -1945,7 +2762,10 @@ function userGesture(){
   try{
     const base = store.get("bgmVol", BGM_DEFAULT_VOL);
     if (!bgmMuted && base > 0){
-      safeStartBGM(currentBGM());
+      // ロック中はBGMを開始しない（パスキー画面は静寂）
+      if (!document.documentElement.classList.contains("locked") && !window.__PASSKEY_LOCKED){
+        safeStartBGM(currentBGM());
+      }
     }
   }catch(_){}
 }
@@ -1970,6 +2790,21 @@ updateSeIcon(seVol);
     updateSeIcon(Sound.enabled ? Sound.vol : 0);
   }
 
+  if (voiceSlider){
+    const initVoiceVol = Number(store.get("voiceVol", VOICE_DEFAULT_VOL));
+    if (!voiceOn){
+      voiceSlider.value = 0;
+      try{ updateRangeFill(voiceSlider); }catch(_){ }
+      updateVoiceIcon(0);
+    } else {
+      voiceSlider.value = Math.round(initVoiceVol * 100);
+      try{ updateRangeFill(voiceSlider); }catch(_){ }
+      updateVoiceIcon(initVoiceVol);
+    }
+  } else {
+    updateVoiceIcon(voiceOn ? Number(store.get("voiceVol", VOICE_DEFAULT_VOL)) : 0);
+  }
+
   // BGMスライダーとアイコンへ反映
   if (bgmSlider){
     bgmSlider.value = Math.round(initBgmVol * 100);
@@ -1981,6 +2816,7 @@ updateBgmIcon(initBgmVol);
 
   // ミュート状態も含めて有効音量を反映
   try{ __applyBgmVolume(); }catch(_){ }
+  try{ __applyVoiceVolume(); }catch(_){ }
 
 const which=store.get("activeBGM",1);
   activeBGM = which===2?bgm2:bgm1;
@@ -2027,7 +2863,7 @@ const $status = document.getElementById("status");
 const $charModal = document.getElementById("charModal");
 const $charList = document.getElementById("char-list");
 
-/* ★インデックスメニューDOM */
+/* ★記録帖メニューDOM */
 const $indexBtn = document.getElementById('indexBtn');
 const $indexModal = document.getElementById('indexModal');
 const $openHowtoBtn = document.getElementById('openHowtoBtn');
@@ -2077,6 +2913,45 @@ const IMG = {
   "PATH_J_PRO": "images/propaganda.png",
   "BG": new Image(), "PATH_BG": "images/boad_bg.png"
 };
+
+// ★スキル演出用の設定（Image/直下のファイル名と紐付け）
+const SKILL_CONFIG = {
+  "S_BIR": { img: "special_bir_skill", voice: "vo_rank0" },
+  "S_NE0": { img: "special_ne0_skill", voice: "vo_rank1" },
+  "S_SHU": { img: "special_shu_skill", voice: "vo_rank2" },
+  "S_REQ": { img: "special_req_skill", voice: "vo_rank3" },
+  "S_UNK": { img: "special_unk_skill", voice: "vo_rank4" }
+};
+
+/* === スキル演出素材の事前読み込み === */
+window.__skillCutinPreload = window.__skillCutinPreload || {};
+
+function preloadSkillCutinAssets(){
+  try{
+    if (typeof SKILL_CONFIG === "undefined") return;
+
+    Object.keys(SKILL_CONFIG).forEach(sym=>{
+      const cfg = SKILL_CONFIG[sym];
+      if (!cfg) return;
+
+      // 画像を先読み
+      try{
+        const img = new Image();
+        img.src = `images/${cfg.img}.png`;
+        window.__skillCutinPreload[sym] = img;
+      }catch(_){}
+
+      // 音声も軽くload
+      try{
+        const vo = document.getElementById(cfg.voice);
+        if (vo && typeof vo.load === "function") vo.load();
+      }catch(_){}
+    });
+  }catch(_){}
+}
+
+document.addEventListener("DOMContentLoaded", preloadSkillCutinAssets, { once:true });
+
 function loadImages(done){ 
     // Resilient loader for case-sensitive hosts (GitHub Pages)
   const triedFallback = new Set();
@@ -2095,9 +2970,6 @@ function loadImages(done){
 // Special fallback for Neoretro asset naming variations
 if (key === "S_NE0"){
   const candidates = [
-    "images/neoretro.png",
-    "images/Neoretro.png",
-    "images/special_neoretro.png",
     "images/special_ne0.png"
   ];
   for (const c of candidates){
@@ -2146,14 +3018,14 @@ const CHARACTERS = [
   { sym: "S_NE0", name: "ネオレトロ", tag: "修羅王丸", desc: "人の姿を辞めた修羅王丸。/ 縦列＋両隣消去。", image: "S_NE0", unlock: { key: "rank", value: 1 } },
   { sym: "S_SHU", name: "シンギュラ", tag: "修羅王丸", desc: "ネオレトロを斬り捨て顕現した存在。/ 周囲を菱形に消去。", image: "S_SHU", unlock: { key: "rank", value: 2 } },
   { sym: "S_REQ", name: "レクイエム", tag: "修羅王丸", desc: "新たな境地を求めて生まれた存在。/ 横列+上下隣消去。", image: "S_REQ", unlock: { key: "rank", value: 3 } },
-  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の境地。/ 斜め✕列消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
+  { sym: "S_UNK", name: "アンノウン", tag: "修羅王丸", desc: "未だ見ぬ先の 陽炎の境地。/ 斜め✕列消去。", image: "S_UNK", unlock: { key: "rank", value: 4 } },
 
   { sym: "SHURACHAN", name: "しゅらちゃん", tag: "似絵", desc: "シンギュラの自画像。/ 同種駒を4つ消去で召喚。十字列消去。", image: "SHURACHAN", unlock: { key: "spawn", value: "SHURACHAN" } },
   { sym: "REKUSHURA", name: "レクしゅら", tag: "似絵", desc: "レクイエムの自画像。/ 同種駒を5つ以上消去で召喚。選択した駒を全て消去。", image: "REKUSHURA", unlock: { key: "spawn", value: "REKUSHURA" } },
 
   { sym: "J_NEM", name: "合歓", tag: "悔恨", desc: "修羅王丸を恨む娘。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:1", image: "J_NEM", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の前元締。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
-  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "平行世界に住む正義の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_SHI", name: "辰十郎", tag: "慙愧", desc: "筑前忍八剣衆の先代元締。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:3", image: "J_SHI", unlock: { key: "juso_spawn", value: true } },
+  { sym: "J_PRO", name: "プロパガンダ", tag: "脅威", desc: "平行世界に住む絶対秩序の修羅王丸。/ 駒移動できず、隣接する消去でHPを削る。呪詛HP:5", image: "J_PRO", unlock: { key: "juso_spawn", value: true } },
 
 ];
 let unlockedChars = store.get("unlockedChars", { initial: true, juso_spawn: false, SHURACHAN: false, REKUSHURA: false });
@@ -2224,11 +3096,11 @@ function updateCharModalContent(){ /* (省略: 変更なし) */
 }
 
 
-let wasPausedBeforeIndex = false; // インデックスを開く前のポーズ状態を保存
+let wasPausedBeforeIndex = false; // 記録帖を開く前のポーズ状態を保存
 let wasPausedBeforeChildModal = false; // 子モーダル（図鑑/操作説明）を開く前のポーズ状態を保存
 let isIndexOpen = false;
 
-/* ★インデックスメニュー関連 */
+/* ★記録帖メニュー関連 */
 function openIndexModal(){
   // ★開く：index だけ（なければ push に1回だけフォールバック）
   try {
@@ -2239,7 +3111,7 @@ function openIndexModal(){
     }
   } catch(e) {}
 
-  if (!isIndexOpen) { // インデックスが閉じている場合のみ、ポーズ状態を保存
+  if (!isIndexOpen) { // 記録帖が閉じている場合のみ、ポーズ状態を保存
     wasPausedBeforeIndex = paused;
     if (!paused) togglePause();
     isIndexOpen = true;
@@ -2256,7 +3128,7 @@ function closeIndexModal(){
   $indexModal.classList.remove('open');
   isIndexOpen = false;
 
-  // インデックスを開く前の状態に戻す
+  // 記録帖を開く前の状態に戻す
   if (paused && !wasPausedBeforeIndex) {
     togglePause();
   }
@@ -2265,7 +3137,7 @@ function closeIndexModal(){
 
 /* ★キャラ図鑑を開く・閉じる */
 function openCharModal(){ 
-  // インデックスが開いている前提
+  // 記録帖が開いている前提
   wasPausedBeforeChildModal = paused; 
   if (!paused) togglePause();
   
@@ -2280,13 +3152,13 @@ function closeCharModal(){
   $charModal.hidden = true;
   $indexModal.style.filter = "none";
   
-  // インデックスが開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
+  // 記録帖が開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
   if (isIndexOpen) {
-    // インデックスが開いているため、何もしない（paused = trueのまま）
+    // 記録帖が開いているため、何もしない（paused = trueのまま）
     return;
   }
 
-  // インデックスが閉じていれば、ゲーム開始前の状態に戻す
+  // 記録帖が閉じていれば、ゲーム開始前の状態に戻す
   if (paused && !wasPausedBeforeChildModal) { 
     togglePause(); 
   }
@@ -2297,14 +3169,16 @@ const HOWTO_IMAGES = [
   "images/howto1.png",
   "images/howto2.png",
   "images/howto3.png",
-  "images/howto4.png"
+  "images/howto4.png",
+  "images/howto5.png"
 
 ];
 const HOWTO_CAPTIONS = [
   "操作方法1",
   "操作方法2",
 　"操作方法3",
-  "操作方法4"
+　"操作方法4",
+  "操作方法5"
 ];
 let howtoIdx = 0;
 
@@ -2352,13 +3226,13 @@ window.closeHowto = function(){
   // キーボードイベントを削除
   window.removeEventListener('keydown', onHowtoKey);
   
-  // インデックスが開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
+  // 記録帖が開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
   if (isIndexOpen) {
-    // インデックスが開いているため、何もしない（paused = trueのまま）
+    // 記録帖が開いているため、何もしない（paused = trueのまま）
     return;
   }
 
-  // インデックスが閉じていれば、ゲーム開始前の状態に戻す
+  // 記録帖が閉じていれば、ゲーム開始前の状態に戻す
   if (paused && !wasPausedBeforeChildModal) { 
     togglePause(); 
   }
@@ -2374,13 +3248,131 @@ function onHowtoKey(e){
 
 /* ===== 覚醒リセット関連 (新規) ===== */
 function openResetConfirmModal(){
-  $indexModal.hidden = true; // インデックスを閉じる
+  $indexModal.hidden = true; // 記録帖を閉じる
   $resetConfirmModal.hidden = false;
 }
 function closeResetConfirmModal(){
   $resetConfirmModal.hidden = true;
-  $indexModal.hidden = false; // インデックスに戻る
+  $indexModal.hidden = false; // 記録帖に戻る
 }
+
+/* 覚醒リセットは長押し時のみ確認モーダルを開く */
+(function(){
+  const btn = document.getElementById("resetRankBtn");
+  if (!btn) return;
+
+  const HOLD_MS = 900;
+  const progressCircle = btn.querySelector(".reset-hold-progress");
+  const CIRCUMFERENCE = 2 * Math.PI * 18;
+  let holdTimer = null;
+  let rafId = null;
+  let holdStart = 0;
+  let triggered = false;
+  let activePointerId = null;
+
+  function setProgress(rate){
+    if (!progressCircle) return;
+    const clamped = Math.max(0, Math.min(1, Number(rate) || 0));
+    progressCircle.style.strokeDasharray = String(CIRCUMFERENCE);
+    progressCircle.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - clamped));
+  }
+
+  function resetVisual(){
+    btn.classList.remove("holding");
+    setProgress(0);
+  }
+
+  function stopTick(){
+    if (rafId){
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  function cancelHold(){
+    if (holdTimer){
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    stopTick();
+    holdStart = 0;
+    activePointerId = null;
+    resetVisual();
+  }
+
+  function finishHold(){
+    triggered = true;
+    cancelHold();
+    try { if (typeof onClickSE === "function") onClickSE(); } catch(e){}
+    openResetConfirmModal();
+  }
+
+  function tick(now){
+    if (!holdStart) holdStart = now;
+    const elapsed = now - holdStart;
+    setProgress(elapsed / HOLD_MS);
+    if (elapsed >= HOLD_MS){
+      finishHold();
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startHold(ev){
+    if (holdTimer || rafId) return;
+    triggered = false;
+    activePointerId = (ev && typeof ev.pointerId !== "undefined") ? ev.pointerId : null;
+    holdStart = 0;
+    btn.classList.add("holding");
+    setProgress(0);
+    holdTimer = setTimeout(finishHold, HOLD_MS);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  btn.addEventListener("contextmenu", function(e){
+    e.preventDefault();
+  });
+
+  if (window.PointerEvent) {
+    btn.addEventListener("pointerdown", function(e){
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+      startHold(e);
+    });
+    ["pointerup","pointercancel","pointerleave"].forEach(function(type){
+      btn.addEventListener(type, function(e){
+        if (activePointerId !== null && typeof e.pointerId !== "undefined" && e.pointerId !== activePointerId) return;
+        if (triggered) return;
+        cancelHold();
+      });
+    });
+  } else {
+    btn.addEventListener("mousedown", function(e){
+      if (e.button !== 0) return;
+      e.preventDefault();
+      startHold(e);
+    });
+    ["mouseup","mouseleave"].forEach(function(type){
+      btn.addEventListener(type, function(){
+        if (triggered) return;
+        cancelHold();
+      });
+    });
+    btn.addEventListener("touchstart", function(e){
+      startHold(e);
+    }, {passive:true});
+    ["touchend","touchcancel","touchmove"].forEach(function(type){
+      btn.addEventListener(type, function(){
+        if (triggered) return;
+        cancelHold();
+      }, {passive:true});
+    });
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden) cancelHold();
+  });
+})();
 function resetRank(){
   closeResetConfirmModal();
   // ランク、進捗、スコアをリセット
@@ -2440,8 +3432,18 @@ const MAX_RANK_INDEX = RANKS.length - 1;
 const NORMALS=["SANZU","MUTSU","HANZO","CHIEKO","KUJAKU"];
 const SPECIALS=RANKS.map(r=>r.key);
 const JUSOS=["J_NEM", "J_SHI", "J_PRO"];
-const RANK_THRESH = [5, 10, 10, 10, 10];//ランクアップ闘値
-const SPECIAL_POINTS = { "S_BIR": 10, "S_NE0": 20, "S_SHU": 30, "S_REQ": 40, "S_UNK": 50 };
+const JUSO_BREAK_POINTS = {
+  J_NEM: 20,
+  J_SHI: 30,
+  J_PRO: 50
+};
+const RANK_THRESH = [20, 100, 300, 500, 700];//ランクアップ闘値
+const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
+const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
+const SPECIAL_MAP = {
+  SHURACHAN: "S_SHU",
+  REKUSHURA: "S_REQ"
+};
 
 let board=[], yAnim=[], score=store.get("score",0), rankIndex=store.get("rankIndex",0), rankProgress=store.get("rankProgress",0);
 let slashes=[], specialSlashes=[], particles=[], trails=[],
@@ -2498,6 +3500,110 @@ let comboEffectAnchor = { x: null, y: null };
 
 let comboLabelTimer = 0;
 let suppressComboVoice = false; // ランクアップ時に連鎖ボイスを抑制するフラグ
+let skillVoiceBusyUntil = 0;
+let pendingComboVoiceId = null;
+let pendingComboVoiceTimer = null;
+
+function nowMs(){
+  try{
+    return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  }catch(_){
+    return Date.now();
+  }
+}
+
+function reserveComboVoiceAfterSkill(voiceId){
+  if (!voiceId) return;
+
+  // 複数連鎖が重なった場合は、最後の連鎖ボイスを優先
+  pendingComboVoiceId = voiceId;
+
+  try{ clearTimeout(pendingComboVoiceTimer); }catch(_){}
+
+  const current = window.__skillVoiceElement || null;
+
+  // スキルボイス要素が再生中なら、ended を待ってから連鎖ボイスを鳴らす
+  if (current && !current.paused && !current.ended){
+    try{
+      if (window.__pendingComboVoiceOnSkillEnd){
+        current.removeEventListener('ended', window.__pendingComboVoiceOnSkillEnd);
+      }
+    }catch(_){}
+
+    window.__pendingComboVoiceOnSkillEnd = function(){
+      try{
+        const id = pendingComboVoiceId;
+        pendingComboVoiceId = null;
+        window.__skillVoiceElement = null;
+
+        if (id && typeof window.playVoiceById === "function"){
+          // 少しだけ間を置くと、音声の尻切れ感が減る
+          pendingComboVoiceTimer = setTimeout(()=>{
+            try{ window.playVoiceById(id); }catch(_){}
+          }, 120);
+        }
+      }catch(_){}
+    };
+
+    try{
+      current.addEventListener('ended', window.__pendingComboVoiceOnSkillEnd, { once:true });
+    }catch(_){}
+
+    return;
+  }
+
+  // スキルボイスが既に終わっている場合だけ、従来どおり少し遅らせて鳴らす
+  pendingComboVoiceTimer = setTimeout(()=>{
+    try{
+      const id = pendingComboVoiceId;
+      pendingComboVoiceId = null;
+      if (id && typeof window.playVoiceById === "function"){
+        window.playVoiceById(id);
+      }
+    }catch(_){}
+  }, 120);
+}
+
+let rankPriorityUntil = 0;
+
+function isRankPriorityActive(){
+  try{
+    const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    return now < rankPriorityUntil;
+  }catch(_){
+    return false;
+  }
+}
+
+function startRankPriority(ms){
+  try{
+    const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    rankPriorityUntil = now + (ms || 1800);
+
+    // 連鎖ボイス抑制
+    suppressComboVoice = true;
+
+    // 連鎖大演出の予約を解除
+    try{ pendingComboAurora = false; }catch(_){}
+    try{ pendingComboAuroraDue = 0; }catch(_){}
+    try{ comboFreezeUntil = 0; }catch(_){}
+    try{ pendingComboVoiceId = null; }catch(_){}
+    try{ clearTimeout(pendingComboVoiceTimer); }catch(_){}
+    try{
+  const el = window.__skillVoiceElement;
+  if (el && window.__pendingComboVoiceOnSkillEnd){
+    el.removeEventListener('ended', window.__pendingComboVoiceOnSkillEnd);
+  }
+}catch(_){}
+try{ window.__pendingComboVoiceOnSkillEnd = null; }catch(_){}
+
+    // 既に出ているスキルカットインを消す
+    try{
+      const overlay = document.getElementById("skill-overlay");
+      if (overlay) overlay.classList.remove("active", "fadeout");
+    }catch(_){}
+  }catch(_){}
+}
 
 function resetComboForNewMove(){
   comboCount = 0;
@@ -2524,17 +3630,33 @@ function endComboIfAny(){
         try { updateStatus('status: ' + info.name); } catch(_){}
       }
 
-      // ★ボイス再生部分（ランクアップ直後は抑制）
-      if (!suppressComboVoice && info.voiceId){ try{ window.playVoiceById && window.playVoiceById(info.voiceId); }catch(_){ } }
-      // 一度チェックしたらフラグはリセット
-      suppressComboVoice = false;
+// ★ボイス再生部分
+// ランクアップ直後は抑制。
+// スキルボイス再生中なら、連鎖ボイスは消さずに後から再生する。
+if (!suppressComboVoice && info.voiceId){
+  try{
+    const skillVoiceEl = window.__skillVoiceElement || null;
+
+if (
+  (typeof skillVoiceBusyUntil !== "undefined" && nowMs() < skillVoiceBusyUntil) ||
+  (skillVoiceEl && !skillVoiceEl.paused && !skillVoiceEl.ended)
+){
+  reserveComboVoiceAfterSkill(info.voiceId);
+} else {
+  window.playVoiceById && window.playVoiceById(info.voiceId);
+}
+  }catch(_){}
+}
+
+// 一度チェックしたらフラグはリセット
+suppressComboVoice = false;
     }
   }
 
 
   // ★コンボ最終判定時：連鎖数に応じて一度だけ演出を発生させる
-  if (comboCount >= 3){
-    try{
+  if (comboCount >= 3 && !(typeof isRankPriorityActive === "function" && isRankPriorityActive())){
+  try{
       // 6連鎖以上：大演出の直前に「沈黙フレーム（約0.1秒）」を挿入し、解放後にまとめて開始
       if (comboCount >= 6){
         const now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
@@ -2552,9 +3674,9 @@ function endComboIfAny(){
     }catch(_){}
   }
   // ★連鎖終了の残響（SEなし）
-  if (comboCount >= 4){
-    try{ spawnChainAfterglowEmbers(comboCount, comboEffectAnchor); }catch(_){ }
-  }
+  if (comboCount >= 4 && !(typeof isRankPriorityActive === "function" && isRankPriorityActive())){
+  try{ spawnChainAfterglowEmbers(comboCount, comboEffectAnchor); }catch(_){ }
+}
 
 // コンボの片付け
   comboCount = 0;
@@ -2701,7 +3823,7 @@ function buildRankSelectButtons(){ /* (省略: 変更なし) */
 }
 /* ===== RankMAX (Rank 5) の名称定義 ===== */
 // NORMALSとSPECIALSに続いて、ランクの名称一覧を定義します。
-// rankIndex (1-based) から名称を取得できるように、配列のインデックスを調整する必要があります。
+// rankIndex (1-based) から名称を取得できるように、配列の記録帖を調整する必要があります。
 // rankIndex 0: ミミック
 // rankIndex 1: ネオレトロ
 // rankIndex 2: シンギュラ
@@ -2770,9 +3892,76 @@ function setComboText(msg){
 }
 
 function updateStatus(text){ if($status) $status.textContent=text; }
+function showScorePopup(pts, colorType){
+  const el = document.createElement("div");
+
+  const isMinus = (typeof pts === "number" && pts < 0) || String(pts).charAt(0) === "-";
+  el.textContent = isMinus ? String(pts) : "+" + pts;
+
+  el.style.position = "fixed";
+  el.style.left = "50%";
+  el.style.top = "50%";
+
+  el.style.transform = "translate(-50%, -50%)";
+  // ★色分け
+if (colorType === "red") {
+  el.style.color = "#ff4444";
+  el.style.textShadow = "0 0 6px rgba(255,0,0,0.75)";
+} else if (colorType === "gray" || isMinus) {
+  el.style.color = "#b8b8b8"; // ペナルティ
+  el.style.textShadow = "0 0 4px rgba(0,0,0,0.85)";
+} else if (pts === 10) {
+  el.style.color = "#ffffff"; // 通常
+} else if (pts >= 30 && pts < 100) {
+  el.style.color = "#ffd700"; // 呪詛
+} else if (pts >= 100) {
+  el.style.color = "#ff4444"; // 強
+}
+  el.style.fontSize = "24px";
+  el.style.fontWeight = "bold";
+  el.style.zIndex = "9999";
+
+  document.body.appendChild(el);
+
+  setTimeout(()=> el.remove(), 500);
+}
+
+
+function showScorePopup(pts){
+  const scoreEl = document.getElementById("score");
+  if (!scoreEl) return;
+
+  const el = document.createElement("div");
+  el.textContent = "+" + pts;
+
+  el.style.position = "absolute";
+  el.style.color = "#ffd700";
+  el.style.fontWeight = "bold";
+  el.style.fontSize = "16px";
+  el.style.pointerEvents = "none";
+  el.style.textShadow = "0 0 6px #000";
+
+  const rect = scoreEl.getBoundingClientRect();
+
+  el.style.left = (rect.right + 6) + "px";
+  el.style.top  = (rect.top + rect.height/2) + "px";
+
+  el.style.transform = "translateY(-50%)";
+  el.style.transition = "all 0.5s ease-out";
+
+  document.body.appendChild(el);
+
+  requestAnimationFrame(()=>{
+    el.style.top = (parseFloat(el.style.top) - 20) + "px";
+    el.style.opacity = "0";
+  });
+
+  setTimeout(()=> el.remove(), 500);
+}
 function updateScoresUI(){
   // 暗躍値
   $score.textContent = `暗躍値: ${score}`;
+
   // 右上ランク（A）
   const label = (rankIndex===MAX_RANK_INDEX && hasReachedMaxRank) ? `修羅王丸: 永遠の焦土 ` : `修羅王丸: ${RANKS[rankIndex].name} `;
   if ($rank.firstChild) $rank.firstChild.textContent = label; else $rank.textContent = label;
@@ -2958,7 +4147,7 @@ function updateRank(){ /* (省略: 変更なし) */
     /* ensure Unknown gate resets */
     try{
       if (typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX){
-        // ランクMAXインデックスに到達した瞬間、
+        // ランクMAX記録帖に到達した瞬間、
         // まだ一度もMAX解放していない場合だけ 闘値カウンタをリセットする
         if (typeof hasReachedMaxRank!=='undefined' && !hasReachedMaxRank){
           if (typeof unknownStageProgress!=='number') unknownStageProgress = 0;
@@ -2970,9 +4159,12 @@ function updateRank(){ /* (省略: 変更なし) */
         // すでに hasReachedMaxRank が true の場合は、何もリセットしない（アイコンを消さない）
       }
     }catch(_){}
-    const vId = `vo_rank${Math.min(rankIndex,4)}`;
-    try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
-    Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
+    // ★ランクアップ演出を最優先にする
+try{ startRankPriority(1900); }catch(_){}
+
+const vId = `vo_rank${Math.min(rankIndex,4)}`;
+try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
+Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
   }
   // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
   updateScoresUI();
@@ -3052,6 +4244,96 @@ function applySpecialGimmicks(baseMatches){
   return extra;
 }
 
+/* --- スキル演出関数 --- */
+function triggerSkillCutin(symbol, callback) {
+  const config = SKILL_CONFIG[symbol];
+  if (!config) {
+    if (typeof callback === 'function') callback();
+    return;
+  }
+
+  // ★ランクアップ演出中はスキルカットインを出さない
+  if (typeof isRankPriorityActive === "function" && isRankPriorityActive()){
+    if (typeof callback === 'function') callback();
+    return;
+  }
+
+  const overlay = document.getElementById('skill-overlay');
+  const charImg = document.getElementById('skill-character');
+
+  if (!overlay || !charImg) {
+    if (typeof callback === 'function') callback();
+    return;
+  }
+
+// ★スキル演出を盤面(canvas)中央に表示する
+try{
+  const canvasEl = document.getElementById('gameCanvas');
+  if (canvasEl){
+    const rect = canvasEl.getBoundingClientRect();
+    overlay.style.setProperty('--skill-cx', (rect.left + rect.width / 2) + 'px');
+    overlay.style.setProperty('--skill-cy', (rect.top + rect.height / 2) + 'px');
+  }
+}catch(_){}
+
+ // ★実際に消えた特殊駒 symbol に対応した画像を出す
+// 初回迷子対策：Image/ ではなく、実フォルダ images/ を直接読む
+charImg.alt = '';
+charImg.onerror = null;
+
+try{
+  const pre = window.__skillCutinPreload && window.__skillCutinPreload[symbol];
+  charImg.src = (pre && pre.src) ? pre.src : `images/${config.img}.png`;
+}catch(_){
+  charImg.src = `images/${config.img}.png`;
+}
+
+  // ★モード別演出
+overlay.className = `skill-overlay ${isKanki ? 'mode-kanki' : 'mode-shodo'}`;
+overlay.classList.remove('active', 'fadeout');
+void overlay.offsetWidth; // 再発火を安定させる
+overlay.classList.add('active');
+
+  // ★スキルボイス優先時間。
+// 実音声の長さを完全取得できない環境もあるため、まずは固定値で安全に待つ。
+try{
+  skillVoiceBusyUntil = nowMs() + 3200;
+}catch(_){}
+
+// ★スキルボイス要素を記録して、連鎖ボイスは ended 後に回す
+try{
+  window.__skillVoiceElement = document.getElementById(config.voice) || null;
+}catch(_){
+  window.__skillVoiceElement = null;
+}
+
+if (typeof playVoiceById === 'function') {
+  playVoiceById(config.voice);
+} else {
+  const vo = window.__skillVoiceElement;
+  if (vo) {
+    try { vo.currentTime = 0; } catch(_) {}
+    try { vo.play(); } catch(_) {}
+  }
+}
+
+  // ★演出キャラ表示時間
+const HOLD_MS = 1050;  // 出現〜見せ場。CSSアニメと合わせる
+const FADE_MS = 520;   // 拡大しながら消える時間
+
+setTimeout(() => {
+  overlay.classList.add('fadeout');
+
+  setTimeout(() => {
+    overlay.classList.remove('active', 'fadeout');
+    if (typeof callback === 'function') callback();
+  }, FADE_MS);
+
+}, HOLD_MS);
+}
+/* --- ここまで --- */
+
+
 function resolveVanishAndDrop(){ /* (省略: 変更なし) */
   if(!vanishMask) return;
   registerComboStep();
@@ -3071,12 +4353,22 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
     }catch(_){ return false; }
   })();
   const specialsHit = new Set();
-  if (!isShuraCrossVanish){
-    vanishMask.forEach(pos=>{
-      const [r,c] = pos.split(',').map(Number);
-      const b = get(r,c);
-      if (b && SPECIALS.includes(b)) specialsHit.add(b);
-    });
+let normalCount = 0;   // ★ここ
+let curseCount = 0;    // ★ここ
+let specialCount = 0;  // ★追加
+
+if (!isShuraCrossVanish){
+  vanishMask.forEach(pos=>{
+    const [r,c] = pos.split(',').map(Number);
+    const b = get(r,c);
+
+    if(!b) return;
+
+    // ★ここではカウントしない
+    // スコア表示用カウントは、後ろの実スコア加算ループだけで行う
+    if (b && SPECIALS.includes(b)) specialsHit.add(b);
+  });
+
     specialsHit.forEach(sym=>{
       // 通常消去と同程度の音量に統一
       if (sym==="S_BIR" || sym==="S_NE0")      Sound.play('vertical', 0.9);
@@ -3141,81 +4433,127 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
     }
   }
 
-  vanishMask.forEach(pos=>{
-    const [r,c]=pos.split(',').map(Number);
-    const b=get(r,c);
-    if(b){
-      score += 10;
-      if(SPECIALS.includes(b)){
-        score += SPECIAL_POINTS[b];
-      }
-    }
-    // 周囲の呪詛ブロックへダメージ
-    for(let dr=-1; dr<=1; dr++){
-      for(let dc=-1; dc<=1; dc++){
-        if(!dr && !dc) continue;
-        const tr=r+dr, tc=c+dc;
-        if(JUSOS.includes(get(tr,tc)) && jusoHP[tr] && jusoHP[tr][tc]>0){
-          // ★同じ座標にこのサイクルで既に当てていないかチェック
-          const key = tr + ',' + tc;
-          if (!damagedThisVanish.has(key)) {
-            jusoHP[tr][tc]--;
-            damagedThisVanish.add(key);
-            triggerJusoShake(tr, tc, 1.0);
-          }
-          if (jusoHP[tr][tc]===0){
-            // ★このセルは「消去によるnull化」だとマークする
-            (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
-            set(tr,tc,null);
-            jusoHP[tr][tc] = 0;
-            score += 100;
-            Sound.play('vertical');
-          } else {
-            Sound.play('rumble');
-          }
+vanishMask.forEach(pos=>{
+  const [r,c]=pos.split(',').map(Number);
+  const b=get(r,c);
+
+  if(!b) return;
+
+  let pts = 10;
+  const key = SPECIAL_MAP[b] || b;
+
+  if (SPECIAL_POINTS[key]) {
+    pts += SPECIAL_POINTS[key];
+  }
+  score += pts;
+
+
+  // ★追加：種類カウント
+  if (pts === 10) normalCount++;
+  else if (pts < 100) curseCount++;
+  else specialCount++;
+
+  // 周囲の呪詛ブロックへダメージ
+  for(let dr=-1; dr<=1; dr++){
+    for(let dc=-1; dc<=1; dc++){
+      if(!dr && !dc) continue;
+      const tr=r+dr, tc=c+dc;
+      if(JUSOS.includes(get(tr,tc)) && jusoHP[tr] && jusoHP[tr][tc]>0){
+        const key = tr + ',' + tc;
+        if (!damagedThisVanish.has(key)) {
+          jusoHP[tr][tc]--;
+          damagedThisVanish.add(key);
+          triggerJusoShake(tr, tc, 1.0);
+        }
+        if (jusoHP[tr][tc]===0){
+          const j = get(tr, tc);
+
+          (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
+          set(tr,tc,null);
+          jusoHP[tr][tc] = 0;
+
+          const pts = JUSO_BREAK_POINTS[j] || 0;
+          score += pts;
+          showScorePopup(pts);
+
+          Sound.play('vertical');
+        } else {
+          Sound.play('rumble');
         }
       }
     }
+  }
 
-    // しゅらちゃん／レクしゅら：追加で呪詛を削る（盤面全体から）
-    if (b==="SHURACHAN" || b==="REKUSHURA"){
-      try{
-        const extraHits = (b==="SHURACHAN") ? 1 : 3;
-        const candidates = [];
-        for(let rr=0; rr<size; rr++){
-          for(let cc=0; cc<size; cc++){
-            const bb = get(rr,cc);
-            if(JUSOS.includes(bb) && jusoHP[rr] && jusoHP[rr][cc]>0){
-              const key2 = rr + ',' + cc;
-              if (!damagedThisVanish.has(key2)){
-                candidates.push({rr,cc,key:key2});
-              }
+  // しゅらちゃん／レクしゅら：追加で呪詛を削る（盤面全体から）
+  if (b==="SHURACHAN" || b==="REKUSHURA"){
+    try{
+      const extraHits = (b==="SHURACHAN") ? 1 : 3;
+      const candidates = [];
+      for(let rr=0; rr<size; rr++){
+        for(let cc=0; cc<size; cc++){
+          const bb = get(rr,cc);
+          if(JUSOS.includes(bb) && jusoHP[rr] && jusoHP[rr][cc]>0){
+            const key2 = rr + ',' + cc;
+            if (!damagedThisVanish.has(key2)){
+              candidates.push({rr,cc,key:key2});
             }
           }
         }
-        for(let n=0; n<extraHits && candidates.length>0; n++){
-          const idxPick = Math.floor(Math.random()*candidates.length);
-          const picked = candidates.splice(idxPick,1)[0];
-          const rr = picked.rr, cc = picked.cc, key = picked.key;
-          damagedThisVanish.add(key);
-          jusoHP[rr][cc]--;
-          triggerJusoShake(rr,cc,1.0);
-          if (jusoHP[rr][cc] <= 0){
-            jusoHP[rr][cc] = 0;
-            (window.__jusoEraseSet ||= new Set()).add(rr + ',' + cc);
-            set(rr,cc,null);
-            score += 100;
-            Sound.play('vertical');
-          } else {
-            Sound.play('rumble');
-          }
-        }
-      }catch(_){}
-    }
+      }
+      for(let n=0; n<extraHits && candidates.length>0; n++){
+        const idxPick = Math.floor(Math.random()*candidates.length);
+        const picked = candidates.splice(idxPick,1)[0];
+        const rr = picked.rr, cc = picked.cc, key = picked.key;
+        damagedThisVanish.add(key);
+        jusoHP[rr][cc]--;
+        triggerJusoShake(rr,cc,1.0);
+        if (jusoHP[rr][cc] <= 0){
+          const j = get(rr, cc);
 
-    if (JUSOS.includes(b)) { jusoHP[r][c] = 0; }
-    set(r,c,null);
+          jusoHP[rr][cc] = 0;
+          (window.__jusoEraseSet ||= new Set()).add(rr + ',' + cc);
+          set(rr,cc,null);
+
+          const pts = JUSO_BREAK_POINTS[j] || 0;
+          score += pts;
+          showScorePopup(pts);
+
+          Sound.play('vertical');
+        } else {
+          Sound.play('rumble');
+        }
+      }
+    }catch(_){}
+
+  }
+  set(r,c,null);
   });
+
+// ★ここがvanishMask.forEach「外」
+
+let comboBonus = 0;
+
+if (comboCount >= 6) comboBonus = 250;
+else if (comboCount === 5) comboBonus = 120;
+else if (comboCount === 4) comboBonus = 50;
+else if (comboCount === 3) comboBonus = 20;
+
+// 暗躍値加算スコア表示
+if (normalCount > 0) {
+  showScorePopup(`10×${normalCount}`, 'yellow');// 通常
+}
+
+if (curseCount > 0) {
+  showScorePopup(`${curseCount}`, 'red');// 呪詛
+}
+
+if (specialCount > 0) {
+  showScorePopup(`${specialCount}`, 'blue');// 特殊
+}
+
+if (comboBonus > 0) {
+  showScorePopup(`${comboBonus}`, 'orange');// コンボ
+}
 
   // ★レク×しゅら：第1段階（十字）消去後に、第2段階（同種全消去）を“落下前”に実行する
   if (lastRekCrossCombo && rekCrossStage === 1){
@@ -4359,7 +5697,8 @@ function drawGame(){ /* (省略: 変更なし) */
       ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,c*tileSize,r*tileSize,tileSize,tileSize);
     }
   }
-  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='screen'; ctx.fillStyle='rgba(255, 80, 80, 0.22)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
+/* 焦土の盤面赤フィルター調整*/
+  if(!isKanki){ ctx.save(); ctx.globalCompositeOperation='overlay'; ctx.fillStyle='rgba(135, 0, 0, 0.24)'; ctx.fillRect(0,0,logicalSize,logicalSize); ctx.restore(); }
 
   for(let r=0;r<size;r++) for(let c=0;c<size;c++){
     if(get(r,c)===null) continue;
@@ -4835,8 +6174,46 @@ function createShuraItemBurstEffects(mask, kind){
         }
       }
       break;
-    case "vanish":
-      vanishP += (1/VANISH_ANIM_TIME); if(vanishP>=1){ resolveVanishAndDrop(); }
+　 case "skill_pause":
+      break; // 演出が終わるまでここで待機
+   case "vanish":
+      vanishP += (1/VANISH_ANIM_TIME);
+      if(vanishP >= 1) {
+        // 1. まず、消える駒の中に特殊駒があるか探す
+        // ただし、しゅらちゃん／レクしゅらちゃんのブースト消去に巻き込まれただけの特殊駒では
+// スキル画像・ボイスを出さない
+let specialFound = null;
+
+const isShuraItemBoostVanish =
+  lastShuraItemKind === "SHURACHAN" ||
+  lastShuraItemKind === "REKUSHURA" ||
+  (typeof lastRekCrossCombo !== "undefined" && lastRekCrossCombo) ||
+  (typeof rekCrossStage !== "undefined" && rekCrossStage > 0);
+
+if (!isShuraItemBoostVanish) {
+  for(let pos of vanishMask) {
+    let [r, c] = pos.split(',').map(Number);
+    let sym = get(r, c);
+    if(SKILL_CONFIG[sym]) { 
+      specialFound = sym; 
+      break; // 1つ見つかればOK
+    }
+  }
+}
+
+        // 2. 特殊駒があったら演出を呼び出す
+        if(specialFound) {
+          animState = "skill_pause"; // 演出中、ゲームの進行を一時停止
+          triggerSkillCutin(specialFound, () => {
+            // 演出が終わったらここに戻ってくる
+            animState = "vanish"; 
+            resolveVanishAndDrop(); // 本来の消去・落下処理を実行
+          });
+        } else {
+          // 3. 特殊駒がなければ、今まで通りすぐに消去処理を実行
+          resolveVanishAndDrop();
+        }
+      }
       break;
     case "drop":
       let done=true;
@@ -4956,10 +6333,36 @@ function shuffleBoard(){ /* (省略: 変更なし) */
     tries++;
   }while((findMatches(true)||!hasPossibleMoves()) && tries<maxTries);
   updateStatus("status: 盤面をシャッフルしました。");
-  if (typeof setComboText === 'function'){
-    try { setComboText("盤面をシャッフルしました。"); } catch(_){}
+
+// ★詰みシャッフルSE
+try{
+  if (typeof Sound !== "undefined" && Sound && typeof Sound.play === "function") {
+    Sound.play("not", 1.0);
   }
-  animState="drop"; prepareDrop();
+}catch(_){}
+
+// ★詰みシャッフルペナルティ
+try{
+  const penalty = (typeof SHUFFLE_PENALTY !== "undefined") ? SHUFFLE_PENALTY : 50;
+  score = Math.max(0, score - penalty);
+  if (typeof showScorePopup === "function") showScorePopup(-penalty, "red");
+  if (typeof updateScoresUI === "function") updateScoresUI();
+}catch(_){}
+
+if (typeof setComboText === 'function'){
+  try {
+    setComboText("盤面をシャッフルしました。");
+
+    clearTimeout(window.__shuffleComboTextTimer);
+    window.__shuffleComboTextTimer = setTimeout(()=>{
+      try{
+        if (typeof setComboText === 'function') setComboText("");
+      }catch(_){}
+    }, 5000);
+
+  } catch(_){}
+}
+animState="drop"; prepareDrop();
 }
 
 /* 起動 (省略: 変更なし) */
@@ -4985,7 +6388,7 @@ canvas.addEventListener('touchstart',e=>{ e.preventDefault(); onStart(e.touches[
 canvas.addEventListener('touchmove',e=>{ e.preventDefault(); onMove(e.touches[0].clientX,e.touches[0].clientY); });
 canvas.addEventListener('touchend',onEnd);
 
-/* ★イベントリスナーをインデックス内のボタンに設定 */
+/* ★イベントリスナーを記録帖内のボタンに設定 */
 $indexBtn.addEventListener('click', openIndexModal);
 
 /* 背景クリックで閉じる処理 */
@@ -5188,6 +6591,7 @@ document.addEventListener('DOMContentLoaded', function () {
   } catch (e) { console && console.warn('Modal relocation patch error:', e); }
 });
 </script>
+
 <script>
 window.addEventListener("DOMContentLoaded", () => {
   const howtoBtn = document.getElementById("openHowtoBtn");
@@ -5203,7 +6607,7 @@ window.addEventListener("DOMContentLoaded", () => {
 /* ============================================================
    操作説明モーダル（Howto）— 安全・包括版
    - openHowto()/closeHowto() を提供（未定義でも動く）
-   - インデックスとの連携（ポーズ状態の保存/復帰）を考慮
+   - 記録帖との連携（ポーズ状態の保存/復帰）を考慮
    - 外側クリック/Escでクローズ
    - 画像配列が空でも落ちないフェイルセーフ
    ============================================================ */
@@ -5287,7 +6691,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if ($indexModal) $indexModal.style.filter = 'none';
 
-      // インデックスが閉じているなら、元のポーズ状態に復帰
+      // 記録帖が閉じているなら、元のポーズ状態に復帰
       if (!window.isIndexOpen && typeof window.togglePause === 'function') {
         if (window.paused && !window.wasPausedBeforeChildModal) {
           window.togglePause(); // 再開
@@ -5523,7 +6927,7 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
   var ctx = null;
 
   // WebAudio バス（iOSでHTMLAudio.volumeが効かない／効きにくい端末対策）
-  var masterGain = null, bgmGain = null, seGain = null;
+  var masterGain = null, bgmGain = null, seGain = null, voiceGain = null;
   var srcMap = new WeakMap();
 
   function ensureGraph(){
@@ -5544,19 +6948,22 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
       masterGain = audioCtx.createGain();
       bgmGain = audioCtx.createGain();
       seGain  = audioCtx.createGain();
+      voiceGain = audioCtx.createGain();
       bgmGain.connect(masterGain);
       seGain.connect(masterGain);
+      voiceGain.connect(masterGain);
       masterGain.connect(audioCtx.destination);
 
       // 初期値（保存値）を反映
       try{
         bgmGain.gain.value = store.get('bgmVol', BGM_DEFAULT_VOL);
         seGain.gain.value  = store.get('seVol',  SE_DEFAULT_VOL);
+        voiceGain.gain.value = store.get('voiceVol', VOICE_DEFAULT_VOL);
       }catch(_){}
 
-      window.__audioGraph = {ctx: audioCtx, master: masterGain, bgm: bgmGain, se: seGain, sources: new Map()};
+      window.__audioGraph = {ctx: audioCtx, master: masterGain, bgm: bgmGain, se: seGain, voice: voiceGain, sources: new Map()};
       // 既存audio要素を接続（iOSでvolumeが効かないケース用）
-      try{ connectKnownAudio(); }catch(_){}
+      //try{ connectKnownAudio(); }catch(_){}
       return window.__audioGraph;
     }catch(_){
       return null;
@@ -5567,10 +6974,11 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
     if (unlocked) return;
     unlocked = true;
     resumeCtx();
-    connectKnownAudio();
+    //connectKnownAudio();
     try{ if (typeof unlockAllSE === 'function') unlockAllSE(); }catch(_){}
-    primeBGM();
+
     try{ __applySeVolume && __applySeVolume(); }catch(_){ }
+    try{ __applyVoiceVolume && __applyVoiceVolume(); }catch(_){ }
     try{ __applyBgmVolume && __applyBgmVolume(); }catch(_){ }
     detach();
   }
@@ -5680,7 +7088,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 888; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
@@ -5756,26 +7164,35 @@ if (ok){
   })();
 
   // ---------- Auto-shuffle (no immediate matches, ensure at least one move) ----------
-  function hasAnyMove(){
-    if (typeof size==='undefined') return false;
-    for (let r=0;r<size;r++){
-      for (let c=0;c<size;c++){
-        const b = get(r,c); if (!b || (Array.isArray(JUSOS)&&JUSOS.includes(b))) continue;
-        const dirs = [[0,1],[1,0]];
-        for (const d of dirs){
-          const nr=r+d[0], nc=c+d[1];
-          if (nr<0||nr>=size||nc<0||nc>=size) continue;
-          const b2 = get(nr,nc);
-          if (!b2 || (Array.isArray(JUSOS)&&JUSOS.includes(b2))) continue;
-          swap(r,c,nr,nc);
-          const has = findMatches(true);
-          swap(r,c,nr,nc);
-          if (has) return true;
-        }
+function hasAnyMove(){
+  if (typeof size==='undefined') return false;
+
+  for (let r=0; r<size; r++){
+    for (let c=0; c<size; c++){
+      const b = get(r,c); // ★これが必須
+
+      // 空 or 呪詛はスキップ
+      if (!b || (Array.isArray(JUSOS) && JUSOS.includes(b))) continue;
+
+      const dirs = [[0,1],[1,0]];
+      for (const d of dirs){
+        const nr = r + d[0], nc = c + d[1];
+        if (nr<0 || nr>=size || nc<0 || nc>=size) continue;
+
+        const b2 = get(nr,nc);
+        if (!b2 || (Array.isArray(JUSOS) && JUSOS.includes(b2))) continue;
+
+        swap(r,c,nr,nc);
+        const has = findMatches(true);
+        swap(r,c,nr,nc);
+
+        if (has) return true;
       }
     }
-    return false;
   }
+
+  return false;
+}
   window.hasAnyMove = hasAnyMove;
   var __coreShuffleBoard = window.shuffleBoard;
 window.shuffleBoard = function(){
@@ -5851,13 +7268,24 @@ window.shuffleBoard = function(){
   <div id="allmaxPanel" role="dialog" aria-modal="true">
     <div id="allmaxClose" title="close">✕</div>
     <h2>― 到達せし者の扉 ―</h2>
+
     <div id="allmaxInputArea">
+      <p id="allmaxMessage">
+        途方も無き孤独な戦いの末、<br>
+        最果ての称号に辿り着いた貴方。<br><br>
+        修羅王丸と同じ景色を見た貴方に、<br>
+        敬意を込めて「扉」を授けます。<br><br>
+        「鍵を持つ者」に提示してください。
+      </p>
+
       <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="「鍵を持つ者」に提示せよ" autocomplete="off" />
-        <button id="allmaxOkBtn" type="button">OK</button>
+        <input id="allmaxInput" type="password" placeholder="鍵を入力" autocomplete="off" />
+        <button id="allmaxOkBtn" type="button">解錠</button>
       </div>
+
       <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
     </div>
+
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
@@ -5958,6 +7386,8 @@ document.addEventListener('DOMContentLoaded', function(){
   window.__kickstartAllAudioInstalled = true;
 
   function apply(){
+    // ロック中はBGMを開始しない（パスキー画面は静寂）
+    if (document.documentElement.classList.contains("locked") || window.__PASSKEY_LOCKED) return;
     try{ if (typeof window.resumeCtx==='function') window.resumeCtx(); }catch(_){}
     try{ if (typeof __applyBgmVolume==='function') __applyBgmVolume(); }catch(_){}
     try{ if (typeof __applySeVolume==='function') __applySeVolume(); }catch(_){}
@@ -6015,115 +7445,205 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
-</body>
-</html>
 <script>
-
-// === FIX: reserve fixed area for skill text to prevent layout shift ===
+// === Voice Slider SE追加 ===
 (function(){
-  function ensureSkillTextContainer(){
-    let c = document.getElementById('skillNameContainer');
-    if(!c){
-      c = document.createElement('div');
-      c.id = 'skillNameContainer';
-      const t = document.createElement('div');
-      t.id = 'skillNameText';
-      c.appendChild(t);
-      // append to body overlay layer
-      document.body.appendChild(c);
+  const voiceSlider = document.querySelector('#voiceSlider, #voiceVolume, input[name="voiceVolume"]');
+  const se = document.getElementById('se_push'); // 既存SE流用
+
+  if(voiceSlider && se){
+    let lastPlay = 0;
+
+    function playTick(){
+      const now = Date.now();
+      if(now - lastPlay < 40) return; // 連打防止（細かく鳴らすけど過剰防止）
+      lastPlay = now;
+      try{
+        se.currentTime = 0;
+        se.play();
+      }catch(e){}
     }
+
+    voiceSlider.addEventListener('input', playTick);
   }
-  document.addEventListener('DOMContentLoaded', ensureSkillTextContainer);
 })();
 
 </script>
 
+<script>
+/* === 修羅王丸系スキル中央演出 === */
+function showShuraSkillCutin(kind){
+  try{
+    const overlay = document.getElementById('skill-overlay');
+    const img = document.getElementById('skill-character');
+    if (!overlay || !img) return;
+
+    const key = (typeof SPECIAL_MAP !== 'undefined' && SPECIAL_MAP[kind]) ? SPECIAL_MAP[kind] : kind;
+    const modeClass = (typeof isKanki !== 'undefined' && isKanki) ? 'mode-kanki' : 'mode-shodo';
+
+    // 既存のIMG読み込み済み画像を使う。直パス指定しない。
+    try{
+      if (typeof IMG !== 'undefined' && IMG[key] && IMG[key].src){
+        img.src = IMG[key].src;
+      } else {
+        img.removeAttribute('src');
+      }
+    }catch(_){
+      img.removeAttribute('src');
+    }
+
+    // alt文字が見える事故を防ぐ
+    img.alt = '';
+
+    overlay.classList.remove('mode-kanki','mode-shodo','active');
+    overlay.classList.add(modeClass);
+
+    // rank0〜rank4 音声を現在ランクに連動して再生
+    try{
+      const r = Math.max(0, Math.min(4, Number(rankIndex) || 0));
+      const voiceId = 'vo_rank' + r;
+      if (typeof playVoiceById === 'function') {
+        playVoiceById(voiceId);
+      } else {
+        const vo = document.getElementById(voiceId);
+        if (vo){
+          try{ vo.currentTime = 0; }catch(_){}
+          try{ vo.play(); }catch(_){}
+        }
+      }
+    }catch(_){}
+
+    // 同フレーム再発火対策
+    void overlay.offsetWidth;
+
+    overlay.classList.add('active');
+
+    clearTimeout(window.__shuraSkillCutinTimer);
+    window.__shuraSkillCutinTimer = setTimeout(()=>{
+      try{
+        overlay.classList.remove('active');
+      }catch(_){}
+    }, 520);
+  }catch(_){}
+}
+</script>
+
+<div id="skill-overlay" class="skill-overlay">
+  <div class="skill-content">
+    <div id="skill-particles" class="particles"></div>
+    <img id="skill-character" src="" alt="">
+  </div>
+</div>
 <style>
-/* === Mobile only slider styling (forced). PC untouched. ===
-   - Track base: neutral
-   - Fill only: water-blue
-   - Track thickness: 1.5x (6px)
-   - Fill follows thumb via CSS var (--fill-pct) updated in JS
-   - Thumb centered to track using track height var
-*/
-:root{ --range-thumb-nudge: 3px; }
+/* === 軽量：修羅王丸系スキル中央演出 === */
+#skill-overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  opacity:0;
+  z-index:30000;
+  background:rgba(0,0,0,0);
+  transition:opacity .18s linear, background-color .18s linear;
+}
 
-@media (max-width: 900px){
-  input[type="range"], .slider-hit input[type="range"]{
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    height: 28px !important;
-    background: transparent !important;
+#skill-overlay.active{
+  opacity:1;
+  background:rgba(0,0,0,.28);
+}
 
-    /* geometry vars */
-    --track-h: 8px;              /* 4px * 1.5 = 6px */
-    --fill-pct: 50%;
-    --thumb-s: 16px;
-    --thumb-nudge-mobile: 0px;   /* 必要ならここだけ微調整 */
+/* スキル画像表示外枠 */
+#skill-overlay .skill-content{
+  position:relative;
+  width:min(72vw, 360px);
+height:min(72vw, 360px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
-    /* fill (伸縮部分) */
-    background-image: linear-gradient(#5ecbff, #5ecbff) !important;
-    background-repeat: no-repeat !important;
-    background-position: left center !important;
-    background-size: var(--fill-pct) var(--track-h) !important;
-  }
+#skill-character{
+  max-width:96%;
+  max-height:96%;
+  opacity:0;
+  transform:scale(.55);
+  transition:
+    transform .32s cubic-bezier(.2,1.35,.35,1),
+    opacity .16s linear,
+    filter .18s linear;
+  will-change:transform, opacity;
+}
 
-  /* Track base: neutral */
-  input[type="range"]::-webkit-slider-runnable-track,
-  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
-    height: var(--track-h) !important;
-    background: rgba(255,255,255,0.22) !important;
-    border: none !important;
-    border-radius: 999px !important;
-  }
+#skill-overlay.active #skill-character{
+  opacity:1;
+  transform:scale(1.08);
+}
 
-  /* Thumb: blue (centered) */
-  input[type="range"]::-webkit-slider-thumb,
-  .slider-hit input[type="range"]::-webkit-slider-thumb{
-    -webkit-appearance: none !important;
-    width: var(--thumb-s) !important;
-    height: var(--thumb-s) !important;
-    background: #1e90ff !important;
-    border: none !important;
-    border-radius: 50% !important;
-    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
-  }
+/* ★追加：消えるとき、少し拡大しながらフェードアウト */
+#skill-overlay.fadeout #skill-character{
+  opacity:0;
+  transform:scale(1.22);
+  transition:
+    transform .42s ease-out,
+    opacity .42s ease-out,
+    filter .18s linear;
+}
 
-  /* Firefox (Android) */
-  input[type="range"]::-moz-range-track,
-  .slider-hit input[type="range"]::-moz-range-track{
-    height: var(--track-h) !important;
-    background: rgba(255,255,255,0.22) !important;
-    border: none !important;
-    border-radius: 999px !important;
-  }
-  input[type="range"]::-moz-range-thumb,
-  .slider-hit input[type="range"]::-moz-range-thumb{
-    width: var(--thumb-s) !important;
-    height: var(--thumb-s) !important;
-    background: #1e90ff !important;
-    border: none !important;
-    border-radius: 50% !important;
-    margin-top: calc((var(--track-h) - var(--thumb-s)) / 2 + var(--thumb-nudge-mobile)) !important;
-  }
+/* 歓喜：青白い浄化 */
+#skill-overlay.mode-kanki #skill-character{
+  filter:
+    drop-shadow(0 0 10px rgba(180,240,255,.95))
+    drop-shadow(0 0 24px rgba(80,180,255,.65));
+}
+
+/* 焦土：赤黒＋青の破滅 */
+#skill-overlay.mode-shodo #skill-character{
+  filter:
+    drop-shadow(0 0 10px rgba(255,40,20,.95))
+    drop-shadow(0 0 24px rgba(80,120,255,.55))
+    drop-shadow(0 0 34px rgba(0,0,0,.95));
+}
+
+/* 軽量パーティクル風：疑似要素2枚だけ */
+#skill-overlay .skill-content::before,
+#skill-overlay .skill-content::after{
+  content:"";
+  position:absolute;
+  inset:8%;
+  border-radius:50%;
+  opacity:0;
+  transform:scale(.6);
+  transition:transform .42s ease-out, opacity .32s linear;
+}
+
+#skill-overlay.active .skill-content::before,
+#skill-overlay.active .skill-content::after{
+  opacity:1;
+  transform:scale(1.36);/光輪/
+}
+
+#skill-overlay.mode-kanki .skill-content::before{
+  border:2px solid rgba(180,245,255,.65);
+  box-shadow:0 0 22px rgba(120,220,255,.65);
+}
+
+#skill-overlay.mode-kanki .skill-content::after{
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 0 34px rgba(120,220,255,.45) inset;
+}
+
+#skill-overlay.mode-shodo .skill-content::before{
+  border:2px solid rgba(255,55,35,.7);
+  box-shadow:0 0 26px rgba(255,40,20,.7);
+}
+
+#skill-overlay.mode-shodo .skill-content::after{
+  border:1px solid rgba(80,130,255,.55);
+  box-shadow:0 0 36px rgba(0,0,0,.9) inset;
 }
 </style>
 
-
-
-<script>
-// === Ensure mobile range fill follows thumb (without changing existing logic) ===
-(function(){
-  function bindFill(el){
-    if(!el) return;
-    try{ updateRangeFill(el); }catch(_){}
-    el.addEventListener('input', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
-    el.addEventListener('change', function(){ try{ updateRangeFill(el); }catch(_){} }, {passive:true});
-  }
-  document.addEventListener('DOMContentLoaded', function(){
-    bindFill(document.getElementById('bgmSlider'));
-    bindFill(document.getElementById('seSlider'));
-  });
-})();
-</script>
-
+</body>
+</html>
