@@ -1,3 +1,4 @@
+ /* デモ用　20260521*/
 <!DOCTYPE html>
 <head>
   <!-- ==== PASSKEY LOCK + UNLOCK FX (added) ==== -->
@@ -805,6 +806,21 @@ html, body{
 #allmaxOverlay.allmax-unlocked #allmaxImage{ display:block !important; }
 
 
+/* === 称号隠しコマンド解放後画像：盤面幅＋縦幅も広めに表示 === */
+#allmaxOverlay.allmax-unlocked #allmaxPanel{
+  width:min(96vw, 520px);
+  max-height:92vh;
+  padding:14px;
+}
+
+#allmaxOverlay.allmax-unlocked #allmaxImage{
+  width:100% !important;
+  max-width:100% !important;
+  max-height:88vh !important;
+  height:auto !important;
+  object-fit:contain !important;
+}
+
 
 /* === Mobile/iPhone: range slider hit target enlargement === */
 .slider-hit{ display:flex; align-items:center; width:100%; }
@@ -1487,6 +1503,98 @@ html.ios #indexModal .vol-toggle{
   transform:translate(-50%, -50%) !important;
 }
 </style>
+<style>
+/* === 暗躍値称号MAX到達演出：永遠の観測者 === */
+#maxTitleCeremony{
+  position:fixed;
+  inset:0;
+  z-index:40000;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle at center, rgba(35,65,130,.30), rgba(0,0,0,.90) 68%),
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(85,0,0,.30));
+  animation:maxTitleBg 4.1s ease-out forwards;
+}
+
+#maxTitleCeremony::before,
+#maxTitleCeremony::after{
+  content:"";
+  position:absolute;
+  inset:14%;
+  border-radius:50%;
+  opacity:0;
+  transform:scale(.72);
+  border:1px solid rgba(120,160,255,.55);
+  box-shadow:
+    0 0 28px rgba(65,105,225,.55),
+    0 0 80px rgba(0,0,0,.95) inset;
+  animation:maxTitleRing 3.8s ease-out forwards;
+}
+
+#maxTitleCeremony::after{
+  inset:23%;
+  border-color:rgba(190,20,20,.42);
+  animation-delay:.16s;
+}
+
+#maxTitleCeremony .max-title-core{
+  position:relative;
+  z-index:1;
+  text-align:center;
+  transform:scale(.88);
+  opacity:0;
+  animation:maxTitleCore 3.6s ease-out forwards;
+}
+
+#maxTitleCeremony .max-title-main{
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  font-size:clamp(32px, 8.4vw, 72px);
+  font-weight:700;
+  letter-spacing:.12em;
+  color:#f6e8df;
+  text-shadow:
+    0 0 8px rgba(120,160,255,.9),
+    0 0 28px rgba(65,105,225,.8),
+    0 0 60px rgba(0,0,0,1);
+}
+
+#maxTitleCeremony .max-title-sub{
+  margin-top:16px;
+  font-size:clamp(13px, 3.2vw, 20px);
+  letter-spacing:.16em;
+  color:#ffb5a8;
+  text-shadow:
+    0 0 8px rgba(180,20,20,.85),
+    0 0 20px rgba(0,0,0,1);
+}
+
+#maxTitleCeremony.out{
+  opacity:0;
+  transition:opacity 1.3s ease-out;
+}
+
+@keyframes maxTitleCore{
+  0%{ opacity:0; transform:scale(.72) translateY(12px); filter:blur(3px); }
+  25%{ opacity:1; transform:scale(1.04) translateY(0); filter:blur(0); }
+  62%{ opacity:1; transform:scale(1.0) translateY(0); }
+  100%{ opacity:1; transform:scale(1.035) translateY(-2px); }
+}
+
+@keyframes maxTitleRing{
+  0%{ opacity:0; transform:scale(.58) rotate(0deg); }
+  28%{ opacity:.92; }
+  100%{ opacity:.08; transform:scale(1.5) rotate(22deg); }
+}
+
+@keyframes maxTitleBg{
+  0%{ opacity:0; }
+  18%{ opacity:1; }
+  100%{ opacity:1; }
+}
+</style>
 </head>
 <body>
   <!-- ==== PASSKEY LOCK UI (added) ==== -->
@@ -1777,6 +1885,8 @@ window.store = window.store || {
   <audio id="vo_rank4" src="audio/vo_rank4.mp3" preload="auto"></audio>
   <audio id="vo_rank5" src="audio/vo_rank5.mp3" preload="auto"></audio>
   <audio id="vo_reset" src="audio/vo_reset.mp3" preload="auto"></audio>
+  <audio id="vo_titlemax" src="audio/vo_titlemax.mp3" preload="auto"></audio>
+
 　<!-- ★ここから連鎖ボイス -->
 <audio id="vo_combo3" src="audio/vo_combo3.mp3" preload="auto"></audio>
 <audio id="vo_combo4" src="audio/vo_combo4.mp3" preload="auto"></audio>
@@ -3379,9 +3489,8 @@ function resetRank(){
   score = 0;
   rankIndex = 0;
   rankProgress = 0;
-  store.set("score",score);
-  store.set("rankIndex",rankIndex);
-  store.set("rankProgress",rankProgress);
+  store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
+try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
 
   // 盤面を初期化（既存描画は消える）
   initGame(true);
@@ -3437,7 +3546,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [20, 100, 300, 500, 700];//ランクアップ闘値
+const RANK_THRESH = [10, 10, 10, 10, 10];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -3482,6 +3591,7 @@ let isBgmReady = false; // BGMの準備完了フラグ
 
 /* ★ランクMAX到達フラグを追加 (永続化) */
 let hasReachedMaxRank = store.get("hasReachedMaxRank", false);
+let hasReachedMaxTitle = !!store.get("hasReachedMaxTitle", false);
 
 /* === 連鎖メーター・称号用 === */
 let comboCount = 0;
@@ -3907,6 +4017,9 @@ function showScorePopup(pts, colorType){
 if (colorType === "red") {
   el.style.color = "#ff4444";
   el.style.textShadow = "0 0 6px rgba(255,0,0,0.75)";
+} else if (colorType === "orange") {
+  el.style.color = "#ff9f1a";
+  el.style.textShadow = "0 0 7px rgba(255,140,0,0.85)";
 } else if (colorType === "gray" || isMinus) {
   el.style.color = "#b8b8b8"; // ペナルティ
   el.style.textShadow = "0 0 4px rgba(0,0,0,0.85)";
@@ -3927,37 +4040,44 @@ if (colorType === "red") {
 }
 
 
-function showScorePopup(pts){
-  const scoreEl = document.getElementById("score");
-  if (!scoreEl) return;
-
-  const el = document.createElement("div");
-  el.textContent = "+" + pts;
-
-  el.style.position = "absolute";
-  el.style.color = "#ffd700";
-  el.style.fontWeight = "bold";
-  el.style.fontSize = "16px";
-  el.style.pointerEvents = "none";
-  el.style.textShadow = "0 0 6px #000";
-
-  const rect = scoreEl.getBoundingClientRect();
-
-  el.style.left = (rect.right + 6) + "px";
-  el.style.top  = (rect.top + rect.height/2) + "px";
-
-  el.style.transform = "translateY(-50%)";
-  el.style.transition = "all 0.5s ease-out";
-
-  document.body.appendChild(el);
-
-  requestAnimationFrame(()=>{
-    el.style.top = (parseFloat(el.style.top) - 20) + "px";
-    el.style.opacity = "0";
-  });
-
-  setTimeout(()=> el.remove(), 500);
+function isTitleMaxReached(){
+  try{
+    return getTitleByScore(score) === "称号：永遠の観測者(MAX)";
+  }catch(_){
+    return false;
+  }
 }
+
+//称号MAX到達演出の関数
+function playMaxTitleCeremony(){
+  try{
+    const overlay = document.createElement("div");
+    overlay.id = "maxTitleCeremony";
+    overlay.innerHTML = `
+      <div class="max-title-core">
+        <div class="max-title-main">永遠の観測者</div>
+        <div class="max-title-sub">すべての焦土を、見届けし者</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // 新規ボイス。audio/vo_titlemax.mp3 を追加する前提
+    try{
+      const vo = document.getElementById("vo_titlemax");
+      if (vo){
+        vo.currentTime = 0;
+        vo.play();
+      }
+    }catch(_){}
+
+    setTimeout(()=>{
+      try{ overlay.classList.add("out"); }catch(_){}
+      setTimeout(()=>{ try{ overlay.remove(); }catch(_){} }, 1300);
+    }, 5800);
+
+  }catch(_){}
+}
+
 function updateScoresUI(){
   // 暗躍値
   $score.textContent = `暗躍値: ${score}`;
@@ -3994,9 +4114,23 @@ function updateScoresUI(){
     }
   }
   const titleEl = document.getElementById("titleLabel");
-  if (titleEl) titleEl.textContent = getTitleByScore(score);
-  // 永続
-  store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
+  const currentTitle = getTitleByScore(score);
+if (titleEl) titleEl.textContent = currentTitle;
+
+// 称号MAX「永遠の観測者」到達時に一度だけ演出
+if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
+  hasReachedMaxTitle = true;
+  try{ store.set("hasReachedMaxTitle", true); }catch(_){}
+  try{ playMaxTitleCeremony(); }catch(_){}
+}
+
+// 永続
+store.set("score",score);
+store.set("rankIndex",rankIndex); 
+store.set("rankProgress",rankProgress);
+store.set("hasReachedMaxRank", hasReachedMaxRank);
+store.set("hasReachedMaxTitle", hasReachedMaxTitle);
+try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
 }
 
 /* ===== 盤面 (省略: 変更なし) ===== */
@@ -4552,7 +4686,8 @@ if (specialCount > 0) {
 }
 
 if (comboBonus > 0) {
-  showScorePopup(`${comboBonus}`, 'orange');// コンボ
+  score += comboBonus;
+  showScorePopup(comboBonus, 'orange'); // コンボボーナス
 }
 
   // ★レク×しゅら：第1段階（十字）消去後に、第2段階（同種全消去）を“落下前”に実行する
@@ -6413,6 +6548,8 @@ window.addEventListener('beforeunload', ()=>{ /* (省略: 変更なし) */
   store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
   // ★ランクMAX到達フラグを保存
   store.set("hasReachedMaxRank", hasReachedMaxRank);
+  // ★暗躍値称号MAX到達フラグを保存
+  store.set("hasReachedMaxTitle", hasReachedMaxTitle);
 });
 
 startUp();
@@ -6480,19 +6617,19 @@ const ALLMAX_UNLOCK_KEY = "allmaxUnlocked";
     overlay.setAttribute("aria-hidden","true");
   }
 
-  function armAllMaxUI(){
-    const title = qs("titleLabel");
-    if (!title) return;
+function armAllMaxUI(){
+  const title = qs("titleLabel");
+  if (!title) return;
 
-    // hasReachedMaxRank は既存ロジックの永続フラグ
-    if (typeof hasReachedMaxRank !== "undefined" && hasReachedMaxRank){
-      title.classList.add("allmax-ready");
-      title.onclick = openAllMax;
-    } else {
-      title.classList.remove("allmax-ready");
-      title.onclick = null;
-    }
+  // 暗躍値称号が「永遠の観測者」に到達した時だけ、隠しコマンドを解放
+  if (typeof isTitleMaxReached === "function" && isTitleMaxReached()){
+    title.classList.add("allmax-ready");
+    title.onclick = openAllMax;
+  } else {
+    title.classList.remove("allmax-ready");
+    title.onclick = null;
   }
+}
 
   document.addEventListener("DOMContentLoaded", ()=>{
     const input = qs("allmaxInput");
@@ -7088,7 +7225,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 888; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 20; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
@@ -7275,7 +7412,7 @@ window.shuffleBoard = function(){
         最果ての称号に辿り着いた貴方。<br><br>
         修羅王丸と同じ景色を見た貴方に、<br>
         敬意を込めて「扉」を授けます。<br><br>
-        「鍵を持つ者」に提示してください。
+        時が来たら「鍵を持つ者」に提示してください。
       </p>
 
       <div id="allmaxInputRow">
