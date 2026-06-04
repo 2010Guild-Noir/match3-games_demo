@@ -1,4 +1,3 @@
- /* デモ用　20260521*/
 <!DOCTYPE html>
 <head>
   <!-- ==== PASSKEY LOCK + UNLOCK FX (added) ==== -->
@@ -164,9 +163,9 @@
 
 
 <script>
-/* iOS detection (global) */
-window.IS_IOS = IS_IOS;
-if (IS_IOS) { document.documentElement.classList.add('ios'); }
+/* iOS detection (global safety) */
+window.IS_IOS = !!window.IS_IOS;
+if (window.IS_IOS) { document.documentElement.classList.add('ios'); }
 </script>
 <meta charset="UTF-8" />
 <title>修羅王丸 永遠の焦土パズル(マッチ3)</title>
@@ -665,6 +664,18 @@ details.help li {
 }
 
 
+/* ユーザーのパスキー表示 */
+.player-id-display{
+  margin-top:-4px;
+  margin-bottom:4px;
+  font-size:11px;
+  line-height:1.4;
+  color:rgba(245,247,251,0.58);
+  letter-spacing:0.04em;
+  text-align:center;
+  user-select:text;
+}
+
 /* ★外枠の上下隙間ゼロ＋黒背景を確実に全面表示 */
 html, body{
   height:100%;
@@ -822,252 +833,8 @@ html, body{
 }
 
 
-/* === Mobile/iPhone: range slider hit target enlargement === */
-.slider-hit{ display:flex; align-items:center; width:100%; }
-@media (max-width: 900px){
-  .slider-hit{
-    padding: 14px 6px;           /* expands touch target vertically & slightly horizontally */
-    margin: -10px -6px;          /* keep layout unchanged while enlarging hit area */
-    touch-action: none;
-  }
-  .slider-hit input[type="range"]{
-    height: 32px;                /* bigger control box helps iOS hit testing */
-    width: 100%;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-  }
-  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
-    height: 10px;
-  }
-  .slider-hit input[type="range"]::-webkit-slider-thumb{
-    -webkit-appearance: none;
-    appearance: none;
-    width: 26px;
-    height: 26px;
-    margin-top: -8px;            /* centers thumb on 10px track */
-  }
-  .slider-hit input[type="range"]::-moz-range-track{ height: 10px; }
-  .slider-hit input[type="range"]::-moz-range-thumb{ width: 26px; height: 26px; }
-}
 
 
-/* === FIX: skill-name text should not push the board === */
-#skillNameContainer, .skill-name-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 72px;              /* 固定高さ：レイアウトシフト防止 */
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-#skillNameText, .skill-name-text {
-  max-width: 100%;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-
-/* === FIX: make range sliders visible on mobile (track/thumb were transparent) === */
-input[type="range"]::-webkit-slider-runnable-track{
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-}
-input[type="range"]::-webkit-slider-thumb{
-  background: rgba(245,247,251,0.92);
-  border: 1px solid rgba(0,0,0,0.35);
-  border-radius: 999px;
-}
-input[type="range"]::-moz-range-track{
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-}
-input[type="range"]::-moz-range-thumb{
-  background: rgba(245,247,251,0.92);
-  border: 1px solid rgba(0,0,0,0.35);
-  border-radius: 999px;
-}
-
-
-/* === FIX: mobile range sliders visibility (track/thumb) === */
-@media (max-width: 900px){
-  .slider-hit input[type="range"]::-webkit-slider-runnable-track{
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 999px;
-  }
-  .slider-hit input[type="range"]::-webkit-slider-thumb{
-    background: rgba(245,247,251,0.92);
-    border: 1px solid rgba(0,0,0,0.35);
-    border-radius: 999px;
-  }
-  .slider-hit input[type="range"]::-moz-range-track{
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 999px;
-  }
-  .slider-hit input[type="range"]::-moz-range-thumb{
-    background: rgba(245,247,251,0.92);
-    border: 1px solid rgba(0,0,0,0.35);
-    border-radius: 999px;
-  }
-}
-
-
-/* === FIX: restore desktop slider look (no top/bottom borders) === */
-@media (min-width: 901px){
-  input[type="range"]::-webkit-slider-runnable-track{ border: none !important; }
-  input[type="range"]::-webkit-slider-thumb{ border: none !important; }
-  input[type="range"]::-moz-range-track{ border: none !important; }
-  input[type="range"]::-moz-range-thumb{ border: none !important; }
-}
-
-
-/* === FIX: range fill bar (track fill) === */
-input[type="range"]{
-  background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
-  background-repeat: no-repeat;
-  background-size: 50% 100%; /* JSで更新 */
-}
-@media (max-width: 900px){
-  .slider-hit input[type="range"]{
-    background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
-    background-repeat: no-repeat;
-    background-size: 50% 100%;
-  }
-}
-
-input[type="range"]{
-  flex:1;
-  touch-action: none;           /* iOS/Chromeでドラッグをスクロール扱いにしない */
-  -webkit-tap-highlight-color: transparent;
-}
-input[type="range"]{
-    height: 32px;                /* bigger control box helps iOS hit testing */
-    width: 100%;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-  }
-input[type="range"]::-webkit-slider-runnable-track{
-    height: 10px;
-  }
-input[type="range"]::-webkit-slider-thumb{
-    -webkit-appearance: none;
-    appearance: none;
-    width: 26px;
-    height: 26px;
-    margin-top: -8px;            /* centers thumb on 10px track */
-  }
-input[type="range"]::-moz-range-track{ height: 10px; }
-input[type="range"]::-moz-range-thumb{ width: 26px; height: 26px; }
-input[type="range"]::-webkit-slider-runnable-track{
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-}
-input[type="range"]::-webkit-slider-thumb{
-  background: rgba(245,247,251,0.92);
-  border: 1px solid rgba(0,0,0,0.35);
-  border-radius: 999px;
-}
-input[type="range"]::-moz-range-track{
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-}
-input[type="range"]::-moz-range-thumb{
-  background: rgba(245,247,251,0.92);
-  border: 1px solid rgba(0,0,0,0.35);
-  border-radius: 999px;
-}
-input[type="range"]::-webkit-slider-runnable-track{
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 999px;
-  }
-input[type="range"]::-webkit-slider-thumb{
-    background: rgba(245,247,251,0.92);
-    border: 1px solid rgba(0,0,0,0.35);
-    border-radius: 999px;
-  }
-input[type="range"]::-moz-range-track{
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 999px;
-  }
-input[type="range"]::-moz-range-thumb{
-    background: rgba(245,247,251,0.92);
-    border: 1px solid rgba(0,0,0,0.35);
-    border-radius: 999px;
-  }
-input[type="range"]::-webkit-slider-runnable-track{ border: none !important; }
-input[type="range"]::-webkit-slider-thumb{ border: none !important; }
-input[type="range"]::-moz-range-track{ border: none !important; }
-input[type="range"]::-moz-range-thumb{ border: none !important; }
-input[type="range"]{
-  background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
-  background-repeat: no-repeat;
-  background-size: 50% 100%; /* JSで更新 */
-}
-input[type="range"]{
-    background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55));
-    background-repeat: no-repeat;
-    background-size: 50% 100%;
-  }
-/* === Mobile slider uses PC style === */
-@media (max-width: 900px){
-  .slider-hit input[type="range"]{
-    all: unset;
-  }
-  .slider-hit input[type="range"]{
-    flex: 1;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-}
-
-
-/* === FINAL RESET: restore native range slider appearance (match original PC) === */
-input[type="range"]{
-  all: revert;
-  appearance: auto;
-  -webkit-appearance: auto;
-  background: initial;
-}
-
-
-/* === FIX: thumb vertical centering with small per-engine nudge ===
-   Native range metrics differ across OS/engines; a 1px nudge is the most stable way
-   to achieve optical centering without redesigning the slider. */
-:root{
-  --range-track-h: 4px;
-  --range-thumb-h: 16px;
-  --range-thumb-nudge: 1px; /* +down. Set 0px if already centered */
-}
-/* WebKit / Blink */
-input[type="range"]::-webkit-slider-thumb{
-  margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
-}
-/* Firefox */
-input[type="range"]::-moz-range-thumb{
-  margin-top: calc((var(--range-track-h) - var(--range-thumb-h)) / 2 + var(--range-thumb-nudge));
-}
-
-
-/* === iOS: keep native range interaction reliable === */
-@supports (-webkit-touch-callout: none){
-  @media (max-width: 900px){
-    .slider-hit{ touch-action: pan-y; }
-    input[type="range"]{ touch-action: pan-y; }
-  }
-}
 
 /* スキル演出用：中央出現アニメーション */
 .skill-overlay {
@@ -1372,33 +1139,7 @@ input[type="range"]::-moz-range-thumb{
 </style>
 
 
-<style>
-/* iOS: hide volume sliders (BGM/SE) */
-html.ios input[type="range"],
-html.ios .volume-slider,
-html.ios .slider,
-html.ios .slider-wrap,
-html.ios .volume-control {
-  display: none !important;
-}
-</style>
 
-
-<style>
-/* iOS: make BGM/SE toggles centered and easier to tap (visual design preserved) */
-html.ios #indexModal .volume-row{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 14px;
-}
-html.ios #indexModal .vol-toggle{
-  font-size: 18px;
-  padding: 14px 18px;
-  min-width: 140px;
-  border-radius: 14px;
-}
-</style>
 
 
 <style>
@@ -1430,66 +1171,236 @@ html.ios, html.ios body, html.ios button, html.ios input, html.ios select, html.
 }
 </style>
 
-
 <style>
-/* Prevent label wrapping/clipping on audio toggle buttons */
-#bgmBtnIndex, #seBtnIndex, #voiceBtnIndex{
-  white-space: nowrap !important;
-  line-height: 1.2 !important;
-  overflow: visible !important;
+/* === 音量UI 一本化：PC/Androidは細い水色スライダー、iOSはボタンのみ === */
+
+/* PC / Android 共通：音量行 */
+#indexModal .volume-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
 }
-</style>
 
+#indexModal .volume-text{
+  font-size:14px;
+  min-width:70px;
+  text-align:left;
+}
 
-<style>
-/* Ensure toggle button box fits emoji/text */
+/* スライダーのタッチ領域 */
+#indexModal .slider-hit{
+  display:flex;
+  align-items:center;
+  flex:1;
+  width:100%;
+  touch-action:none;
+}
+
+/* PC / Android：スライダー本体は透明。太く見えないようにする */
+html:not(.ios) #indexModal input[type="range"]{
+  -webkit-appearance:none;
+  appearance:none;
+
+  width:100%;
+  height:24px;
+  margin:0;
+  padding:0;
+
+  background:transparent;
+  border:none;
+  outline:none;
+
+  cursor:pointer;
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* Chrome / Android / Edge：細いトラックにだけ水色ゲージ */
+html:not(.ios) #indexModal input[type="range"]::-webkit-slider-runnable-track{
+  height:10px;
+  border-radius:999px;
+  border:none;
+  background:
+    linear-gradient(
+      to right,
+      #33CFFF 0%,
+      #33CFFF var(--fill-pct, 50%),
+      rgba(255,255,255,.22) var(--fill-pct, 50%),
+      rgba(255,255,255,.22) 100%
+    );
+}
+
+html:not(.ios) #indexModal input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+
+  width:20px;
+  height:20px;
+  margin-top:-6px;
+
+  border-radius:50%;
+  background:#f5f7fb;
+  border:1px solid rgba(0,0,0,.35);
+
+  box-shadow:
+    0 0 4px rgba(255,255,255,.45),
+    0 0 7px rgba(51,207,255,.55);
+}
+
+/* Firefox */
+html:not(.ios) #indexModal input[type="range"]::-moz-range-track{
+  height:4px;
+  border-radius:999px;
+  border:none;
+  background:
+    linear-gradient(
+      to right,
+      #33CFFF 0%,
+      #33CFFF var(--fill-pct, 50%),
+      rgba(255,255,255,.22) var(--fill-pct, 50%),
+      rgba(255,255,255,.22) 100%
+    );
+}
+
+html:not(.ios) #indexModal input[type="range"]::-moz-range-thumb{
+  width:20px;
+  height:20px;
+
+  border-radius:50%;
+  background:#f5f7fb;
+  border:1px solid rgba(0,0,0,.35);
+
+  box-shadow:
+    0 0 4px rgba(255,255,255,.45),
+    0 0 7px rgba(51,207,255,.55);
+}
+
+/* iOS：スライダーは出さず、音量ボタンだけにする */
+html.ios #indexModal input[type="range"],
+html.ios #indexModal .slider-hit{
+  display:none !important;
+}
+
+html.ios #indexModal .volume-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+
 html.ios #indexModal .vol-toggle{
-  min-height: 52px;
+  font-size:18px;
+  padding:14px 18px;
+  min-width:140px;
+  min-height:52px;
+  border-radius:14px;
+}
+
+/* 音量ボタンの文字切れ防止 */
+#bgmBtnIndex,
+#seBtnIndex,
+#voiceBtnIndex{
+  white-space:nowrap !important;
+  line-height:1.2 !important;
+  overflow:visible !important;
 }
 </style>
+
 <style>
-/* === Android/Chrome: 音量スライダーの水色ゲージ復活 === */
-@media (hover: none) and (pointer: coarse){
-  html:not(.ios) #indexModal input[type="range"]{
-    --track-h: 10px;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    width: 100% !important;
-    height: 32px !important;
-    border-radius: 999px !important;
-    outline: none !important;
-    background:
-      linear-gradient(
-        to right,
-        #33CFFF 0%,
-        #33CFFF var(--fill-pct, 50%),
-        rgba(255,255,255,.22) var(--fill-pct, 50%),
-        rgba(255,255,255,.22) 100%
-      ) !important;
-  }
-
-  html:not(.ios) #indexModal input[type="range"]::-webkit-slider-runnable-track{
-    height: 10px !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 999px !important;
-  }
-
-  html:not(.ios) #indexModal input[type="range"]::-webkit-slider-thumb{
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    width: 24px !important;
-    height: 24px !important;
-    margin-top: -7px !important;
-    border-radius: 50% !important;
-    background: #f5f7fb !important;
-    border: 1px solid rgba(0,0,0,.35) !important;
-    box-shadow:
-      0 0 6px rgba(255,255,255,.55),
-      0 0 10px rgba(51,207,255,.65) !important;
-  }
+/* === iOS専用：音量 サイクルボタン式 === */
+.ios-volume-steps{
+  display:none;
 }
+
+/* iPhoneでは「BGM🔊」「Vol.▂▆█」の2ボタン構成にする */
+html.ios #indexModal .volume-row{
+  display:grid;
+  grid-template-columns: 1fr 3fr; /* 左を狭く、Vol側を広く */
+  align-items:center;
+  gap:8px;
+
+  margin:8px 0;
+  padding:8px 10px;
+
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:14px;
+  background:rgba(255,255,255,0.035);
+}
+
+/* iPhoneでは左の説明ラベルとスライダーは隠す */
+html.ios #indexModal .slider-hit,
+html.ios #indexModal input[type="range"]{
+  display:none !important;
+}
+
+/* ON/OFF側ボタン */
+html.ios #indexModal .vol-toggle{
+  width:100%;
+  min-width:0;
+  min-height:46px;
+  padding:9px 4px;
+
+  font-size:15px;
+  font-weight:700;
+  border-radius:999px;
+}
+
+/* Vol.ボタンを同じ行に出す */
+html.ios #indexModal .ios-volume-steps{
+  display:flex;
+  width:100%;
+  margin:0;
+}
+
+/* Vol.▂▆█ ボタン */
+.ios-vol-cycle{
+  width:100%;
+  min-height:46px;
+  padding:9px 8px;
+
+  font-size:16px;
+
+  font-weight:800;
+  line-height:1;
+  border-radius:999px;
+
+  border:1px solid rgba(255,255,255,0.22);
+  background:linear-gradient(180deg,#202126,#14151a);
+  color:#f5f7fb;
+
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.ios-vol-cycle .vol-bars{
+  color:#33CFFF;
+  font-size:18px;
+  letter-spacing:0.08em;
+  text-shadow:0 0 6px rgba(51,207,255,0.55);
+}
+.ios-vol-cycle .vol-label{
+  margin-left:2px;
+  margin-right:3px;
+  color:#f5f7fb;
+  font-weight:700;
+}
+
+
+/* 押した時・選択中っぽい発光 */
+.ios-vol-cycle:active,
+.ios-vol-cycle.active{
+  border-color:#4169E1;
+  box-shadow:
+    0 0 6px rgba(255,255,255,0.35),
+    0 0 10px rgba(65,105,225,0.65);
+}
+
 </style>
+
+
 <style>
 /* === スキル画像:盤面中央に出す === */
 .skill-overlay{
@@ -1603,7 +1514,7 @@ html.ios #indexModal .vol-toggle{
       <p class="desc">
         <b>「永遠の焦土パズル」へようこそ</b><br/><br/>
         お客様専用パスキーを入力してください。<br/>
-        パスキーは使い切りのため、他の端末には使えなくなります。<br/>
+        <ご注意>パスキーを解除すると、現在このページにアクセスしている端末とブラウザでのみプレイ可能となります。<br/>
         この端末で一度解錠したら、以後は入力不要でプレイできます。<br/>
       </p>
 
@@ -1619,7 +1530,7 @@ html.ios #indexModal .vol-toggle{
       <div class="foot">
         うまくいかない時：URL末尾に <span class="mono" style="display:inline; padding:2px 6px;">?v=8</span> を付けてリロードしてください（キャッシュ回避）<br/>
         ※解錠後はブラウザの履歴削除をしないようご注意ください。<br/><br/>
-        Ⓒ2010 Guild Noir. 修羅王丸®
+        Ⓒ2010 Guild Noir. 修羅王丸® ＜デモ版＞
       </div>
     </div>  </div>
   <div id="unlockFx" aria-hidden="true"></div>
@@ -1787,6 +1698,15 @@ html.ios #indexModal .vol-toggle{
     }
 
     localStorage.setItem(LS_UNLOCKED, "1");
+
+try{
+  localStorage.setItem("supporter_player_id_v1", pass);
+}catch(_){}
+
+try{
+  if (typeof updatePlayerIdDisplay === "function") updatePlayerIdDisplay();
+}catch(_){}
+
     setMsg("解錠しました。", "ok");
     playUnlockAudioOnce();
     runUnlockFxThenShowGame();
@@ -1814,6 +1734,27 @@ window.store = window.store || {
   set: function(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ try{ localStorage.setItem(k, String(v)); }catch(e2){} } },
   del: function(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
+</script>
+
+<script>
+function updatePlayerIdDisplay(){
+  try{
+    const el = document.getElementById("playerIdDisplay");
+    if (!el) return;
+
+    const id = localStorage.getItem("supporter_player_id_v1");
+
+    if (id){
+      el.textContent = "Player ID：" + id;
+    } else {
+      el.textContent = "Player ID：未登録";
+    }
+  }catch(_){}
+}
+
+try{
+  document.addEventListener("DOMContentLoaded", updatePlayerIdDisplay);
+}catch(_){}
 </script>
 
 <div class="wrap">
@@ -1877,7 +1818,8 @@ window.store = window.store || {
   <audio id="se_push"       src="audio/se_push.mp3"   preload="auto"></audio>
   <audio id="se_bell"       src="audio/se_bell.mp3"    preload="auto"></audio>
   <audio id="se_rumble"     src="audio/se_rumble.mp3"  preload="auto"></audio>
-  <audio id="se_not"       src="audio/se_not.mp3"  preload="auto"></audio>
+  <audio id="se_not"        src="audio/se_not.mp3"  preload="auto"></audio>
+  <audio id="vo_sample" src="audio/vo_sample.mp3"  preload="auto"></audio>
   <audio id="vo_rank0" src="audio/vo_rank0.mp3" preload="auto"></audio>
   <audio id="vo_rank1" src="audio/vo_rank1.mp3" preload="auto"></audio>
   <audio id="vo_rank2" src="audio/vo_rank2.mp3" preload="auto"></audio>
@@ -1918,6 +1860,9 @@ window.store = window.store || {
       <button class="btn" id="btnCharIntroIndex" onclick="openCharModal(); onClickSE()">👤 修羅王丸 顕現名鑑</button>
       
       <button class="btn" id="openHowtoBtn" onclick="openHowto(); onClickSE()">ⓘ 操作説明</button>
+      <div id="playerIdDisplay" class="player-id-display">
+  Player ID：未登録
+</div>
       
       <button class="btn btn-reset" id="resetRankBtn" aria-label="覚醒ランクのリセット" title="覚醒ランクのリセット">
         <span class="reset-hold-ring" aria-hidden="true">
@@ -1935,10 +1880,10 @@ window.store = window.store || {
 <div id="resetConfirmModal" role="dialog" aria-modal="true" aria-label="覚醒ランクのリセット確認" hidden>
   <div class="modal-content">
     <h3>覚醒ランクをリセットしますか？</h3>
-    <p>これまでの覚醒ランクと暗躍値/称号が初期化されます。</p>
+    <p>獲得した覚醒ランクと暗躍値/称号が初期化されます。</br>※選択取消はできません。ご注意ください。</p>
     <div class="confirm-btns">
-      <button class="btn" id="confirmResetNo" onclick="closeResetConfirmModal(); onClickSE()">いいえ</button>
-      <button class="btn btn-reset" id="confirmResetYes" onclick="resetRank(); onClickSE()">はい</button>
+      <button class="btn" id="confirmResetNo" onclick="closeResetConfirmModal(); onClickSE()">思い留まる…</button>
+      <button class="btn btn-reset" id="confirmResetYes" onclick="resetRank(); onClickSE()">全てを無に帰す</button>
     </div>
   </div>
 </div>
@@ -2143,7 +2088,10 @@ function onSeSliderChange(v){
   store.set("seVol", Sound.vol);
   // WebAudioバス音量（iOSでaudio.volumeが効かないケースのため）
   try{ var g = ensureGraph(); if (g && g.se && g.se.gain) g.se.gain.value = Sound.enabled ? Sound.vol : 0; }catch(_){ }
-  updateSeIcon(Sound.enabled ? Sound.vol : 0);
+updateSeIcon(Sound.enabled ? Sound.vol : 0);
+
+// SEスライダー操作中の試聴音
+try{ playSESliderPreview(); }catch(_){}
 }
 
 function onVoiceSliderChange(v){
@@ -2176,9 +2124,125 @@ function onVoiceSliderChange(v){
   try{ if(voiceSlider) updateRangeFill(voiceSlider); }catch(_){ }
 
   store.set("voiceVol", vol);
-  try{ __applyVoiceVolume(); }catch(_){ }
-  updateVoiceIcon(voiceOn ? vol : 0);
+try{ __applyVoiceVolume(); }catch(_){ }
+updateVoiceIcon(voiceOn ? vol : 0);
+
+// VOICEスライダー操作中の試聴音
+try{ playVoiceSliderPreview(); }catch(_){}
 }
+
+let __seSliderPreviewTimer = null;
+let __seSliderPreviewLastAt = 0;
+
+function playSESliderPreview(){
+  try{
+    // SEがOFFまたは音量0なら鳴らさない
+    if (!Sound || !Sound.enabled || Sound.vol <= 0) return;
+
+    const now = Date.now();
+
+    // 連打防止：短時間に鳴りすぎないようにする
+    if (now - __seSliderPreviewLastAt < 140) return;
+    __seSliderPreviewLastAt = now;
+
+    // 既存のSE再生経路を使う
+    if (typeof Sound.play === "function"){
+      Sound.play("push", 0.75);
+    } else if (typeof window.playSEPush === "function"){
+      window.playSEPush();
+    } else if (typeof onClickSE === "function"){
+      onClickSE();
+    }
+
+    // 短く鳴らす：長く尾を引く場合の保険
+    if (__seSliderPreviewTimer) clearTimeout(__seSliderPreviewTimer);
+    __seSliderPreviewTimer = setTimeout(()=>{
+      try{
+        const se = document.getElementById("se_push");
+        if (se){
+          se.pause();
+          se.currentTime = 0;
+        }
+      }catch(_){}
+    }, 120);
+
+  }catch(_){}
+}
+
+let __voiceSliderPreviewTimer = null;
+
+function playVoiceSliderPreview(){
+  try{
+    // VOICEがOFFなら鳴らさない
+    if (typeof voiceOn !== "undefined" && !voiceOn) return;
+
+    const vol = (typeof __getVoiceEffectiveVol === "function")
+      ? __getVoiceEffectiveVol()
+      : Math.max(0, Math.min(1, Number(store.get("voiceVol", VOICE_DEFAULT_VOL)) || 0));
+
+    const vo = document.getElementById("vo_sample") || document.getElementById("vo_rank0");
+    if (!vo) return;
+
+    // 音量0なら止める
+    if (vol <= 0){
+      try{
+        vo.pause();
+        vo.currentTime = 0;
+      }catch(_){}
+      return;
+    }
+
+    // 現在のVOICE音量を即反映
+    try{
+      if (typeof __setElementVolumeSafe === "function"){
+        __setElementVolumeSafe(vo, vol);
+      } else {
+        vo.volume = Math.max(0, Math.min(1, vol));
+      }
+    }catch(_){}
+
+    // iOS/WebAudio対策
+    try{
+      const g = ensureGraph();
+      if (g && typeof connectToBus === "function"){
+        connectToBus(vo, g.voice || g.se);
+      }
+    }catch(_){}
+
+    // 他のボイスが鳴っていたら止める。ただし試聴ボイス自身は止めない
+    try{
+      if (typeof __voiceCurrent !== "undefined" && __voiceCurrent && __voiceCurrent !== vo){
+        __voiceCurrent.pause();
+        __voiceCurrent.currentTime = 0;
+      }
+      __voiceCurrent = vo;
+    }catch(_){}
+
+    // すでに再生中なら、頭出しせず音量だけ反映する
+    if (vo.paused || vo.ended){
+      try{ vo.currentTime = 0; }catch(_){}
+
+      if (typeof __playMediaSafe === "function"){
+        __playMediaSafe(vo);
+      } else {
+        const p = vo.play();
+        if (p && typeof p.catch === "function") p.catch(()=>{});
+      }
+    }
+
+    // vo_sample.mp3 は10秒あるので、2秒では止めない
+    // 操作後もしばらく鳴らし、自然終了に近い形にする
+    if (__voiceSliderPreviewTimer) clearTimeout(__voiceSliderPreviewTimer);
+    __voiceSliderPreviewTimer = setTimeout(()=>{
+      try{
+        vo.pause();
+        vo.currentTime = 0;
+      }catch(_){}
+    }, 11000);
+
+  }catch(_){}
+}
+
 
 // attach slider events
 if (bgmSlider){
@@ -2187,21 +2251,21 @@ if (bgmSlider){
 }
 if (seSlider){
   seSlider.addEventListener("input", e => { onSeSliderChange(e.target.value); });
-  seSlider.addEventListener("change", ()=>{ try{ onClickSE(); }catch(_){ } });
-}
-if (voiceSlider){
-  voiceSlider.addEventListener("input", e => { onVoiceSliderChange(e.target.value); });
-  voiceSlider.addEventListener("change", ()=>{
-    try{
-      if (typeof Sound !== "undefined" && Sound && typeof Sound.play === "function") {
-        Sound.play("push", 0.85);
-      } else {
-        onClickSE();
-      }
-    }catch(_){}
+  seSlider.addEventListener("change", e => { 
+    try{ onSeSliderChange(e.target.value); }catch(_){}
   });
 }
+if (voiceSlider){
+  voiceSlider.addEventListener("input", e => { 
+    onVoiceSliderChange(e.target.value); 
+  });
 
+  // つまみを離した時に、決定音として se_push.mp3 を1回だけ鳴らす
+  voiceSlider.addEventListener("change", e => { 
+    try{ onVoiceSliderChange(e.target.value); }catch(_){}
+    try{ onClickSE(); }catch(_){}
+  });
+}
 
 // iOS/Chromeでrangeのドラッグが鈍い/反応しない対策：pointer/touch移動で値を直接更新する
 function enhanceRangeSlider(el, onValue){
@@ -2282,6 +2346,124 @@ try{
 }catch(_){}
 
 
+// === iOS専用：音量 小・中・大 ボタン生成 ===
+function setupIOSVolumeSteps(){
+  try{
+    const isIOSNow = !!window.IS_IOS || document.documentElement.classList.contains("ios");
+    if (!isIOSNow) return;
+
+    document.documentElement.classList.add("ios");
+
+    const configs = [
+      {
+        slider: bgmSlider,
+        label: "bgm",
+        values: [15, 50, 90],
+        onChange: onBgmSliderChange
+      },
+      {
+        slider: seSlider,
+        label: "se",
+        values: [20, 50, 85],
+        onChange: onSeSliderChange
+      },
+      {
+        slider: voiceSlider,
+        label: "voice",
+        values: [25, 55, 100],
+        onChange: onVoiceSliderChange
+      }
+    ];
+
+    function getBars(value){
+  const v = Number(value || 0);
+  if (v < 40) return { label:"小", bars:"▂" };
+  if (v < 75) return { label:"中", bars:"▂▆" };
+  return { label:"大", bars:"▂▆█" };
+}
+
+    function getNextValue(current, values){
+      const v = Number(current || 0);
+      if (v < 40) return values[1];   // 小 → 中
+      if (v < 75) return values[2];   // 中 → 大
+      return values[0];               // 大 → 小
+    }
+
+    configs.forEach(cfg=>{
+      const slider = cfg.slider;
+      if (!slider) return;
+
+      const row = slider.closest(".volume-row");
+      if (!row) return;
+
+      // 二重生成防止
+      if (row.querySelector(`.ios-volume-steps[data-for="${cfg.label}"]`)) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "ios-volume-steps";
+      wrap.dataset.for = cfg.label;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ios-vol-cycle active";
+
+      function refreshButton(){
+  const vol = getBars(slider.value);
+  btn.innerHTML = `Vol.<span class="vol-label">${vol.label}</span><span class="vol-bars">${vol.bars}</span>`;
+}
+
+      refreshButton();
+
+      btn.addEventListener("click", ()=>{
+  try{ userGesture && userGesture(); }catch(_){}
+  try{ if (typeof window.ensureGraph === "function") window.ensureGraph(); }catch(_){}
+  try{ connectKnownAudio && connectKnownAudio(); }catch(_){}
+
+  const next = getNextValue(slider.value, cfg.values);
+
+  try{ slider.value = String(next); }catch(_){}
+  try{ if (typeof updateRangeFill === "function") updateRangeFill(slider); }catch(_){}
+
+  // 既存の音量変更ルートに通す
+  try{ if (typeof cfg.onChange === "function") cfg.onChange(next); }catch(_){}
+
+  // iPhone保険：実出力側へ即時反映。ON/OFF状態はここでは直接触らない。
+  try{
+    if (cfg.label === "bgm"){
+      if (typeof __applyBgmVolume === "function") __applyBgmVolume();
+      if (next > 0 && typeof safeStartBGM === "function") safeStartBGM(currentBGM());
+    } else if (cfg.label === "se"){
+      if (typeof __applySeVolume === "function") __applySeVolume();
+    } else if (cfg.label === "voice"){
+      if (typeof __applyVoiceVolume === "function") __applyVoiceVolume();
+    }
+  }catch(_){}
+
+  refreshButton();
+
+  // 確認音：SEボタン自身を触った時は onSeSliderChange 内の試聴音に任せる
+  try{ if (cfg.label !== "se") onClickSE(); }catch(_){}
+});
+
+      wrap.appendChild(btn);
+
+      // 既存のvolume-row内に入れる。これで「ON/OFF」と横並びになる
+      row.appendChild(wrap);
+    });
+  }catch(_){}
+}
+
+try{
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", ()=>{
+      setTimeout(setupIOSVolumeSteps, 100);
+    }, { once:true });
+  } else {
+    setTimeout(setupIOSVolumeSteps, 100);
+  }
+}catch(_){}
+
+
 const BGM_DEFAULT_VOL = 0.35;
 const SE_DEFAULT_VOL  = 0.25;
 const VOICE_DEFAULT_VOL = 0.75;
@@ -2289,23 +2471,44 @@ const VOICE_DEFAULT_VOL = 0.75;
 function makePool(baseEl, n){
   // baseEl: an existing <audio> element in the DOM
   const arr = [baseEl.cloneNode(true)];
-  try{ arr[0].pause(); }catch(_){}
-  try{ arr[0].currentTime = 0; }catch(_){}
+  try{ arr[0].pause(); }catch(_){ }
+  try{ arr[0].currentTime = 0; }catch(_){ }
   for(let i=1;i<n;i++){
     const clone = baseEl.cloneNode(true);
-    try{ clone.pause(); }catch(_){}
-    try{ clone.currentTime = 0; }catch(_){}
+    try{ clone.pause(); }catch(_){ }
+    try{ clone.currentTime = 0; }catch(_){ }
     arr.push(clone);
   }
   let idx = 0;
   return {
-    play(vol){
+    play(volMul){
       const el = arr[idx++ % arr.length];
-      try{ el.pause(); }catch(_){}
-      try{ el.currentTime = 0; }catch(_){}
-      try{ el.volume = vol; }catch(_){ }
-      // iOSのみ：SEバスへ接続（スライダーを確実に効かせる）
-      if (IS_IOS){ try{ var g = ensureGraph(); if (g) connectToBus(el, g.se); }catch(_){ } }
+      try{ el.pause(); }catch(_){ }
+      try{ el.currentTime = 0; }catch(_){ }
+
+      let connectedToSeBus = false;
+      if (typeof IS_IOS !== "undefined" && IS_IOS){
+        try{
+          const g = ensureGraph();
+          if (g && g.se){
+            connectedToSeBus = !!connectToBus(el, g.se);
+            try{ if (typeof __applySeVolume === "function") __applySeVolume(); }catch(_){ }
+          }
+        }catch(_){ }
+      }
+
+      // SEバス接続済みならGainで音量制御。未接続/非iOSならaudio.volumeに実効音量を入れる。
+      let outVol = Number(volMul);
+      if (!isFinite(outVol)) outVol = 1;
+      if (!connectedToSeBus){
+        try{
+          const eff = (typeof __getSeEffectiveVol === "function") ? __getSeEffectiveVol() : ((window.Sound && Sound.enabled) ? (Sound.vol || 1) : 0);
+          outVol *= eff;
+        }catch(_){
+          try{ outVol *= (window.Sound && Sound.vol!=null ? Sound.vol : 1); }catch(__){ }
+        }
+      }
+      try{ el.volume = Math.max(0, Math.min(1, outVol)); }catch(_){ }
       var p = el.play(); if(p && typeof p.catch==='function') p.catch(function(){});
     }
   };
@@ -2355,9 +2558,9 @@ const Sound={
     }
 
     const m = (this.mul && this.mul[n]!=null) ? this.mul[n] : 1;
-    const g = window.__audioGraph;
-    const v = (g && g.se && g.se.gain) ? (volMul * m) : (this.vol * volMul * m);
-    p.play(v);
+    try{ if (typeof __applySeVolume === "function") __applySeVolume(); }catch(_){ }
+    // 実効音量は makePool 側で「SEバス接続済みならGain、未接続ならaudio.volume」に振り分ける。
+    p.play(volMul * m);
   },
 };
 Sound.init();
@@ -2374,46 +2577,61 @@ let __duckReleaseTimer = null;
 // iOSでaudio.volumeが効かない/端末依存になる場合に備え、WebAudio(GainNode)で音量制御する
 function connectToBus(el, bus){
   try{
-    if (!IS_IOS) return;
-    if (!el || !bus) return;
+    if (!IS_IOS) return false;
+    if (!el || !bus) return false;
     const g = window.__audioGraph;
-    if (!g || !g.ctx || !g.sources) return;
-    if (g.sources.has(el)) return;
+    if (!g || !g.ctx || !g.sources) return false;
+    if (g.sources.has(el)) return true;
     const src = g.ctx.createMediaElementSource(el);
     src.connect(bus);
     g.sources.set(el, src);
-  }catch(_){}
+    return true;
+  }catch(_){
+    return false;
+  }
 }
 function connectKnownAudio(){
   try{
     if (!IS_IOS) return;
-    const g = ensureGraph();
+    const g = (typeof window.ensureGraph === "function") ? window.ensureGraph() : null;
     if (!g) return;
     // BGM要素（2曲）を必ずバスへ
-    try{ if (bgm1) connectToBus(bgm1, g.bgm); }catch(_){}
-    try{ if (bgm2) connectToBus(bgm2, g.bgm); }catch(_){}
-  }catch(_){}
-}
+    try{ if (bgm1) connectToBus(bgm1, g.bgm); }catch(_){ }
+    try{ if (bgm2) connectToBus(bgm2, g.bgm); }catch(_){ }
 
+    // VOICE要素もバスへ接続（接続済みなら何もしない）
+    try{
+      document.querySelectorAll('audio[id^="vo_"]').forEach(function(el){
+        try{ connectToBus(el, g.voice); }catch(_){ }
+      });
+    }catch(_){ }
+  }catch(_){ }
+}
 function __clamp01(x){ x = Number(x); return isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; }
 
 function __applyBgmVolume(){
   const base = __clamp01(store.get("bgmVol", BGM_DEFAULT_VOL));
-  const iosLimit = (typeof IS_IOS!=='undefined' && IS_IOS) ? 0.7 : 1.0;
+  const iosLimit = (typeof IS_IOS!=="undefined" && IS_IOS) ? 0.7 : 1.0;
   const eff  = ((bgmOn && !bgmMuted) ? base : 0) * (__ducking ? 0.65 : 1) * iosLimit;
 
-  // WebAudioバスがあればGainで制御（iOSで確実）
-  try{
-    const g = window.__audioGraph;
-    if (g && g.bgm && g.bgm.gain){
-      g.bgm.gain.value = eff;
-      return;
-    }
-  }catch(_){}
+  let bgm1Connected = false;
+  let bgm2Connected = false;
 
-  // フォールバック
-  try{ bgm1.volume = eff; }catch(_){}
-  try{ bgm2.volume = eff; }catch(_){}
+  try{
+    if (typeof IS_IOS!=="undefined" && IS_IOS){
+      const g = ensureGraph();
+      if (g && g.bgm){
+        try{ bgm1Connected = !!connectToBus(bgm1, g.bgm); }catch(_){ }
+        try{ bgm2Connected = !!connectToBus(bgm2, g.bgm); }catch(_){ }
+        try{ if (g.bgm && g.bgm.gain) g.bgm.gain.value = eff; }catch(_){ }
+      }
+    }
+  }catch(_){ }
+
+  // WebAudio接続済みならGainで制御するためaudio要素は最大にする。
+  // 未接続/非iOSではaudio.volume側に直接反映する。
+  try{ if (bgm1) bgm1.volume = bgm1Connected ? 1 : eff; }catch(_){ }
+  try{ if (bgm2) bgm2.volume = bgm2Connected ? 1 : eff; }catch(_){ }
 }
 
 function __applySeVolume(){
@@ -2422,9 +2640,8 @@ function __applySeVolume(){
     const g = window.__audioGraph;
     if (g && g.se && g.se.gain){
       g.se.gain.value = eff;
-      return;
     }
-  }catch(_){}
+  }catch(_){ }
 }
 
 function __getSeEffectiveVol(){
@@ -2441,13 +2658,34 @@ function __getVoiceEffectiveVol(){
 
 function __applyVoiceVolume(){
   const eff = __getVoiceEffectiveVol();
+  let hasVoiceBus = false;
   try{
     const g = window.__audioGraph;
     if (g && g.voice && g.voice.gain){
       g.voice.gain.value = eff;
-      return;
+      hasVoiceBus = true;
     }
-  }catch(_){}
+  }catch(_){ }
+
+  // 鳴っているボイス、試聴ボイス、全vo_*要素に即時反映。
+  // バス接続済みならGainで制御するため要素側は1。未接続なら要素側にeff。
+  try{
+    document.querySelectorAll('audio[id^="vo_"]').forEach(function(el){
+      try{
+        let connected = false;
+        if (typeof IS_IOS!=="undefined" && IS_IOS && hasVoiceBus){
+          const g = window.__audioGraph;
+          connected = !!connectToBus(el, g.voice);
+        }
+        el.volume = connected ? 1 : eff;
+      }catch(_){ }
+    });
+  }catch(_){ }
+  try{
+    if (typeof __voiceCurrent !== "undefined" && __voiceCurrent){
+      __voiceCurrent.volume = hasVoiceBus ? 1 : eff;
+    }
+  }catch(_){ }
 }
 
 function __setElementVolumeSafe(el, vol){
@@ -3256,15 +3494,14 @@ function openCharModal(){
   $charModal.hidden = false;
 }
 function closeCharModal(){
-   onClickSE && onClickSE(); try{ window.playSEPush && window.playSEPush(); }catch(e){};
- 
+  try{ window.playSEPush && window.playSEPush(); }catch(e){}
+
   $charModal.classList.remove("open"); 
   $charModal.hidden = true;
   $indexModal.style.filter = "none";
   
   // 記録帖が開いていれば、ポーズ状態は維持（ゲームはポーズのまま）
   if (isIndexOpen) {
-    // 記録帖が開いているため、何もしない（paused = trueのまま）
     return;
   }
 
@@ -3273,7 +3510,6 @@ function closeCharModal(){
     togglePause(); 
   }
 }
-
 /* ★操作説明のデータ */
 const HOWTO_IMAGES = [
   "images/howto1.png",
@@ -3546,7 +3782,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [10, 10, 10, 10, 10];//ランクアップ闘値
+const RANK_THRESH = [15, 20, 20, 20, 20];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -3865,11 +4101,11 @@ function getComboInfo(n){
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の放浪者(2/8)";
-  if (s < 20000) return "称号：業火の修験者(3/8)";
-  if (s < 50000) return "称号：比良坂の防人(4/8)";
-  if (s < 60000) return "称号：黄昏の審問官(5/8)";
-  if (s < 70000) return "称号：血煙の傍観者(6/8)";
-  if (s < 80000) return "称号：無明の支配者(7/8)";
+  if (s < 10000) return "称号：業火の修験者(3/8)";
+  if (s < 20000) return "称号：比良坂の防人(4/8)";
+  if (s < 30000) return "称号：黄昏の審問官(5/8)";
+  if (s < 40000) return "称号：血煙の傍観者(6/8)";
+  if (s < 50000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
@@ -4003,42 +4239,68 @@ function setComboText(msg){
 
 function updateStatus(text){ if($status) $status.textContent=text; }
 function showScorePopup(pts, colorType){
+  const scoreEl = document.getElementById("score");
+  if (!scoreEl) return;
+
   const el = document.createElement("div");
 
   const isMinus = (typeof pts === "number" && pts < 0) || String(pts).charAt(0) === "-";
   el.textContent = isMinus ? String(pts) : "+" + pts;
 
-  el.style.position = "fixed";
-  el.style.left = "50%";
-  el.style.top = "50%";
+  el.style.position = "absolute";
+  el.style.fontWeight = "bold";
+  el.style.fontSize = "16px";
+  el.style.pointerEvents = "none";
+  el.style.zIndex = "9999";
 
-  el.style.transform = "translate(-50%, -50%)";
   // ★色分け
-if (colorType === "red") {
+ if (colorType === "red") {
   el.style.color = "#ff4444";
   el.style.textShadow = "0 0 6px rgba(255,0,0,0.75)";
+} else if (colorType === "purple") {
+  el.style.color = "#c04cff";
+  el.style.textShadow = "0 0 7px rgba(170,30,220,0.85)";
+} else if (colorType === "blue") {
+  el.style.color = "#66b7ff";
+  el.style.textShadow = "0 0 7px rgba(80,160,255,0.85)";
 } else if (colorType === "orange") {
   el.style.color = "#ff9f1a";
   el.style.textShadow = "0 0 7px rgba(255,140,0,0.85)";
 } else if (colorType === "gray" || isMinus) {
-  el.style.color = "#b8b8b8"; // ペナルティ
+  el.style.color = "#b8b8b8";
   el.style.textShadow = "0 0 4px rgba(0,0,0,0.85)";
-} else if (pts === 10) {
-  el.style.color = "#ffffff"; // 通常
-} else if (pts >= 30 && pts < 100) {
-  el.style.color = "#ffd700"; // 呪詛
-} else if (pts >= 100) {
-  el.style.color = "#ff4444"; // 強
+} else {
+  el.style.color = "#ffd700";
+  el.style.textShadow = "0 0 6px #000";
 }
-  el.style.fontSize = "24px";
-  el.style.fontWeight = "bold";
-  el.style.zIndex = "9999";
+
+  const rect = scoreEl.getBoundingClientRect();
+
+el.style.left = (rect.right + 6) + "px";
+
+// ★同時表示の重なり回避
+// 通常 yellow は基準位置。
+// 特殊 blue は少し下、コンボ orange はさらに下。
+let yOffset = 0;
+if (colorType === "purple") yOffset = -14;      // 呪詛：通常より少し上
+else if (colorType === "blue") yOffset = 14;    // 特殊：少し下
+else if (colorType === "orange") yOffset = 28;  // コンボ：さらに下
+else if (colorType === "red") yOffset = -28;    // ペナルティ：一番上
+
+el.style.top  = (rect.top + rect.height / 2 + yOffset) + "px";
+
+  el.style.transform = "translateY(-50%)";
+  el.style.transition = "all 0.5s ease-out";
 
   document.body.appendChild(el);
 
+  requestAnimationFrame(()=>{
+    el.style.top = (parseFloat(el.style.top) - 20) + "px";
+    el.style.opacity = "0";
+  });
+
   setTimeout(()=> el.remove(), 500);
 }
-
 
 function isTitleMaxReached(){
   try{
@@ -4487,9 +4749,10 @@ function resolveVanishAndDrop(){ /* (省略: 変更なし) */
     }catch(_){ return false; }
   })();
   const specialsHit = new Set();
-let normalCount = 0;   // ★ここ
-let curseCount = 0;    // ★ここ
-let specialCount = 0;  // ★追加
+let normalCount = 0;   
+let curseCount = 0;   
+let specialCount = 0;  
+let specialBonusTotal = 0; // 特殊駒ボーナス表示用
 
 if (!isShuraCrossVanish){
   vanishMask.forEach(pos=>{
@@ -4583,9 +4846,15 @@ vanishMask.forEach(pos=>{
 
 
   // ★追加：種類カウント
-  if (pts === 10) normalCount++;
-  else if (pts < 100) curseCount++;
-  else specialCount++;
+// 点数ではなく、駒の種類で分類する
+if (SPECIAL_POINTS[key]) {
+  specialCount++;
+  specialBonusTotal += SPECIAL_POINTS[key] || 0; // 特殊駒の追加ボーナスだけ合計
+} else if (JUSOS.includes(b)) {
+  curseCount++;
+} else {
+  normalCount++;
+}
 
   // 周囲の呪詛ブロックへダメージ
   for(let dr=-1; dr<=1; dr++){
@@ -4605,13 +4874,11 @@ vanishMask.forEach(pos=>{
           (window.__jusoEraseSet ||= new Set()).add(tr + ',' + tc);
           set(tr,tc,null);
           jusoHP[tr][tc] = 0;
-
           const pts = JUSO_BREAK_POINTS[j] || 0;
           score += pts;
-          showScorePopup(pts);
+          showScorePopup(pts, 'purple');
 
-          Sound.play('vertical');
-        } else {
+          Sound.play('vertical');        } else {
           Sound.play('rumble');
         }
       }
@@ -4650,7 +4917,7 @@ vanishMask.forEach(pos=>{
 
           const pts = JUSO_BREAK_POINTS[j] || 0;
           score += pts;
-          showScorePopup(pts);
+          showScorePopup(pts, 'purple');
 
           Sound.play('vertical');
         } else {
@@ -4678,11 +4945,11 @@ if (normalCount > 0) {
 }
 
 if (curseCount > 0) {
-  showScorePopup(`${curseCount}`, 'red');// 呪詛
+  showScorePopup(`${curseCount}`, 'purple');// 呪詛
 }
 
-if (specialCount > 0) {
-  showScorePopup(`${specialCount}`, 'blue');// 特殊
+if (specialBonusTotal > 0) {
+  showScorePopup(specialBonusTotal, 'blue'); // 特殊駒ボーナス
 }
 
 if (comboBonus > 0) {
@@ -6820,8 +7087,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // 閉じる
   window.closeHowto = function closeHowto(){
     // ★SE: push（Howto閉じる）
-  try{ onClickSE && onClickSE(); }catch(e){};
-  try{ onClickSE && onClickSE(); }catch(e){}; try {
+try{ onClickSE && onClickSE(); }catch(e){}
+try {
       if ($howtoModal) {
         $howtoModal.classList.remove('open');
         $howtoModal.hidden = true;
@@ -7100,12 +7367,15 @@ var REDUCED=false; try{ REDUCED = window.matchMedia && window.matchMedia('(prefe
 
       window.__audioGraph = {ctx: audioCtx, master: masterGain, bgm: bgmGain, se: seGain, voice: voiceGain, sources: new Map()};
       // 既存audio要素を接続（iOSでvolumeが効かないケース用）
-      //try{ connectKnownAudio(); }catch(_){}
+      try{ connectKnownAudio(); }catch(_){}
       return window.__audioGraph;
     }catch(_){
       return null;
     }
   }
+
+  // ★iOS音量制御用：ensureGraphを外側の音量反映処理から呼べるようにする
+  try{ window.ensureGraph = ensureGraph; }catch(_){}
 
   function unlock(){
     if (unlocked) return;
@@ -7225,7 +7495,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 20; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 888; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
@@ -7582,30 +7852,6 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
-<script>
-// === Voice Slider SE追加 ===
-(function(){
-  const voiceSlider = document.querySelector('#voiceSlider, #voiceVolume, input[name="voiceVolume"]');
-  const se = document.getElementById('se_push'); // 既存SE流用
-
-  if(voiceSlider && se){
-    let lastPlay = 0;
-
-    function playTick(){
-      const now = Date.now();
-      if(now - lastPlay < 40) return; // 連打防止（細かく鳴らすけど過剰防止）
-      lastPlay = now;
-      try{
-        se.currentTime = 0;
-        se.play();
-      }catch(e){}
-    }
-
-    voiceSlider.addEventListener('input', playTick);
-  }
-})();
-
-</script>
 
 <script>
 /* === 修羅王丸系スキル中央演出 === */
@@ -7758,7 +8004,7 @@ height:min(72vw, 360px);
 #skill-overlay.active .skill-content::before,
 #skill-overlay.active .skill-content::after{
   opacity:1;
-  transform:scale(1.36);/光輪/
+  transform:scale(1.36); /* 光輪 */
 }
 
 #skill-overlay.mode-kanki .skill-content::before{
