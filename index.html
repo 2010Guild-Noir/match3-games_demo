@@ -1421,9 +1421,8 @@ html.ios #indexModal .ios-volume-steps{
   left:0;
   right:0;
 
-  /* イラストの上に出す */
-  top:calc(var(--skill-cy, 50vh) - clamp(122px, 27vw, 178px));
-  transform:translateY(-50%) scale(.94);
+  top:calc(var(--skill-cy, 50vh) - clamp(120px, 26vw, 172px));
+  transform:translateY(-50%) scale(.96);
 
   z-index:30002;
   pointer-events:none;
@@ -1439,29 +1438,27 @@ html.ios #indexModal .ios-volume-steps{
   overflow:visible;
 
   font-family:
-    "Yu Mincho",
-    "Hiragino Mincho ProN",
     "HGS行書体",
     "HGP行書体",
+    "Yu Mincho",
+    "Hiragino Mincho ProN",
     "Noto Serif JP",
     serif;
 
-  /* 少し大きめ。ただしスマホで割れにくい上限 */
-  font-size:clamp(40px, 10.5vw, 86px) !important;
+  font-size:clamp(40px, 10.2vw, 84px) !important;
   font-weight:900;
-  letter-spacing:-.06em;
+  letter-spacing:-.07em;
 
-  color:#fff4e6;
+  color:#f7ead2;
+  -webkit-text-stroke:1px rgba(20,8,6,.82);
 
-  /* 縁・発光・グラデ感を維持強化 */
-  -webkit-text-stroke:1px rgba(35,10,10,.82);
   text-shadow:
-    0 2px 0 rgba(80,20,10,.95),
-    0 0 5px rgba(255,255,255,.95),
-    0 0 13px rgba(255,160,80,.78),
-    0 0 22px rgba(65,105,225,.95),
-    0 0 38px rgba(65,105,225,.62),
-    0 0 58px rgba(0,0,0,1);
+    0 1px 0 rgba(70,20,8,.95),
+    0 2px 0 rgba(20,6,4,.9),
+    0 0 6px rgba(255,235,190,.85),
+    0 0 16px rgba(180,38,28,.62),
+    0 0 28px rgba(65,105,225,.62),
+    0 0 46px rgba(0,0,0,1);
 
   opacity:0;
   filter:blur(2px);
@@ -1472,18 +1469,17 @@ html.ios #indexModal .ios-volume-steps{
   content:"";
   position:absolute;
   left:50%;
-  top:50%;
-  width:min(94vw, 560px);
-  height:46%;
+  top:54%;
+  width:min(88vw, 520px);
+  height:42%;
   transform:translate(-50%, -50%);
   background:
-    linear-gradient(90deg,
-      transparent,
-      rgba(255,255,255,.34),
-      rgba(255,190,100,.22),
-      transparent
+    radial-gradient(ellipse at center,
+      rgba(255,240,200,.22) 0%,
+      rgba(120,40,28,.18) 42%,
+      transparent 72%
     );
-  filter:blur(8px);
+  filter:blur(9px);
   z-index:-1;
 }
 
@@ -1491,36 +1487,36 @@ html.ios #indexModal .ios-volume-steps{
   content:"";
   position:absolute;
   left:50%;
-  top:62%;
-  width:min(78vw, 420px);
-  height:2px;
+  top:66%;
+  width:min(66vw, 360px);
+  height:1px;
   transform:translateX(-50%);
-  background:linear-gradient(90deg, transparent, rgba(255,220,160,.9), transparent);
+  background:linear-gradient(90deg, transparent, rgba(240,210,150,.8), transparent);
   box-shadow:
-    0 0 8px rgba(255,200,120,.7),
-    0 0 18px rgba(65,105,225,.45);
+    0 0 7px rgba(240,190,120,.55),
+    0 0 14px rgba(65,105,225,.32);
   z-index:-1;
 }
 
 @keyframes rankupAwakenText{
   0%{
     opacity:0;
-    transform:translateY(-50%) scale(.78);
+    transform:translateY(-50%) scale(.82);
     filter:blur(4px);
   }
   14%{
     opacity:1;
-    transform:translateY(-50%) scale(1.07);
+    transform:translateY(-50%) scale(1.06);
     filter:blur(0);
   }
-  78%{
+  76%{
     opacity:1;
     transform:translateY(-50%) scale(1.0);
     filter:blur(0);
   }
   100%{
     opacity:0;
-    transform:translateY(-62%) scale(1.05);
+    transform:translateY(-62%) scale(1.04);
     filter:blur(2px);
   }
 }
@@ -4184,6 +4180,79 @@ function getRankUpDelayAfterSkill(){
   return delay;
 }
 
+function runPendingRankUpAwakenAfterDrop(){
+  try{
+    if (!window.__pendingRankUpAwaken) return;
+    if (window.__rankUpAwakenRunning) return;
+
+    window.__pendingRankUpAwaken = false;
+    window.__rankUpAwakenRunning = true;
+
+    // この間だけ操作・連鎖ボイスを抑制
+    try{ startRankPriority(2800); }catch(_){}
+
+    // 覚醒演出開始
+    try{ playRankUpAwakenCeremony(); }catch(_){}
+
+    // 既存のランクアップVOICE・鐘SE
+    try{
+      const idx = Number(window.__pendingRankUpIndex || rankIndex || 0);
+      const vId = `vo_rank${Math.min(idx,4)}`;
+      window.playVoiceById && window.playVoiceById(vId);
+    }catch(_){}
+
+    try{ Sound.play('bell', 1.0); }catch(_){}
+
+    // 覚醒演出を見せたあと、ランクアップ報酬の盤面全消しへ
+    setTimeout(()=>{
+      try{
+        if (window.__pendingRankUpFullClear){
+          const all = new Set();
+
+          for(let r=0;r<size;r++){
+            for(let c=0;c<size;c++){
+              if(get(r,c)!==null) all.add(`${r},${c}`);
+            }
+          }
+
+          window.__pendingRankUpFullClear = false;
+
+          if(all.size>0){
+            // ★ランクアップ全消しでは、巻き込まれた特殊駒のスキルカットインを出さない
+            window.__rankUpFullClearVanish = true;
+
+            vanishMask = all;
+            animState = "vanish";
+            vanishP = 0;
+            lastMatchVH.v = true;
+            lastMatchVH.h = false;
+            createSlashEffects(all);
+
+            setTimeout(()=>{
+              try{ window.__rankUpFullClearVanish = false; }catch(_){}
+            }, 1400);
+          }else{
+            animState = "idle";
+          }
+        }else{
+          animState = "idle";
+        }
+      }catch(_){
+        animState = "idle";
+      }
+
+      setTimeout(()=>{
+        try{ window.__rankUpAwakenRunning = false; }catch(_){}
+      }, 800);
+
+    }, 1550);
+
+  }catch(_){
+    try{ window.__rankUpAwakenRunning = false; }catch(_){}
+    try{ animState = "idle"; }catch(_){}
+  }
+}
+
 function resetComboForNewMove(){
   comboCount = 0;
   auroraTriggeredThisMove = false; // 一手ごとにオーロラ発動フラグをリセット
@@ -4771,11 +4840,14 @@ function findMatches(checkOnly=true){ /* (省略: 変更なし) */
 /* ランク進捗・ボイス (省略: 変更なし) */
 function updateRank(){ /* (省略: 変更なし) */
   if(rankIndex<MAX_RANK_INDEX && rankProgress>=RANK_THRESH[rankIndex]){
-    rankProgress=0; rankIndex++;
+    rankProgress=0;
+    rankIndex++;
+
     // ランクアップしたので、直後のコンボ技ボイスを抑制
     if (typeof suppressComboVoice !== 'undefined') {
       suppressComboVoice = true;
     }
+
     /* ensure Unknown gate resets */
     try{
       if (typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX){
@@ -4784,35 +4856,26 @@ function updateRank(){ /* (省略: 変更なし) */
         if (typeof hasReachedMaxRank!=='undefined' && !hasReachedMaxRank){
           if (typeof unknownStageProgress!=='number') unknownStageProgress = 0;
           else unknownStageProgress = 0;
+
           try{
             if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', 0);
           }catch(_){}
         }
-        // すでに hasReachedMaxRank が true の場合は、何もリセットしない（アイコンを消さない）
+
+        // すでに hasReachedMaxRank が true の場合は、何もリセットしない
       }
     }catch(_){}
-    // ★直前のスキル演出・スキル音声をできるだけ見せ切ってからランクアップ演出へ
-const rankUpDelay = (typeof getRankUpDelayAfterSkill === "function")
-  ? getRankUpDelayAfterSkill()
-  : 0;
 
-try{ window.__lastRankUpDelayMs = rankUpDelay; }catch(_){}
+    // ★ランクアップ演出は、消去・落下が終わってから再生する
+    try{
+      window.__pendingRankUpAwaken = true;
+      window.__pendingRankUpFullClear = true;
+      window.__pendingRankUpIndex = rankIndex;
+    }catch(_){}
 
-// ★ランクアップ演出を最優先にする
-try{ startRankPriority(rankUpDelay + 2800); }catch(_){}
-
-setTimeout(()=>{
-  // ★修羅王丸ランクアップ専用演出
-  try{ playRankUpAwakenCeremony(); }catch(_){}
-
-  const vId = `vo_rank${Math.min(rankIndex,4)}`;
-  try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
-  try{ Sound.play('bell', 1.0); }catch(_){}
-}, rankUpDelay);
+    // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
+    updateScoresUI();
   }
-
-  // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
-  updateScoresUI();
 }
 
 /* 消去→落下 (省略: 変更なし) */
@@ -5261,31 +5324,14 @@ if (comboBonus > 0) {
   const prevRank = rankIndex;
   updateRank();
 
-  if(rankIndex > prevRank){
-  const all = new Set();
-  for(let r=0;r<size;r++){
-    for(let c=0;c<size;c++){
-      if(get(r,c)!==null) all.add(`${r},${c}`);
-    }
-  }
-
-  if(all.size>0){
-    const rankDelay = Number(window.__lastRankUpDelayMs || 0);
-    const clearDelay = rankDelay + 950; // ランクアップ演出開始から約0.95秒後に全消し
-
-    animState = "skill_pause";
-
-    setTimeout(()=>{
-      vanishMask = all;
-      animState = "vanish";
-      vanishP = 0;
-      lastMatchVH.v = true;
-      lastMatchVH.h = false;
-      createSlashEffects(all);
-    }, clearDelay);
-
-    return;
-  }
+if(rankIndex > prevRank){
+  // ★ここでは全消ししない。
+  // 通常の消去→落下→連鎖処理を先に進め、落下完了後に覚醒演出へ移る。
+  try{
+    window.__pendingRankUpAwaken = true;
+    window.__pendingRankUpFullClear = true;
+    window.__pendingRankUpIndex = rankIndex;
+  }catch(_){}
 }
 
   vanishMask = null;
@@ -6898,7 +6944,18 @@ if (!isShuraItemBoostVanish) {
           isCascadeMatch = false;
           animState="vanish";
         }
-        else { animState="idle"; endComboIfAny(); }
+        else {
+  endComboIfAny();
+
+  if (window.__pendingRankUpAwaken && typeof runPendingRankUpAwakenAfterDrop === "function"){
+    animState = "skill_pause";
+    setTimeout(()=>{
+      try{ runPendingRankUpAwakenAfterDrop(); }catch(_){}
+    }, 120);
+  }else{
+    animState = "idle";
+  }
+}
       }
       break;
   }
