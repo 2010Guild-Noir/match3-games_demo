@@ -4063,10 +4063,19 @@ function playRankUpAwakenCeremony(){
     }
 
     if (img){
-      // 既存のスキル発動画像をそのまま流用
-      img.style.opacity = "";
-      img.style.transform = "";
+  // ★ランクアップ後の修羅王丸ランク画像を表示する
+  try{
+    const newRankKey = RANKS[rankIndex].key;
+
+    if (typeof IMG !== "undefined" && IMG[newRankKey] && IMG[newRankKey].src){
+      img.src = IMG[newRankKey].src;
     }
+  }catch(_){}
+
+  img.alt = "";
+  img.style.opacity = "";
+  img.style.transform = "";
+}
 
     // 既存の覚醒文字が残っていたら消す
     try{
