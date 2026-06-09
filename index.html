@@ -1418,11 +1418,21 @@ html.ios #indexModal .ios-volume-steps{
 /* === 修羅王丸ランクアップ演出：覚醒文字 === */
 .rankup-awaken-text{
   position:fixed;
-  left:50%;
-  top:calc(var(--skill-cy, 50vh) + 155px);
-  transform:translate(-50%, -50%) scale(.92);
+  left:0;
+  right:0;
+  top:calc(var(--skill-cy, 50vh) - clamp(118px, 27vw, 175px));
+  transform:translateY(-50%) scale(.94);
   z-index:30002;
   pointer-events:none;
+
+  width:100vw;
+  max-width:100vw;
+  box-sizing:border-box;
+  padding:0 8px;
+  text-align:center;
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow:visible;
 
   font-family:
     "Yu Mincho",
@@ -1432,9 +1442,9 @@ html.ios #indexModal .ios-volume-steps{
     "Noto Serif JP",
     serif;
 
-  font-size:clamp(32px, 8vw, 64px);
+  font-size:clamp(25px, 6.2vw, 54px);
   font-weight:900;
-  letter-spacing:.14em;
+  letter-spacing:.04em;
   color:#f8f1e8;
 
   text-shadow:
@@ -1453,8 +1463,8 @@ html.ios #indexModal .ios-volume-steps{
   position:absolute;
   left:50%;
   top:50%;
-  width:120%;
-  height:36%;
+  width:min(92vw, 520px);
+  height:42%;
   transform:translate(-50%, -50%);
   background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
   filter:blur(8px);
@@ -1464,22 +1474,22 @@ html.ios #indexModal .ios-volume-steps{
 @keyframes rankupAwakenText{
   0%{
     opacity:0;
-    transform:translate(-50%, -50%) scale(.78);
+    transform:translateY(-50%) scale(.78);
     filter:blur(4px);
   }
   14%{
     opacity:1;
-    transform:translate(-50%, -50%) scale(1.08);
+    transform:translateY(-50%) scale(1.06);
     filter:blur(0);
   }
   78%{
     opacity:1;
-    transform:translate(-50%, -50%) scale(1.0);
+    transform:translateY(-50%) scale(1.0);
     filter:blur(0);
   }
   100%{
     opacity:0;
-    transform:translate(-50%, -56%) scale(1.06);
+    transform:translateY(-60%) scale(1.04);
     filter:blur(2px);
   }
 }
@@ -4084,7 +4094,7 @@ function playRankUpAwakenCeremony(){
 
     const text = document.createElement("div");
     text.className = "rankup-awaken-text";
-    text.textContent = "修羅王丸 覚醒";
+    text.textContent = "修羅王丸覚醒";
     document.body.appendChild(text);
 
     // 少し見せてからフェードアウト
@@ -4104,6 +4114,35 @@ function playRankUpAwakenCeremony(){
   }catch(_){}
 }
 
+function getRankUpDelayAfterSkill(){
+  let delay = 0;
+
+  try{
+    if (typeof skillVoiceBusyUntil !== "undefined" && typeof nowMs === "function"){
+      delay = Math.max(delay, skillVoiceBusyUntil - nowMs() + 250);
+    }
+  }catch(_){}
+
+  try{
+    const el = window.__skillVoiceElement || null;
+    if (el && !el.paused && !el.ended){
+      let remain = 0;
+
+      if (Number.isFinite(el.duration) && Number.isFinite(el.currentTime)){
+        remain = Math.max(0, (el.duration - el.currentTime) * 1000);
+      } else {
+        remain = 1400;
+      }
+
+      delay = Math.max(delay, remain + 250);
+    }
+  }catch(_){}
+
+  // 待ちすぎ防止
+  delay = Math.max(0, Math.min(2600, delay));
+
+  return delay;
+}
 
 function resetComboForNewMove(){
   comboCount = 0;
@@ -4712,16 +4751,26 @@ function updateRank(){ /* (省略: 変更なし) */
         // すでに hasReachedMaxRank が true の場合は、何もリセットしない（アイコンを消さない）
       }
     }catch(_){}
-    // ★ランクアップ演出を最優先にする
-try{ startRankPriority(2200); }catch(_){}
+    // ★直前のスキル演出・スキル音声をできるだけ見せ切ってからランクアップ演出へ
+const rankUpDelay = (typeof getRankUpDelayAfterSkill === "function")
+  ? getRankUpDelayAfterSkill()
+  : 0;
 
-// ★修羅王丸ランクアップ専用演出
-try{ playRankUpAwakenCeremony(); }catch(_){}
+try{ window.__lastRankUpDelayMs = rankUpDelay; }catch(_){}
 
-const vId = `vo_rank${Math.min(rankIndex,4)}`;
-try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
-Sound.play('bell', 1.0); // ランクアップ時、鐘を同時再生
+// ★ランクアップ演出を最優先にする
+try{ startRankPriority(rankUpDelay + 2800); }catch(_){}
+
+setTimeout(()=>{
+  // ★修羅王丸ランクアップ専用演出
+  try{ playRankUpAwakenCeremony(); }catch(_){}
+
+  const vId = `vo_rank${Math.min(rankIndex,4)}`;
+  try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
+  try{ Sound.play('bell', 1.0); }catch(_){}
+}, rankUpDelay);
   }
+
   // juso_spawn 解放は実際の出現時に行う（ランク到達では行わない）
   updateScoresUI();
 }
@@ -5173,22 +5222,31 @@ if (comboBonus > 0) {
   updateRank();
 
   if(rankIndex > prevRank){
-    const all = new Set();
-    for(let r=0;r<size;r++){
-      for(let c=0;c<size;c++){
-        if(get(r,c)!==null) all.add(`${r},${c}`);
-      }
+  const all = new Set();
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      if(get(r,c)!==null) all.add(`${r},${c}`);
     }
-    if(all.size>0){
+  }
+
+  if(all.size>0){
+    const rankDelay = Number(window.__lastRankUpDelayMs || 0);
+    const clearDelay = rankDelay + 950; // ランクアップ演出開始から約0.95秒後に全消し
+
+    animState = "skill_pause";
+
+    setTimeout(()=>{
       vanishMask = all;
       animState = "vanish";
       vanishP = 0;
       lastMatchVH.v = true;
       lastMatchVH.h = false;
       createSlashEffects(all);
-      return;
-    }
+    }, clearDelay);
+
+    return;
   }
+}
 
   vanishMask = null;
   prepareDrop();
