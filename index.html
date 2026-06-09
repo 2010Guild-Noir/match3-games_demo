@@ -1,4 +1,3 @@
-    /* =====20260604 demo ===== */
 <!DOCTYPE html>
 <head>
   <!-- ==== PASSKEY LOCK + UNLOCK FX (added) ==== -->
@@ -1415,6 +1414,76 @@ html.ios #indexModal .ios-volume-steps{
   transform:translate(-50%, -50%) !important;
 }
 </style>
+
+/* === 修羅王丸ランクアップ演出：覚醒文字 === */
+.rankup-awaken-text{
+  position:fixed;
+  left:50%;
+  top:calc(var(--skill-cy, 50vh) + 155px);
+  transform:translate(-50%, -50%) scale(.92);
+  z-index:30002;
+  pointer-events:none;
+
+  font-family:
+    "Yu Mincho",
+    "Hiragino Mincho ProN",
+    "HGS行書体",
+    "HGP行書体",
+    "Noto Serif JP",
+    serif;
+
+  font-size:clamp(32px, 8vw, 64px);
+  font-weight:900;
+  letter-spacing:.14em;
+  color:#f8f1e8;
+
+  text-shadow:
+    0 0 5px rgba(255,255,255,.9),
+    0 0 16px rgba(65,105,225,.95),
+    0 0 28px rgba(65,105,225,.65),
+    0 0 46px rgba(0,0,0,1);
+
+  opacity:0;
+  filter:blur(2px);
+  animation:rankupAwakenText 1.45s ease-out forwards;
+}
+
+.rankup-awaken-text::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:120%;
+  height:36%;
+  transform:translate(-50%, -50%);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  filter:blur(8px);
+  z-index:-1;
+}
+
+@keyframes rankupAwakenText{
+  0%{
+    opacity:0;
+    transform:translate(-50%, -50%) scale(.72);
+    filter:blur(4px);
+  }
+  24%{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1.08);
+    filter:blur(0);
+  }
+  68%{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1.0);
+    filter:blur(0);
+  }
+  100%{
+    opacity:0;
+    transform:translate(-50%, -56%) scale(1.08);
+    filter:blur(2px);
+  }
+}
+
 <style>
 /* === 暗躍値称号MAX到達演出：永遠の観測者 === */
 #maxTitleCeremony{
@@ -1531,7 +1600,7 @@ html.ios #indexModal .ios-volume-steps{
       <div class="foot">
         うまくいかない時：URL末尾に <span class="mono" style="display:inline; padding:2px 6px;">?v=8</span> を付けてリロードしてください（キャッシュ回避）<br/>
         ※解錠後はブラウザの履歴削除をしないようご注意ください。<br/><br/>
-        Ⓒ2010 Guild Noir. 修羅王丸® ＜デモ版＞
+        Ⓒ2010 Guild Noir. 修羅王丸®
       </div>
     </div>  </div>
   <div id="unlockFx" aria-hidden="true"></div>
@@ -1674,6 +1743,30 @@ html.ios #indexModal .ios-volume-steps{
     return await res.json();
   }
 
+  // ★称号MAX到達をApps Scriptへ報告
+  async function reportTitleComplete(){
+    try{
+      const pass = localStorage.getItem("supporter_player_id_v1");
+      if (!pass) return;
+
+      // 同じ端末から何度も報告しない
+      const alreadyReported = localStorage.getItem("title_complete_reported_v1");
+      if (alreadyReported === "1") return;
+
+      const data = await apiPost({
+        action: "complete",
+        passcode: pass,
+        title: "永遠の観測者"
+      });
+
+      if (data && data.ok){
+        localStorage.setItem("title_complete_reported_v1", "1");
+      }
+    }catch(e){
+      console.warn("complete report failed", e);
+    }
+  }
+
   async function unlock(){
     setMsg("", "");
     const raw = document.getElementById("passcode")?.value || "";
@@ -1792,7 +1885,7 @@ try{
 
 
 
-      <small class="note">Ⓒ 2010 Guild Noir. 　修羅王丸®＜デモ版＞</small>
+      <small class="note">Ⓒ 2010 Guild Noir. 　修羅王丸®</small>
 
       <div id="charModal" class="modal-overlay" onclick="if(event.target.id === 'charModal') closeCharModal()" hidden>
         <div class="modal-content char-modal-content">
@@ -3783,7 +3876,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [15, 20, 20, 20, 20];//ランクアップ闘値
+const RANK_THRESH = [10, 10, 10, 10, 10];//ランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -3952,6 +4045,57 @@ try{ window.__pendingComboVoiceOnSkillEnd = null; }catch(_){}
   }catch(_){}
 }
 
+function playRankUpAwakenCeremony(){
+  try{
+    // 既存スキル演出と同じ中央位置を使う
+    try{
+      if (typeof setSkillCenterToBoard === "function"){
+        setSkillCenterToBoard();
+      }
+    }catch(_){}
+
+    const overlay = document.getElementById("skill-overlay");
+    const img = document.getElementById("skill-character");
+
+    if (overlay){
+      overlay.classList.remove("fadeout");
+      overlay.classList.add("active", "mode-shodo");
+    }
+
+    if (img){
+      // 既存のスキル発動画像をそのまま流用
+      img.style.opacity = "";
+      img.style.transform = "";
+    }
+
+    // 既存の覚醒文字が残っていたら消す
+    try{
+      document.querySelectorAll(".rankup-awaken-text").forEach(el=>el.remove());
+    }catch(_){}
+
+    const text = document.createElement("div");
+    text.className = "rankup-awaken-text";
+    text.textContent = "修羅王丸 覚醒";
+    document.body.appendChild(text);
+
+    // 少し見せてからフェードアウト
+    setTimeout(()=>{
+      try{
+        if (overlay) overlay.classList.add("fadeout");
+      }catch(_){}
+    }, 1100);
+
+    setTimeout(()=>{
+      try{
+        if (overlay) overlay.classList.remove("active", "fadeout", "mode-shodo");
+      }catch(_){}
+      try{ text.remove(); }catch(_){}
+    }, 1750);
+
+  }catch(_){}
+}
+
+
 function resetComboForNewMove(){
   comboCount = 0;
   auroraTriggeredThisMove = false; // 一手ごとにオーロラ発動フラグをリセット
@@ -4102,11 +4246,11 @@ function getComboInfo(n){
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の放浪者(2/8)";
-  if (s < 10000) return "称号：業火の修験者(3/8)";
-  if (s < 20000) return "称号：比良坂の防人(4/8)";
-  if (s < 30000) return "称号：黄昏の審問官(5/8)";
-  if (s < 40000) return "称号：血煙の傍観者(6/8)";
-  if (s < 50000) return "称号：無明の支配者(7/8)";
+  if (s < 20000) return "称号：業火の修験者(3/8)";
+  if (s < 50000) return "称号：比良坂の防人(4/8)";
+  if (s < 100000) return "称号：黄昏の審問官(5/8)";
+  if (s < 300000) return "称号：血煙の傍観者(6/8)";
+  if (s < 1000000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
@@ -4385,6 +4529,9 @@ if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
   hasReachedMaxTitle = true;
   try{ store.set("hasReachedMaxTitle", true); }catch(_){}
   try{ playMaxTitleCeremony(); }catch(_){}
+
+  // ★Apps Scriptへ称号MAX到達を報告
+  try{ reportTitleComplete(); }catch(_){}
 }
 
 // 永続
@@ -4557,7 +4704,10 @@ function updateRank(){ /* (省略: 変更なし) */
       }
     }catch(_){}
     // ★ランクアップ演出を最優先にする
-try{ startRankPriority(1900); }catch(_){}
+try{ startRankPriority(2200); }catch(_){}
+
+// ★修羅王丸ランクアップ専用演出
+try{ playRankUpAwakenCeremony(); }catch(_){}
 
 const vId = `vo_rank${Math.min(rankIndex,4)}`;
 try{ window.playVoiceById && window.playVoiceById(vId); }catch(_){ }
