@@ -1446,31 +1446,23 @@ html.ios #indexModal .ios-volume-steps{
   font-weight:900;
   letter-spacing:-.08em;
 
-  /* 赤黒青グラデを文字本体に入れる */
-  color:#b30018;
-  background:
-    linear-gradient(
-      180deg,
-      #ff2a2a 0%,
-      #8b0000 38%,
-      #050202 62%,
-      #143cff 100%
-    );
-  -webkit-background-clip:text;
-  background-clip:text;
-  -webkit-text-fill-color:transparent;
+/* 白い筆文字＋黒縁＋赤青の禍々しい発光 */
+color:#fff3e6;
+background:none;
+-webkit-background-clip:initial;
+background-clip:initial;
+-webkit-text-fill-color:#fff3e6;
 
-  /* 境界線＋禍々しい赤青黒の縁 */
-  -webkit-text-stroke:1.4px rgba(0,0,0,.96);
+-webkit-text-stroke:1px rgba(0,0,0,.92);
 
   text-shadow:
-    2px 2px 0 rgba(0,0,0,1),
-    -1px 1px 0 rgba(90,0,0,.95),
-    0 0 5px rgba(255,0,0,.95),
-    0 0 13px rgba(160,0,0,.92),
-    0 0 20px rgba(20,30,255,.78),
-    0 0 34px rgba(65,105,225,.62),
-    0 0 52px rgba(0,0,0,1);
+  2px 2px 0 rgba(0,0,0,1),
+  -1px 1px 0 rgba(80,0,0,.95),
+  0 0 5px rgba(255,255,255,.9),
+  0 0 10px rgba(255,40,40,.9),
+  0 0 18px rgba(180,0,0,.78),
+  0 0 26px rgba(65,105,225,.85),
+  0 0 42px rgba(0,0,0,.95);
 
   opacity:0;
   filter:blur(2px) contrast(1.2);
