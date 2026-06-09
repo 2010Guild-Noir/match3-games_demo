@@ -1446,23 +1446,36 @@ html.ios #indexModal .ios-volume-steps{
   font-weight:900;
   letter-spacing:-.08em;
 
-/* 白い筆文字＋黒縁＋赤青の禍々しい発光 */
-color:#fff3e6;
+/* 白い筆文字＋外側風の黒縁＋赤青の禍々しい発光 */
+color:#fff6e8;
 background:none;
 -webkit-background-clip:initial;
 background-clip:initial;
--webkit-text-fill-color:#fff3e6;
+-webkit-text-fill-color:#fff6e8;
 
--webkit-text-stroke:1px rgba(0,0,0,.92);
+/* text-strokeは内側を潰すので使わない */
+-webkit-text-stroke:0 transparent;
 
-  text-shadow:
-  2px 2px 0 rgba(0,0,0,1),
-  -1px 1px 0 rgba(80,0,0,.95),
-  0 0 5px rgba(255,255,255,.9),
-  0 0 10px rgba(255,40,40,.9),
-  0 0 18px rgba(180,0,0,.78),
-  0 0 26px rgba(65,105,225,.85),
-  0 0 42px rgba(0,0,0,.95);
+text-shadow:
+  /* 外側風の黒縁 */
+  1px 0 0 rgba(0,0,0,1),
+  -1px 0 0 rgba(0,0,0,1),
+  0 1px 0 rgba(0,0,0,1),
+  0 -1px 0 rgba(0,0,0,1),
+  1px 1px 0 rgba(0,0,0,.95),
+  -1px 1px 0 rgba(0,0,0,.95),
+  1px -1px 0 rgba(0,0,0,.95),
+  -1px -1px 0 rgba(0,0,0,.95),
+
+  /* 赤い怨念光 */
+  0 0 6px rgba(255,40,40,.95),
+  0 0 13px rgba(170,0,0,.85),
+
+  /* 青い修羅光 */
+  0 0 22px rgba(65,105,225,.78),
+
+  /* 奥の黒影 */
+  0 0 36px rgba(0,0,0,.95);
 
   opacity:0;
   filter:blur(2px) contrast(1.2);
