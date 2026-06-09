@@ -1420,16 +1420,20 @@ html.ios #indexModal .ios-volume-steps{
   position:fixed;
   left:0;
   right:0;
-  top:calc(var(--skill-cy, 50vh) - clamp(118px, 27vw, 175px));
+
+  /* イラストの上に出す */
+  top:calc(var(--skill-cy, 50vh) - clamp(122px, 27vw, 178px));
   transform:translateY(-50%) scale(.94);
+
   z-index:30002;
   pointer-events:none;
 
   width:100vw;
   max-width:100vw;
   box-sizing:border-box;
-  padding:0 8px;
+  padding:0 4px;
   text-align:center;
+
   white-space:nowrap;
   word-break:keep-all;
   overflow:visible;
@@ -1442,16 +1446,22 @@ html.ios #indexModal .ios-volume-steps{
     "Noto Serif JP",
     serif;
 
-  font-size:clamp(25px, 6.2vw, 54px);
+  /* 少し大きめ。ただしスマホで割れにくい上限 */
+  font-size:clamp(31px, 7.4vw, 62px);
   font-weight:900;
-  letter-spacing:.04em;
-  color:#f8f1e8;
+  letter-spacing:.02em;
 
+  color:#fff4e6;
+
+  /* 縁・発光・グラデ感を維持強化 */
+  -webkit-text-stroke:1px rgba(35,10,10,.82);
   text-shadow:
-    0 0 5px rgba(255,255,255,.9),
-    0 0 16px rgba(65,105,225,.95),
-    0 0 28px rgba(65,105,225,.65),
-    0 0 46px rgba(0,0,0,1);
+    0 2px 0 rgba(80,20,10,.95),
+    0 0 5px rgba(255,255,255,.95),
+    0 0 13px rgba(255,160,80,.78),
+    0 0 22px rgba(65,105,225,.95),
+    0 0 38px rgba(65,105,225,.62),
+    0 0 58px rgba(0,0,0,1);
 
   opacity:0;
   filter:blur(2px);
@@ -1463,11 +1473,32 @@ html.ios #indexModal .ios-volume-steps{
   position:absolute;
   left:50%;
   top:50%;
-  width:min(92vw, 520px);
-  height:42%;
+  width:min(94vw, 560px);
+  height:46%;
   transform:translate(-50%, -50%);
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  background:
+    linear-gradient(90deg,
+      transparent,
+      rgba(255,255,255,.34),
+      rgba(255,190,100,.22),
+      transparent
+    );
   filter:blur(8px);
+  z-index:-1;
+}
+
+.rankup-awaken-text::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:62%;
+  width:min(78vw, 420px);
+  height:2px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg, transparent, rgba(255,220,160,.9), transparent);
+  box-shadow:
+    0 0 8px rgba(255,200,120,.7),
+    0 0 18px rgba(65,105,225,.45);
   z-index:-1;
 }
 
@@ -1479,7 +1510,7 @@ html.ios #indexModal .ios-volume-steps{
   }
   14%{
     opacity:1;
-    transform:translateY(-50%) scale(1.06);
+    transform:translateY(-50%) scale(1.07);
     filter:blur(0);
   }
   78%{
@@ -1489,7 +1520,7 @@ html.ios #indexModal .ios-volume-steps{
   }
   100%{
     opacity:0;
-    transform:translateY(-60%) scale(1.04);
+    transform:translateY(-62%) scale(1.05);
     filter:blur(2px);
   }
 }
@@ -4135,6 +4166,15 @@ function getRankUpDelayAfterSkill(){
       }
 
       delay = Math.max(delay, remain + 250);
+    }
+  }catch(_){}
+
+  // ★スキルカットイン演出がまだ表示中なら、見せ切ってからランクアップへ
+  try{
+    const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    const cutinUntil = Number(window.__shuraSkillCutinUntil || 0);
+    if (cutinUntil > now){
+      delay = Math.max(delay, cutinUntil - now + 180);
     }
   }catch(_){}
 
@@ -7713,7 +7753,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 888; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
@@ -8119,12 +8159,18 @@ function showShuraSkillCutin(kind){
 
     overlay.classList.add('active');
 
-    clearTimeout(window.__shuraSkillCutinTimer);
-    window.__shuraSkillCutinTimer = setTimeout(()=>{
-      try{
-        overlay.classList.remove('active');
-      }catch(_){}
-    }, 520);
+/* ★スキル演出の終了予定時刻を記録：ランクアップ演出が割り込まないため */
+try{
+  const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  window.__shuraSkillCutinUntil = now + 1450;
+}catch(_){}
+
+clearTimeout(window.__shuraSkillCutinTimer);
+window.__shuraSkillCutinTimer = setTimeout(()=>{
+  try{
+    overlay.classList.remove('active');
+  }catch(_){}
+    }, 1450);
   }catch(_){}
 }
 </script>
