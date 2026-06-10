@@ -4173,7 +4173,7 @@ function getRankUpDelayAfterSkill(){
 
   try{
     if (typeof skillVoiceBusyUntil !== "undefined" && typeof nowMs === "function"){
-      delay = Math.max(delay, skillVoiceBusyUntil - nowMs() + 250);
+      delay = Math.max(delay, skillVoiceBusyUntil - nowMs() + 80);
     }
   }catch(_){}
 
@@ -4188,7 +4188,7 @@ function getRankUpDelayAfterSkill(){
         remain = 1400;
       }
 
-      delay = Math.max(delay, remain + 250);
+      delay = Math.max(delay, remain + 80);
     }
   }catch(_){}
 
@@ -4202,7 +4202,7 @@ function getRankUpDelayAfterSkill(){
   }catch(_){}
 
   // 待ちすぎ防止
-  delay = Math.max(0, Math.min(5600, delay));
+  delay = Math.max(0, Math.min(5200, delay));
 
   return delay;
 }
@@ -5032,7 +5032,7 @@ overlay.classList.add('active');
   // ★スキルボイス優先時間。
 // 実音声の長さを完全取得できない環境もあるため、まずは固定値で安全に待つ。
 try{
-  skillVoiceBusyUntil = nowMs() + 5400;
+  skillVoiceBusyUntil = nowMs() + 5100;
 }catch(_){}
 
 // ★スキルボイス要素を記録して、連鎖ボイスは ended 後に回す
