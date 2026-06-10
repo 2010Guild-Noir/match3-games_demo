@@ -5348,8 +5348,8 @@ if (comboBonus > 0) {
     rankProgress++;
   }
 
-  const prevRank = rankIndex;
-  updateRank();
+ const prevRank = rankIndex;
+updateRank();
 
 if(rankIndex > prevRank){
   // ★ここでは全消ししない。
@@ -5361,10 +5361,15 @@ if(rankIndex > prevRank){
   }catch(_){}
 }
 
-  vanishMask = null;
-  prepareDrop();
-  animState = "drop";
-  maybeSpawnObstacles();
+// ★暗躍値・闘値の表示を消去処理ごとに即時更新する
+try{
+  if (typeof updateScoresUI === "function") updateScoresUI();
+}catch(_){}
+
+vanishMask = null;
+prepareDrop();
+animState = "drop";
+maybeSpawnObstacles();
 }
 
 /* ★クッション落下用の速度配列と定数 (省略: 変更なし) */
