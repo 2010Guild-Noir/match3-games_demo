@@ -953,19 +953,23 @@ html, body{
 @keyframes skillImageHold{
   0%{
     opacity:0;
-    transform:scale(.62) translateY(14px);
+    transform:scale(.60) translateY(16px);
   }
-  28%{
+  26%{
     opacity:1;
-    transform:scale(1.10) translateY(6px);
+    transform:scale(1.14) translateY(5px);
   }
-  58%{
+  56%{
     opacity:1;
-    transform:scale(1.045) translateY(4px);
+    transform:scale(1.035) translateY(3px);
+  }
+  78%{
+    opacity:1;
+    transform:scale(1.105) translateY(5px);
   }
   100%{
     opacity:1;
-    transform:scale(1.085) translateY(6px);
+    transform:scale(1.075) translateY(6px);
   }
 }
 
@@ -4431,10 +4435,10 @@ function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の放浪者(2/8)";
   if (s < 20000) return "称号：業火の修験者(3/8)";
-  if (s < 50000) return "称号：比良坂の防人(4/8)";
-  if (s < 100000) return "称号：黄昏の審問官(5/8)";
-  if (s < 300000) return "称号：血煙の傍観者(6/8)";
-  if (s < 1000000) return "称号：無明の支配者(7/8)";
+  if (s < 40000) return "称号：比良坂の防人(4/8)";
+  if (s < 60000) return "称号：黄昏の審問官(5/8)";
+  if (s < 80000) return "称号：血煙の傍観者(6/8)";
+  if (s < 100000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
