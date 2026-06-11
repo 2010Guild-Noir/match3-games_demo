@@ -5009,6 +5009,69 @@ function playMaxTitleCeremony(){
   }catch(_){}
 }
 
+function schedulePendingMaxTitleCeremony(){
+  try{
+    if (!window.__pendingMaxTitleCeremony) return;
+    if (window.__maxTitleCeremonySchedulerActive) return;
+
+    window.__maxTitleCeremonySchedulerActive = true;
+
+    const check = ()=>{
+      try{
+        if (!window.__pendingMaxTitleCeremony){
+          window.__maxTitleCeremonySchedulerActive = false;
+          return;
+        }
+
+        const rankBusy =
+          (typeof isRankPriorityActive === "function" && isRankPriorityActive()) ||
+          !!window.__rankUpAwakenRunning ||
+          !!window.__finalRankMaxCeremonyRunning;
+
+        const skillWait = (typeof getRankUpDelayAfterSkill === "function")
+          ? getRankUpDelayAfterSkill()
+          : 0;
+
+        const boardBusy =
+          typeof animState !== "undefined" &&
+          animState &&
+          animState !== "idle";
+
+        // ★スキルボイス・ランク演出・盤面処理が残っている間は待つ
+        if (rankBusy || boardBusy || skillWait > 0){
+          setTimeout(check, Math.max(220, Math.min(900, skillWait || 300)));
+          return;
+        }
+
+        // ★ここで初めて永遠の観測者演出を発動
+        window.__pendingMaxTitleCeremony = false;
+
+        try{
+          if (typeof startRankPriority === "function") startRankPriority(7600);
+        }catch(_){}
+
+        try{
+          if (typeof playMaxTitleCeremony === "function"){
+            playMaxTitleCeremony();
+          }
+        }catch(_){}
+
+        setTimeout(()=>{
+          try{ window.__maxTitleCeremonySchedulerActive = false; }catch(_){}
+        }, 7600);
+
+      }catch(_){
+        try{ window.__maxTitleCeremonySchedulerActive = false; }catch(__){}
+      }
+    };
+
+    check();
+
+  }catch(_){
+    try{ window.__maxTitleCeremonySchedulerActive = false; }catch(__){}
+  }
+}
+
 function updateScoresUI(){
   // 暗躍値
   $score.textContent = `暗躍値: ${score}`;
@@ -5053,9 +5116,12 @@ if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
   hasReachedMaxTitle = true;
   try{ store.set("hasReachedMaxTitle", true); }catch(_){}
 
-  // ★演出は即発動せず、消去・落下・スキルボイス終了後に発動予約
+  // ★演出は即発動せず、スキル・落下・ランク演出後に発動予約
   try{
     window.__pendingMaxTitleCeremony = true;
+    if (typeof schedulePendingMaxTitleCeremony === "function"){
+      schedulePendingMaxTitleCeremony();
+    }
   }catch(_){}
 
   // ★Apps Scriptへ称号MAX到達を報告
