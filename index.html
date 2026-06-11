@@ -1568,7 +1568,7 @@ text-shadow:
     linear-gradient(180deg, rgba(0,0,0,.18), rgba(105,0,0,.28));
 
   opacity:0;
-  animation:finalMaxBgIn 4.8s ease-out forwards;
+  animation:finalMaxBgIn 6.8s ease-out forwards;
 }
 
 #finalRankMaxCeremony.out{
@@ -1582,7 +1582,7 @@ text-shadow:
   height:min(92vw, 430px);
   transform:scale(.86);
   opacity:0;
-  animation:finalMaxStageIn 4.2s ease-out forwards;
+  animation:finalMaxStageIn 6.2s ease-out forwards;
 }
 
 /* 中央エンブレム：5体より下のレイヤー */
@@ -1590,13 +1590,14 @@ text-shadow:
   position:absolute;
   left:50%;
   top:50%;
-  width:clamp(118px, 34vw, 190px);
-  height:clamp(118px, 34vw, 190px);
+//エンブレム表示サイズ
+  width:clamp(236px, 68vw, 380px);
+  height:clamp(236px, 68vw, 380px);
   transform:translate(-50%, -50%) scale(.86);
   object-fit:contain;
   z-index:1;
 
-  opacity:.52;
+  opacity:.62;
   filter:
     drop-shadow(0 0 10px rgba(255,40,40,.65))
     drop-shadow(0 0 20px rgba(65,105,225,.62))
@@ -1626,31 +1627,31 @@ text-shadow:
 
 /* 上 */
 #finalRankMaxCeremony .final-max-rank.r0{
-  transform:translate(-50%, -50%) translate(0, -150%) scale(.92);
+  transform:translate(-50%, -50%) translate(0, -175%) scale(.92);
   animation-delay:.10s;
 }
 
 /* 右上 */
 #finalRankMaxCeremony .final-max-rank.r1{
-  transform:translate(-50%, -50%) translate(130%, -48%) scale(.92);
+  transform:translate(-50%, -50%) translate(152%, -62%) scale(.92);
   animation-delay:.20s;
 }
 
 /* 右下 */
 #finalRankMaxCeremony .final-max-rank.r2{
-  transform:translate(-50%, -50%) translate(82%, 118%) scale(.92);
+  transform:translate(-50%, -50%) translate(96%, 138%) scale(.92);
   animation-delay:.30s;
 }
 
 /* 左下 */
 #finalRankMaxCeremony .final-max-rank.r3{
-  transform:translate(-50%, -50%) translate(-82%, 118%) scale(.92);
+  transform:translate(-50%, -50%) translate(-96%, 138%) scale(.92);
   animation-delay:.40s;
 }
 
 /* 左上 */
 #finalRankMaxCeremony .final-max-rank.r4{
-  transform:translate(-50%, -50%) translate(-130%, -48%) scale(.92);
+  transform:translate(-50%, -50%) translate(-152%, -62%) scale(.92);
   animation-delay:.50s;
 }
 
@@ -1692,7 +1693,7 @@ text-shadow:
     0 0 42px rgba(0,0,0,1);
 
   opacity:0;
-  animation:finalMaxTitleIn 4.2s ease-out forwards;
+  animation:finalMaxTitleIn 6.2s ease-out forwards;
   animation-delay:.62s;
 }
 
@@ -4541,22 +4542,23 @@ function playFinalRankMAXCeremony(){
     stage.appendChild(emblem);
 
     // 修羅王丸5種：RANKSの5キーをそのまま使う。五角形の並び
-    const keys = ["S_UNK", "S_REQ", "S_BIR", "S_NE0", "S_SHU"];
+    const rankSkillImages = [
+  { cls: "r0", src: "images/special_unk_skill.png" }, // 上
+  { cls: "r1", src: "images/special_req_skill.png" }, // 右上
+  { cls: "r2", src: "images/special_bir_skill.png" }, // 右下
+  { cls: "r3", src: "images/special_ne0_skill.png" }, // 左下
+  { cls: "r4", src: "images/special_shu_skill.png" }  // 左上
+];
 
-    keys.slice(0, 5).forEach((key, i)=>{
-      try{
-        const img = document.createElement("img");
-        img.className = "final-max-rank r" + i;
-
-        if (typeof IMG !== "undefined" && IMG[key] && IMG[key].src){
-          img.src = IMG[key].src;
-        }else{
-          img.src = "images/" + key + ".png";
-        }
-        img.alt = "";
-        stage.appendChild(img);
-      }catch(_){}
-    });
+rankSkillImages.forEach((item)=>{
+  try{
+    const img = document.createElement("img");
+    img.className = "final-max-rank " + item.cls;
+    img.src = item.src;
+    img.alt = "";
+    stage.appendChild(img);
+  }catch(_){}
+});
 
     const title = document.createElement("div");
     title.className = "final-max-title";
@@ -4569,12 +4571,12 @@ function playFinalRankMAXCeremony(){
     // 表示後フェードアウト
     setTimeout(()=>{
       try{ root.classList.add("out"); }catch(_){}
-    }, 4800);
+    }, 6800);
 
     setTimeout(()=>{
       try{ root.remove(); }catch(_){}
       try{ window.__finalRankMaxCeremonyRunning = false; }catch(_){}
-    }, 5900);
+    }, 7900);
 
   }catch(_){
     try{ window.__finalRankMaxCeremonyRunning = false; }catch(__){}
