@@ -1641,8 +1641,8 @@ text-shadow:
   position:absolute;
   left:50%;
   top:50%;
-  width:clamp(70px, 18vw, 112px);
-  height:clamp(70px, 18vw, 112px);
+  width:clamp(82px, 21vw, 132px);
+height:clamp(82px, 21vw, 132px);
   object-fit:contain;
   z-index:2;
 
@@ -1846,8 +1846,8 @@ text-shadow:
 
 #maxTitleCeremony .max-title-sub{
   margin-top:16px;
-  font-size:clamp(13px, 3.2vw, 20px);
-  letter-spacing:.16em;
+  font-size:clamp(17px, 4.4vw, 30px);
+  letter-spacing:.12em;
   color:#ffb5a8;
   text-shadow:
     0 0 8px rgba(180,20,20,.85),
@@ -4619,6 +4619,80 @@ try{
   window.playFinalRankMAXCeremony = playFinalRankMAXCeremony;
 }catch(_){}
 
+function schedulePendingFinalRankMaxCeremony(){
+  try{
+    if (!window.__pendingFinalRankMaxCeremony) return;
+    if (window.__finalRankMaxCeremonySchedulerActive) return;
+
+    window.__finalRankMaxCeremonySchedulerActive = true;
+
+    const check = ()=>{
+      try{
+        if (!window.__pendingFinalRankMaxCeremony){
+          window.__finalRankMaxCeremonySchedulerActive = false;
+          return;
+        }
+
+        const skillWait = (typeof getRankUpDelayAfterSkill === "function")
+          ? getRankUpDelayAfterSkill()
+          : 0;
+
+        const rankBusy =
+          (typeof isRankPriorityActive === "function" && isRankPriorityActive()) ||
+          !!window.__rankUpAwakenRunning ||
+          !!window.__maxTitleCeremonyRunning ||
+          !!window.__finalRankMaxCeremonyRunning;
+
+        const boardBusy =
+          typeof animState !== "undefined" &&
+          animState &&
+          animState !== "idle";
+
+        // スキル演出・スキルボイス・落下・他演出が残っていれば待つ
+        if (skillWait > 0 || rankBusy || boardBusy){
+          setTimeout(check, Math.max(220, Math.min(900, skillWait || 300)));
+          return;
+        }
+
+        window.__pendingFinalRankMaxCeremony = false;
+
+        // ★ここで初めてランクMAXボイスを再生
+        try{
+          if (window.playVoiceById) window.playVoiceById("vo_rank5");
+          else {
+            const v5 = document.getElementById("vo_rank5");
+            if (v5){
+              try{ v5.currentTime = 0; }catch(_){}
+              const pr = v5.play();
+              if (pr && pr.catch) pr.catch(()=>{});
+            }
+          }
+        }catch(_){}
+
+        // ★ここで初めて永遠の焦土演出
+        try{
+          if (typeof playFinalRankMAXCeremony === "function"){
+            playFinalRankMAXCeremony();
+          }else if (typeof window.playFinalRankMAXCeremony === "function"){
+            window.playFinalRankMAXCeremony();
+          }
+        }catch(_){}
+
+        setTimeout(()=>{
+          try{ window.__finalRankMaxCeremonySchedulerActive = false; }catch(_){}
+        }, 8200);
+
+      }catch(_){
+        try{ window.__finalRankMaxCeremonySchedulerActive = false; }catch(__){}
+      }
+    };
+
+    check();
+
+  }catch(_){
+    try{ window.__finalRankMaxCeremonySchedulerActive = false; }catch(__){}
+  }
+}
 
 function resetComboForNewMove(){
   comboCount = 0;
@@ -4987,7 +5061,7 @@ function playMaxTitleCeremony(){
     overlay.innerHTML = `
       <div class="max-title-core">
         <div class="max-title-main">永遠の観測者</div>
-        <div class="max-title-sub">すべての焦土を、見届けし者</div>
+        <div class="max-title-sub">すべての焦土を見届けし者</div>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -8271,14 +8345,11 @@ if (ok){
         hasReachedMaxRank = true;
         try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
         try{
-          if (window.playVoiceById) window.playVoiceById('vo_rank5');
-          else {
-            var v5 = document.getElementById('vo_rank5');
-            if (v5) { try{ v5.currentTime = 0; }catch(_){ } var pr = v5.play(); if (pr && pr.catch) pr.catch(()=>{}); }
-          }
-        }catch(_){}
-        try{ if (typeof window.playFinalRankMAXCeremony==='function') window.playFinalRankMAXCeremony(); }catch(_){}
-        try{ if (typeof playFinalRankMAXCeremony==='function') playFinalRankMAXCeremony(); }catch(_){}
+  window.__pendingFinalRankMaxCeremony = true;
+  if (typeof schedulePendingFinalRankMaxCeremony === "function"){
+    schedulePendingFinalRankMaxCeremony();
+  }
+}catch(_){}
         try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
         try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
       }
