@@ -4541,9 +4541,7 @@ function playFinalRankMAXCeremony(){
     stage.appendChild(emblem);
 
     // 修羅王丸5種：RANKSの5キーをそのまま使う。五角形の並び
-    const keys = (typeof RANKS !== "undefined" && Array.isArray(RANKS))
-      ? RANKS.map(r => r.key)
-      : ["S_UNK", "S_REQ", "S_BIR", "S_NE0", "S_SHU"];
+    const keys = ["S_UNK", "S_REQ", "S_BIR", "S_NE0", "S_SHU"];
 
     keys.slice(0, 5).forEach((key, i)=>{
       try{
@@ -4555,7 +4553,6 @@ function playFinalRankMAXCeremony(){
         }else{
           img.src = "images/" + key + ".png";
         }
-ｓｓ
         img.alt = "";
         stage.appendChild(img);
       }catch(_){}
