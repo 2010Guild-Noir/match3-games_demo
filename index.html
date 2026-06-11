@@ -760,6 +760,37 @@ html, body{
   box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 0 40px rgba(120,200,255,0.35);
   display: none;
 }
+
+#allmaxPoem{
+  display:none;
+  margin: 8px auto 10px;
+  text-align: center;
+  line-height: 1.45;
+  letter-spacing: 0.12em;
+  color: #f3eee6;
+
+  font-family:
+    "Yuji Syuku",
+    "HGS行書体",
+    "HGP行書体",
+    "Yu Mincho",
+    "Hiragino Mincho ProN",
+    "Noto Serif JP",
+    serif;
+
+  font-size: clamp(16px, 2.2vw, 22px);
+  font-weight: 500;
+  white-space: nowrap;
+
+  text-shadow:
+    0 0 4px rgba(0,0,0,.75),
+    0 0 10px rgba(65,105,225,.18);
+}
+
+#allmaxOverlay.allmax-unlocked #allmaxPoem{
+  display:block;
+}
+
 #allmaxClose{
   position: absolute;
   top: 10px;
@@ -5021,7 +5052,11 @@ if (titleEl) titleEl.textContent = currentTitle;
 if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
   hasReachedMaxTitle = true;
   try{ store.set("hasReachedMaxTitle", true); }catch(_){}
-  try{ playMaxTitleCeremony(); }catch(_){}
+
+  // ★演出は即発動せず、消去・落下・スキルボイス終了後に発動予約
+  try{
+    window.__pendingMaxTitleCeremony = true;
+  }catch(_){}
 
   // ★Apps Scriptへ称号MAX到達を報告
   try{ reportTitleComplete(); }catch(_){}
@@ -8342,7 +8377,7 @@ window.shuffleBoard = function(){
 
     <div id="allmaxInputArea">
       <p id="allmaxMessage">
-        途方も無き孤独な戦いの末、<br>
+        途方も無く孤独な旅路の末、<br>
         最果ての称号に辿り着いた貴方。<br><br>
         修羅王丸と同じ景色を見た貴方に、<br>
         敬意を込めて「扉」を授けます。<br><br>
@@ -8356,7 +8391,10 @@ window.shuffleBoard = function(){
 
       <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
     </div>
-
+<p id="allmaxPoem">
+  虚ろいし 問わず語りの 顔合わせ<br>
+  霧の廻廊 彷徨いて尚
+</p>
     <!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
