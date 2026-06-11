@@ -3623,7 +3623,8 @@ const IMG = {
   "PATH_J_NEM": "images/nemu.png",
   "PATH_J_SHI": "images/shinjuro.png",
   "PATH_J_PRO": "images/propaganda.png",
-　"MAX_EMBLEM": "images/max_emblem.png",
+"MAX_EMBLEM": new Image(),
+"PATH_MAX_EMBLEM": "images/max_emblem.png",
   "BG": new Image(), "PATH_BG": "images/boad_bg.png"
 };
 
@@ -4738,12 +4739,12 @@ function getComboInfo(n){
 
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 5000) return "称号：影の放浪者(2/8)";
-  if (s < 10000) return "称号：業火の修験者(3/8)";
-  if (s < 20000) return "称号：比良坂の防人(4/8)";
-  if (s < 30000) return "称号：黄昏の審問官(5/8)";
-  if (s < 40000) return "称号：血煙の傍観者(6/8)";
-  if (s < 50000) return "称号：無明の支配者(7/8)";
+  if (s < 2000) return "称号：影の放浪者(2/8)";
+  if (s < 3000) return "称号：業火の修験者(3/8)";
+  if (s < 4000) return "称号：比良坂の防人(4/8)";
+  if (s < 5000) return "称号：黄昏の審問官(5/8)";
+  if (s < 6000) return "称号：血煙の傍観者(6/8)";
+  if (s < 7000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
