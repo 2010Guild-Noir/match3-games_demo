@@ -1689,11 +1689,12 @@ height:clamp(82px, 21vw, 132px);
 #finalRankMaxCeremony .final-max-title{
   position:absolute;
   left:50%;
-  bottom:clamp(8px, 3vw, 18px);
-  transform:translateX(-50%);
-  z-index:3;
+  top:61%;
+  bottom:auto;
+  transform:translate(-50%, -50%);
+  z-index:4;
 
-  width:100%;
+  width:72%;
   text-align:center;
   white-space:nowrap;
 
@@ -1706,9 +1707,9 @@ height:clamp(82px, 21vw, 132px);
     "Noto Serif JP",
     serif;
 
-  font-size:clamp(38px, 10vw, 78px);
+  font-size:clamp(32px, 8.2vw, 64px);
   font-weight:900;
-  letter-spacing:.04em;
+  letter-spacing:.03em;
   color:#fff6e8;
   -webkit-text-fill-color:#fff6e8;
   -webkit-text-stroke:0 transparent;
@@ -1768,10 +1769,24 @@ height:clamp(82px, 21vw, 132px);
 }
 
 @keyframes finalMaxTitleIn{
-  0%{ opacity:0; transform:translateX(-50%) translateY(12px) scale(.82); filter:blur(4px); }
-  24%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1.08); filter:blur(0); }
-  76%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1.0); }
-  100%{ opacity:1; transform:translateX(-50%) translateY(-2px) scale(1.03); }
+  0%{
+    opacity:0;
+    transform:translate(-50%, -42%) scale(.82);
+    filter:blur(4px);
+  }
+  24%{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1.08);
+    filter:blur(0);
+  }
+  76%{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1.0);
+  }
+  100%{
+    opacity:1;
+    transform:translate(-50%, -53%) scale(1.03);
+  }
 }
 
 @keyframes finalMaxRing{
@@ -4180,7 +4195,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [5, 5, 5, 5, 5];//アンノウン到達までのランクアップ闘値
+const RANK_THRESH = [3, 3, 3, 3, 3];//アンノウン到達までのランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -8334,7 +8349,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 10; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 3; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
