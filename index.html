@@ -805,10 +805,101 @@ html, body{
 
 #titleLabel.allmax-ready{
   cursor: pointer;
-  text-shadow: 0 0 6px rgba(120,200,255,0.9), 0 0 14px rgba(120,200,255,0.35);
+  position:relative;
+  color:#eaf6ff;
+  text-shadow:
+    0 0 6px rgba(120,220,255,.95),
+    0 0 14px rgba(120,220,255,.42);
+
+  animation:allmaxFireflyHint 7.5s ease-in-out infinite;
 }
+
+#titleLabel.allmax-ready:hover{
+  filter:brightness(1.16);
+  text-shadow:
+    0 0 8px rgba(180,245,255,1),
+    0 0 18px rgba(120,220,255,.85),
+    0 0 34px rgba(120,220,255,.52);
+}
+
+@keyframes allmaxFireflyHint{
+  0%, 58%, 100%{
+    filter:brightness(1);
+    text-shadow:
+      0 0 5px rgba(120,220,255,.55),
+      0 0 12px rgba(120,220,255,.22);
+  }
+
+  64%{
+    filter:brightness(1.22);
+    text-shadow:
+      0 0 8px rgba(210,255,255,1),
+      0 0 18px rgba(120,220,255,.85),
+      0 0 34px rgba(120,220,255,.55);
+  }
+
+  70%{
+    filter:brightness(1.02);
+    text-shadow:
+      0 0 5px rgba(120,220,255,.55),
+      0 0 12px rgba(120,220,255,.22);
+  }
+
+  76%{
+    filter:brightness(1.28);
+    text-shadow:
+      0 0 10px rgba(230,255,255,1),
+      0 0 24px rgba(120,220,255,.9),
+      0 0 42px rgba(120,220,255,.62);
+  }
+
+  84%{
+    filter:brightness(1);
+    text-shadow:
+      0 0 5px rgba(120,220,255,.55),
+      0 0 12px rgba(120,220,255,.22);
+  }
+}
+
 #titleLabel.allmax-ready:hover{
   filter: brightness(1.08);
+}
+
+/* === ALL MAX扉：Androidキーボード対策 === */
+#allmaxOverlay{
+  overflow:hidden;
+  overscroll-behavior:contain;
+}
+
+@media (max-width:640px){
+  #allmaxOverlay{
+    align-items:flex-start;
+    justify-content:center;
+    padding-top:clamp(18px, 5vh, 42px);
+    box-sizing:border-box;
+  }
+
+  #allmaxPanel{
+    width:min(92vw, 360px);
+    max-height:calc(100dvh - 36px);
+    overflow:hidden;
+  }
+
+  #allmaxPanel h2{
+    margin-top:0;
+    margin-bottom:10px;
+    font-size:clamp(17px, 5vw, 20px);
+    line-height:1.25;
+  }
+
+  #allmaxMessage{
+    line-height:1.55;
+    margin-bottom:10px;
+  }
+
+  #allmaxInput{
+    font-size:16px;
+  }
 }
 
 /* === ALL MAX (input row centered + image strictly contained) === */
