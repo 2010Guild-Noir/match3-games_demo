@@ -863,7 +863,7 @@ html, body{
   #allmaxOverlay{
     align-items:flex-start;
     justify-content:center;
-    padding-top:clamp(18px, 5vh, 42px);
+    padding-top:clamp(34px, 9vh, 76px);
     box-sizing:border-box;
   }
 
@@ -7761,38 +7761,31 @@ const ALLMAX_UNLOCK_KEY = "allmaxUnlocked";
 (function(){
   function qs(id){ return document.getElementById(id); }
 
-  function openAllMax(){
-    const overlay = qs("allmaxOverlay");
-    const input   = qs("allmaxInput");
-    const error   = qs("allmaxError");
-    const img     = qs("allmaxImage");
-    const area    = qs("allmaxInputArea");
-    if (!overlay || !input || !error || !img || !area) return;
+function openAllMax(){
+  const overlay = qs("allmaxOverlay");
+  const img     = qs("allmaxImage");
+  const area    = qs("allmaxInputArea");
+  const error   = qs("allmaxError");
 
-    overlay.style.display = "flex";
-    overlay.setAttribute("aria-hidden","false");
-    error.style.display = "none";
-    area.style.display = "flex";
-    img.style.display = "none";
-    // 隠し画像：開くたびに src を消しておく（パス通過までロードしない）
-    img.removeAttribute("src");
-    input.value = "";
-    // 永続アンロック済みなら入力不要で画像を表示
-    try{
-      if (localStorage.getItem(ALLMAX_UNLOCK_KEY) === "1"){
-        // 正解時と同じ状態を作る（srcは必要ならセット）
-        error.style.display = "none";
-        area.style.display = "none";
-        if (!img.getAttribute("src")){
-          img.onerror = ()=>{ img.onerror = null; img.src = "allmax.png"; };
-          img.src = "images/allmax.png";
-        }
-        try{ overlay.classList.add("allmax-unlocked"); }catch(_){ }
-      }
-    }catch(_){ }
+  if (!overlay || !img) return;
 
-    input.focus();
+  // 入力画面は使わず、最初から詩＋画像表示状態にする
+  try{ overlay.classList.add("allmax-unlocked"); }catch(_){}
+  overlay.style.display = "flex";
+  overlay.setAttribute("aria-hidden","false");
+
+  // 入力欄エリアは非表示
+  if (area) area.style.display = "none";
+  if (error) error.style.display = "none";
+
+  // 画像を即ロードして表示
+  if (!img.getAttribute("src")){
+    img.onerror = ()=>{ img.onerror = null; img.src = "allmax.png"; };
+    img.src = "images/allmax.png";
   }
+
+  img.style.display = "block";
+}
 
   function closeAllMax(){
     const overlay = qs("allmaxOverlay");
@@ -7809,7 +7802,7 @@ const ALLMAX_UNLOCK_KEY = "allmaxUnlocked";
       img.style.display = "none";
       img.removeAttribute("src");
     }
-    if (area) area.style.display = "flex";
+    if (area) area.style.display = "none";
     if (input) input.value = "";
     if (error) error.style.display = "none";
 
@@ -8599,34 +8592,17 @@ window.shuffleBoard = function(){
 })();
 </script>
 
-
 <!-- ALL MAX Overlay -->
 <div id="allmaxOverlay" aria-hidden="true">
-  <div id="allmaxPanel" role="dialog" aria-modal="true">
-    <div id="allmaxClose" title="close">✕</div>
-    <h2>― 到達せし者の扉 ―</h2>
-
-    <div id="allmaxInputArea">
-      <p id="allmaxMessage">
-        途方も無く孤独な旅路の末、<br>
-        最果ての称号に辿り着いた貴方。<br><br>
-        修羅王丸と同じ景色を見た貴方に、<br>
-        敬意を込めて「扉」を授けます。<br><br>
-        時が来たら「鍵を持つ者」に提示してください。
-      </p>
-
-      <div id="allmaxInputRow">
-        <input id="allmaxInput" type="password" placeholder="鍵を入力" autocomplete="off" />
-        <button id="allmaxOkBtn" type="button">解錠</button>
-      </div>
-
-      <div id="allmaxError">貴方は"未だ"その資格を得てはいないようだ…</div>
-    </div>
+ <div id="allmaxPanel">
+    <button id="allmaxClose" type="button">×</button>
+ 
 <p id="allmaxPoem">
   虚ろいし 問わず語りの 顔合わせ<br>
   霧の廻廊 彷徨いて尚
 </p>
-    <!-- Hidden image: do NOT set src until passcode succeeds -->
+
+<!-- Hidden image: do NOT set src until passcode succeeds -->
     <img id="allmaxImage" alt="ALL MAX" />
   </div>
 </div>
