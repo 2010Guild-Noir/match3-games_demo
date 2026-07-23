@@ -841,7 +841,6 @@ html, body{
   display:inline-block;
 }
 
-
 #allmaxOverlay.allmax-unlocked #allmaxPoem{
   display:block;
 }
@@ -1847,7 +1846,7 @@ height:clamp(82px, 21vw, 132px);
 #finalRankMaxCeremony .final-max-title{
   position:absolute;
   left:50%;
-  top:56%;
+  top:61%;
   bottom:auto;
   transform:translate(-50%, -50%);
   z-index:4;
@@ -1865,7 +1864,7 @@ height:clamp(82px, 21vw, 132px);
     "Noto Serif JP",
     serif;
 
-  font-size:clamp(30px, 8.5vw, 64px);
+  font-size:clamp(32px, 8.2vw, 64px);
   font-weight:900;
   letter-spacing:.03em;
   color:#fff6e8;
@@ -4353,7 +4352,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [3, 3, 3, 3, 3];//アンノウン到達までのランクアップ闘値
+const RANK_THRESH = [5, 5, 5, 5, 5];//アンノウン到達までのランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -4792,6 +4791,7 @@ try{
   window.playFinalRankMAXCeremony = playFinalRankMAXCeremony;
 }catch(_){}
 
+
 function schedulePendingFinalRankMaxCeremony(){
   try{
     if (!window.__pendingFinalRankMaxCeremony) return;
@@ -5016,12 +5016,12 @@ function getComboInfo(n){
 
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 2000) return "称号：影の放浪者(2/8)";
-  if (s < 3000) return "称号：業火の修験者(3/8)";
-  if (s < 4000) return "称号：比良坂の防人(4/8)";
-  if (s < 5000) return "称号：黄昏の審問官(5/8)";
-  if (s < 6000) return "称号：血煙の傍観者(6/8)";
-  if (s < 7000) return "称号：無明の支配者(7/8)";
+  if (s < 5000) return "称号：影の放浪者(2/8)";
+  if (s < 20000) return "称号：業火の修験者(3/8)";
+  if (s < 50000) return "称号：比良坂の防人(4/8)";
+  if (s < 100000) return "称号：黄昏の審問官(5/8)";
+  if (s < 300000) return "称号：血煙の傍観者(6/8)";
+  if (s < 1000000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
@@ -5234,7 +5234,7 @@ function playMaxTitleCeremony(){
     overlay.innerHTML = `
       <div class="max-title-core">
         <div class="max-title-main">永遠の観測者</div>
-        <div class="max-title-sub">すべての焦土を見届けし者</div>
+        <div class="max-title-sub">すべての焦土を、見届けし者</div>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -5253,6 +5253,31 @@ function playMaxTitleCeremony(){
       setTimeout(()=>{ try{ overlay.remove(); }catch(_){} }, 1300);
     }, 5800);
 
+  }catch(_){}
+}
+
+function markPendingMaxTitleCeremony(){
+  try{
+    window.__pendingMaxTitleCeremony = true;
+    localStorage.setItem("pending_max_title_ceremony_v1", "1");
+  }catch(_){}
+}
+
+function clearPendingMaxTitleCeremony(){
+  try{
+    window.__pendingMaxTitleCeremony = false;
+    localStorage.removeItem("pending_max_title_ceremony_v1");
+  }catch(_){}
+}
+
+function recoverPendingMaxTitleCeremony(){
+  try{
+    if (localStorage.getItem("pending_max_title_ceremony_v1") === "1"){
+      window.__pendingMaxTitleCeremony = true;
+      if (typeof schedulePendingMaxTitleCeremony === "function"){
+        schedulePendingMaxTitleCeremony();
+      }
+    }
   }catch(_){}
 }
 
@@ -5291,17 +5316,14 @@ function schedulePendingMaxTitleCeremony(){
         }
 
         // ★ここで初めて永遠の観測者演出を発動
-        window.__pendingMaxTitleCeremony = false;
-
         try{
-          if (typeof startRankPriority === "function") startRankPriority(7600);
-        }catch(_){}
-
-        try{
-          if (typeof playMaxTitleCeremony === "function"){
-            playMaxTitleCeremony();
-          }
-        }catch(_){}
+  if (typeof clearPendingMaxTitleCeremony === "function"){
+    clearPendingMaxTitleCeremony();
+  }else{
+    window.__pendingMaxTitleCeremony = false;
+    localStorage.removeItem("pending_max_title_ceremony_v1");
+  }
+}catch(_){}
 
         setTimeout(()=>{
           try{ window.__maxTitleCeremonySchedulerActive = false; }catch(_){}
@@ -5360,12 +5382,19 @@ if (titleEl) titleEl.textContent = currentTitle;
 
 // 称号MAX「永遠の観測者」到達時に一度だけ演出
 if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
+  // ★到達したことは保存する
   hasReachedMaxTitle = true;
   try{ store.set("hasReachedMaxTitle", true); }catch(_){}
 
-  // ★演出は即発動せず、スキル・落下・ランク演出後に発動予約
+  // ★でも演出は別フラグで必ず回収できるように予約保存する
   try{
-    window.__pendingMaxTitleCeremony = true;
+    if (typeof markPendingMaxTitleCeremony === "function"){
+      markPendingMaxTitleCeremony();
+    }else{
+      window.__pendingMaxTitleCeremony = true;
+      localStorage.setItem("pending_max_title_ceremony_v1", "1");
+    }
+
     if (typeof schedulePendingMaxTitleCeremony === "function"){
       schedulePendingMaxTitleCeremony();
     }
@@ -5374,6 +5403,9 @@ if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
   // ★Apps Scriptへ称号MAX到達を報告
   try{ reportTitleComplete(); }catch(_){}
 }
+
+// ★もし過去に予約だけ残っていたら、UI更新時に必ず拾う
+try{ recoverPendingMaxTitleCeremony(); }catch(_){}
 
 // 永続
 store.set("score",score);
@@ -8500,7 +8532,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 3; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 5; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
@@ -8671,10 +8703,11 @@ window.shuffleBoard = function(){
 })();
 </script>
 
+
 <!-- ALL MAX Overlay -->
 <div id="allmaxOverlay" aria-hidden="true">
  <div id="allmaxPanel">
-    <button id="allmaxClose" type="button" aria-label="閉じる"></button>
+   <button id="allmaxClose" type="button" aria-label="閉じる"></button>
  
 <p id="allmaxPoem">
   虚ろいし 問わず語りの 顔合わせ<br>
@@ -8692,9 +8725,9 @@ window.shuffleBoard = function(){
 >
   ≪廻廊の最果て≫へ
 </a>
+
   </div>
 </div>
-
 
 <script>
 /* iOS: forcibly hide all volume sliders (range inputs), keep ON/OFF buttons */
