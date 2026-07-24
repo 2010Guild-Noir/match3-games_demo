@@ -4352,7 +4352,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [3, 3, 5, 5, 5];//アンノウン到達までのランクアップ闘値
+const RANK_THRESH = [3, 3, 3, 3, 3];//アンノウン到達までのランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -5017,7 +5017,7 @@ function getTitleByScore(s){
   if (s < 2500) return "称号：比良坂の防人(4/8)";
   if (s < 3000) return "称号：黄昏の審問官(5/8)";
   if (s < 4000) return "称号：血煙の傍観者(6/8)";
-  if (s < 5000) return "称号：無明の支配者(7/8)";
+  if (s < 1000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
