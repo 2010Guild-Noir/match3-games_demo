@@ -4352,7 +4352,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [5, 5, 5, 5, 5];//アンノウン到達までのランクアップ闘値
+const RANK_THRESH = [3, 3, 5, 5, 5];//アンノウン到達までのランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -4816,10 +4816,6 @@ function schedulePendingFinalRankMaxCeremony(){
           !!window.__maxTitleCeremonyRunning ||
           !!window.__finalRankMaxCeremonyRunning;
 
-        const boardBusy =
-          typeof animState !== "undefined" &&
-          animState &&
-          animState !== "idle";
 
         // スキル演出・スキルボイス・落下・他演出が残っていれば待つ
         if (skillWait > 0 || rankBusy || boardBusy){
@@ -5016,12 +5012,12 @@ function getComboInfo(n){
 
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 2000) return "称号：影の放浪者(2/8)";
-  if (s < 2500) return "称号：業火の修験者(3/8)";
-  if (s < 3000) return "称号：比良坂の防人(4/8)";
-  if (s < 3500) return "称号：黄昏の審問官(5/8)";
+  if (s < 1500) return "称号：影の放浪者(2/8)";
+  if (s < 2000) return "称号：業火の修験者(3/8)";
+  if (s < 2500) return "称号：比良坂の防人(4/8)";
+  if (s < 3000) return "称号：黄昏の審問官(5/8)";
   if (s < 4000) return "称号：血煙の傍観者(6/8)";
-  if (s < 4500) return "称号：無明の支配者(7/8)";
+  if (s < 5000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
@@ -5241,12 +5237,17 @@ function playMaxTitleCeremony(){
 
     // 新規ボイス。audio/vo_titlemax.mp3 を追加する前提
     try{
-      const vo = document.getElementById("vo_titlemax");
-      if (vo){
-        vo.currentTime = 0;
-        vo.play();
-      }
-    }catch(_){}
+  if (window.playVoiceById){
+    window.playVoiceById("vo_titlemax");
+  }else{
+    const vo = document.getElementById("vo_titlemax");
+    if (vo){
+      try{ vo.currentTime = 0; }catch(_){}
+      const p = vo.play();
+      if (p && p.catch) p.catch(()=>{});
+    }
+  }
+}catch(_){}
 
     setTimeout(()=>{
       try{ overlay.classList.add("out"); }catch(_){}
@@ -5304,26 +5305,32 @@ function schedulePendingMaxTitleCeremony(){
           ? getRankUpDelayAfterSkill()
           : 0;
 
-        const boardBusy =
-          typeof animState !== "undefined" &&
-          animState &&
-          animState !== "idle";
-
-        // ★スキルボイス・ランク演出・盤面処理が残っている間は待つ
-        if (rankBusy || boardBusy || skillWait > 0){
-          setTimeout(check, Math.max(220, Math.min(900, skillWait || 300)));
+        // ★盤面状態(animState)では待たない。ここで待つと発動しない事故が起きる。
+        // スキルボイスやランク演出だけ避ける。
+        if (rankBusy || skillWait > 0){
+          setTimeout(check, Math.max(260, Math.min(900, skillWait || 360)));
           return;
         }
 
         // ★ここで初めて永遠の観測者演出を発動
         try{
-  if (typeof clearPendingMaxTitleCeremony === "function"){
-    clearPendingMaxTitleCeremony();
-  }else{
-    window.__pendingMaxTitleCeremony = false;
-    localStorage.removeItem("pending_max_title_ceremony_v1");
-  }
-}catch(_){}
+          if (typeof clearPendingMaxTitleCeremony === "function"){
+            clearPendingMaxTitleCeremony();
+          }else{
+            window.__pendingMaxTitleCeremony = false;
+            localStorage.removeItem("pending_max_title_ceremony_v1");
+          }
+        }catch(_){}
+
+        try{
+          if (typeof startRankPriority === "function") startRankPriority(7600);
+        }catch(_){}
+
+        try{
+          if (typeof playMaxTitleCeremony === "function"){
+            playMaxTitleCeremony();
+          }
+        }catch(_){}
 
         setTimeout(()=>{
           try{ window.__maxTitleCeremonySchedulerActive = false; }catch(_){}
@@ -5334,12 +5341,14 @@ function schedulePendingMaxTitleCeremony(){
       }
     };
 
-    check();
+    // ★少しだけ遅らせてから監視開始
+    setTimeout(check, 240);
 
   }catch(_){
     try{ window.__maxTitleCeremonySchedulerActive = false; }catch(__){}
   }
 }
+
 
 function updateScoresUI(){
   // 暗躍値
