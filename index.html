@@ -131,6 +131,137 @@
       pointer-events:none;
       z-index:2147483646;
     }
+
+/* ===== Prologue Overlay ===== */
+#prologueOverlay{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+
+  display:none;
+  align-items:center;
+  justify-content:center;
+
+  padding:22px;
+  box-sizing:border-box;
+
+  background:rgba(0,0,0,0.38);
+  opacity:0;
+  pointer-events:none;
+
+  transition:opacity 1.25s ease;
+}
+
+#prologueOverlay.open{
+  display:flex;
+  opacity:1;
+  pointer-events:auto;
+}
+
+#prologueOverlay.closing{
+  opacity:0;
+  pointer-events:none;
+}
+
+#prologuePanel{
+  position:relative;
+
+  width:min(88vw, 560px);
+  max-height:82dvh;
+
+  padding:28px 26px 58px;
+  box-sizing:border-box;
+
+  background:rgba(0,0,0,0.48);
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:14px;
+
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05) inset,
+    0 18px 48px rgba(0,0,0,0.48);
+
+  overflow:hidden;
+}
+
+#prologueText{
+  margin:0;
+  color:#f5f2eb;
+
+  font-family:
+    "Yuji Syuku",
+    "Hiragino Mincho ProN",
+    "Yu Mincho",
+    "YuMincho",
+    "Noto Serif JP",
+    "MS Mincho",
+    serif;
+
+  font-size:clamp(16px, 3.6vw, 22px);
+  line-height:1.82;
+  letter-spacing:0.08em;
+  text-align:left;
+
+  text-shadow:
+    0 0 5px rgba(0,0,0,0.92),
+    0 0 14px rgba(255,255,255,0.10);
+}
+
+#prologueClose{
+  position:absolute;
+  right:16px;
+  bottom:14px;
+
+  padding:6px 13px;
+
+  font-family:
+    "Yuji Syuku",
+    "Hiragino Mincho ProN",
+    "Yu Mincho",
+    "Noto Serif JP",
+    serif;
+
+  font-size:13px;
+  letter-spacing:0.08em;
+
+  color:rgba(245,242,235,0.82);
+  background:rgba(0,0,0,0.28);
+  border:1px solid rgba(255,255,255,0.22);
+  border-radius:999px;
+
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+
+  box-shadow:0 0 10px rgba(0,0,0,0.28);
+}
+
+#prologueClose:hover{
+  color:#fff;
+  border-color:rgba(255,255,255,0.36);
+  filter:brightness(1.08);
+}
+
+#prologueClose:active{
+  transform:translateY(1px);
+}
+
+@media (max-width:520px){
+  #prologueOverlay{
+    padding:14px;
+  }
+
+  #prologuePanel{
+    width:94vw;
+    max-height:86dvh;
+    padding:22px 20px 54px;
+  }
+
+  #prologueText{
+    font-size:clamp(15px, 4.2vw, 18px);
+    line-height:1.72;
+  }
+}
+
+
 </style>
   <script>
   (function(){
@@ -2074,10 +2205,35 @@ height:clamp(82px, 21vw, 132px);
       <div class="foot">
         うまくいかない時：URL末尾に <span class="mono" style="display:inline; padding:2px 6px;">?v=8</span> を付けてリロードしてください（キャッシュ回避）<br/>
         ※解錠後はブラウザの履歴削除をしないようご注意ください。<br/><br/>
-        Ⓒ2010 Guild Noir. 修羅王丸®
+        ⒸGuild Noir. 修羅王丸®
       </div>
     </div>  </div>
   <div id="unlockFx" aria-hidden="true"></div>
+
+<!-- ===== Prologue Overlay ===== -->
+<div id="prologueOverlay" aria-hidden="true">
+  <div id="prologuePanel">
+    <p id="prologueText">
+此処は、霧の廻廊<br><br>
+盤面に駒として現れるのは、<br>
+「修羅王丸の世界」を征く<br>
+闇の者たち。<br><br>
+閉ざされた石畳の異界で、<br>
+永遠ともいえる<br>
+顕現と消滅を繰り返す。<br><br>
+過去・現在・未来を超えて<br>
+何処からともなく、<br>
+止めどなく流入し続ける<br>
+思念の残影。<br><br>
+消えた思念は、<br>
+どこへ還るのだろうか…
+    </p>
+
+    <button id="prologueClose" type="button" aria-label="序章を閉じる">close</button>
+  </div>
+</div>
+<!-- ===== /Prologue Overlay ===== -->
+
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbw7eELMc8rQ5AT4700vi7skMyIVha7GJ-s5vzFR5qsMSNcSpYS5b55c7VnY8E5kcvWVBw/exec";
@@ -2146,6 +2302,63 @@ height:clamp(82px, 21vw, 132px);
     try{ bell.play(); }catch(_e){}
   }
 
+function showPrologueOverlay(){
+  try{
+    const overlay = document.getElementById("prologueOverlay");
+    if (!overlay) return;
+
+    overlay.classList.remove("closing");
+    overlay.style.display = "flex";
+    overlay.setAttribute("aria-hidden", "false");
+
+    // 表示直後にopenを付けてフェードイン
+    requestAnimationFrame(()=>{
+      overlay.classList.add("open");
+    });
+  }catch(_){}
+}
+
+function closePrologueOverlay(){
+  try{
+    const overlay = document.getElementById("prologueOverlay");
+    if (!overlay) return;
+
+    overlay.classList.add("closing");
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden", "true");
+
+    // ★このタッチを初期動作にする
+    try{
+      if (typeof userGesture === "function"){
+        userGesture();
+      }
+    }catch(_){}
+
+    // ★BGMをこのタイミングで開始
+    try{
+      if (typeof safeStartBGM === "function" && typeof currentBGM === "function"){
+        safeStartBGM(currentBGM());
+      }
+    }catch(_){}
+
+    // ★閉じるSE
+    try{
+      if (typeof onClickSE === "function"){
+        onClickSE();
+      }
+    }catch(_){}
+
+    setTimeout(()=>{
+      try{
+        overlay.style.display = "none";
+        overlay.classList.remove("closing");
+      }catch(_){}
+    }, 1250);
+
+  }catch(_){}
+}
+
+
   function runUnlockFxThenShowGame(){
     if (window.__unlockFxRunning) return;
     window.__unlockFxRunning = true;
@@ -2194,6 +2407,14 @@ height:clamp(82px, 21vw, 132px);
             setTimeout(() => {
               fx.style.display = "none";
               window.__unlockFxRunning = false;
+
+// ★霧が晴れて盤面が現れた後、序章を表示
+try{
+  if (typeof showPrologueOverlay === "function"){
+    showPrologueOverlay();
+  }
+}catch(_){}
+
             }, FADE_OUT_MS);
           });
         }, WHITE_HOLD_MS);
@@ -2281,6 +2502,7 @@ try{
   }
 
   document.getElementById("unlockBtn")?.addEventListener("click", unlock);
+  document.getElementById("prologueClose")?.addEventListener("click", closePrologueOverlay);
   document.getElementById("passcode")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") unlock(); });
 
 
@@ -4086,14 +4308,16 @@ const HOWTO_IMAGES = [
   "images/howto2.png",
   "images/howto3.png",
   "images/howto4.png",
-  "images/howto5.png"
+  "images/howto5.png",
+  "images/howto6.png"
 
 ];
 const HOWTO_CAPTIONS = [
-  "操作方法1",
+  "はじめに",
   "操作方法2",
 　"操作方法3",
 　"操作方法4",
+　"操作方法5",
   "操作方法5"
 ];
 let howtoIdx = 0;
@@ -4352,7 +4576,7 @@ const JUSO_BREAK_POINTS = {
   J_SHI: 30,
   J_PRO: 50
 };
-const RANK_THRESH = [3, 3, 3, 3, 3];//アンノウン到達までのランクアップ闘値
+const RANK_THRESH = [10, 80, 300, 500, 700];//アンノウン到達までのランクアップ闘値
 const SPECIAL_POINTS = { "S_BIR": 20, "S_NE0": 30, "S_SHU": 40, "S_REQ": 50, "S_UNK": 80 };
 const SHUFFLE_PENALTY = 50; // 盤面詰みシャッフル時の暗躍値ペナルティ
 const SPECIAL_MAP = {
@@ -5012,12 +5236,12 @@ function getComboInfo(n){
 
 function getTitleByScore(s){
    if (s < 1000) return "称号：名も無き欠片(1/8)";
-  if (s < 1500) return "称号：影の放浪者(2/8)";
-  if (s < 2000) return "称号：業火の修験者(3/8)";
-  if (s < 2500) return "称号：比良坂の防人(4/8)";
-  if (s < 3000) return "称号：黄昏の審問官(5/8)";
-  if (s < 4000) return "称号：血煙の傍観者(6/8)";
-  if (s < 1000) return "称号：無明の支配者(7/8)";
+  if (s < 5000) return "称号：影の放浪者(2/8)";
+  if (s < 20000) return "称号：業火の修験者(3/8)";
+  if (s < 50000) return "称号：比良坂の防人(4/8)";
+  if (s < 100000) return "称号：黄昏の審問官(5/8)";
+  if (s < 300000) return "称号：血煙の傍観者(6/8)";
+  if (s < 1000000) return "称号：無明の支配者(7/8)";
   return "称号：永遠の観測者(MAX)";
 }
 
@@ -8541,7 +8765,7 @@ if (ok){
   })();
 
   // ---------- Unknown gating (闘値) ----------
-  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 5; }
+  if (typeof window.UNKNOWN_THRESH === 'undefined') { window.UNKNOWN_THRESH = 888; }
   if (typeof window.unknownStageProgress === 'undefined') {
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
