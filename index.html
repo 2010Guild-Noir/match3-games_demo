@@ -145,7 +145,7 @@
   padding:22px;
   box-sizing:border-box;
 
-  background:rgba(0,0,0,0.38);
+  background:rgba(0,0,0,0.58);
   opacity:0;
   pointer-events:none;
 
@@ -199,7 +199,7 @@
   font-size:clamp(16px, 3.6vw, 22px);
   line-height:1.82;
   letter-spacing:0.08em;
-  text-align:left;
+  text-align:center;
 
   text-shadow:
     0 0 5px rgba(0,0,0,0.92),
@@ -2409,11 +2409,14 @@ function closePrologueOverlay(){
               window.__unlockFxRunning = false;
 
 // ★霧が晴れて盤面が現れた後、序章を表示
-try{
-  if (typeof showPrologueOverlay === "function"){
-    showPrologueOverlay();
-  }
-}catch(_){}
+// ★盤面が現れてから1秒置いて、序章をフェードイン
+setTimeout(()=>{
+  try{
+    if (typeof showPrologueOverlay === "function"){
+      showPrologueOverlay();
+    }
+  }catch(_){}
+}, 1000);
 
             }, FADE_OUT_MS);
           });
