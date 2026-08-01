@@ -149,11 +149,10 @@
   opacity:0;
   pointer-events:none;
 
-  transition:opacity 1.25s ease;
+  transition:opacity 1.25s ease-out;
 }
 
 #prologueOverlay.open{
-  display:flex;
   opacity:1;
   pointer-events:auto;
 }
@@ -2307,14 +2306,21 @@ function showPrologueOverlay(){
     const overlay = document.getElementById("prologueOverlay");
     if (!overlay) return;
 
-    overlay.classList.remove("closing");
+    // いったん確実に「透明な表示状態」を作る
+    overlay.classList.remove("open", "closing");
     overlay.style.display = "flex";
+    overlay.style.opacity = "0";
     overlay.setAttribute("aria-hidden", "false");
 
-    // 表示直後にopenを付けてフェードイン
+    // ★ここが重要：opacity:0 の状態をブラウザに確実に描画させる
+    overlay.offsetWidth;
+
+    // 閉じる時と同じ速度感でフェードイン
     requestAnimationFrame(()=>{
+      overlay.style.opacity = "";
       overlay.classList.add("open");
     });
+
   }catch(_){}
 }
 
