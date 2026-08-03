@@ -2243,6 +2243,25 @@ height:clamp(82px, 21vw, 132px);
     return (s || "").toString().normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
 
+function getSupporterClientId(){
+  try{
+    const key = "supporter_client_id_v1";
+    let id = localStorage.getItem(key);
+    if (id) return id;
+
+    if (window.crypto && crypto.randomUUID){
+      id = crypto.randomUUID();
+    }else{
+      id = "cid_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    }
+
+    localStorage.setItem(key, id);
+    return id;
+  }catch(_){
+    return "cid_fallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  }
+}
+
   function setMsg(text, kind){
     const el = document.getElementById("msg");
     if (!el) return;
@@ -2526,7 +2545,11 @@ setTimeout(()=>{
     setMsg("パスキーを照合しています…", "");
     let data;
     try{
-      data = await apiPost({ action:"redeem", passcode: pass });
+      data = await apiPost({
+  action:"redeem",
+  passcode: pass,
+  clientId: getSupporterClientId()
+});
     }catch(e){
       setMsg(e.message || String(e), "err");
       return;
@@ -5290,7 +5313,7 @@ function getComboInfo(n){
 }
 
 function getTitleByScore(s){
-   if (s < 1000) return "称号：名も無き欠片(1/8)";
+  if (s < 1000) return "称号：名も無き欠片(1/8)";
   if (s < 5000) return "称号：影の放浪者(2/8)";
   if (s < 10000) return "称号：業火の修験者(3/8)";
   if (s < 15000) return "称号：比良坂の防人(4/8)";
