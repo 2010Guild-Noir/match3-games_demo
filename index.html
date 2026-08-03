@@ -165,8 +165,8 @@
 #prologuePanel{
   position:relative;
 
-  width:min(88vw, 560px);
-  max-height:82dvh;
+  width:min(88vw, 680px);
+  max-height:86dvh;
 
   padding:28px 26px 58px;
   box-sizing:border-box;
@@ -179,7 +179,8 @@
     0 0 0 1px rgba(255,255,255,0.05) inset,
     0 18px 48px rgba(0,0,0,0.48);
 
-  overflow:hidden;
+  overflow-y:auto;
+overflow-x:hidden;
 }
 
 #prologueText{
@@ -2324,6 +2325,58 @@ function showPrologueOverlay(){
   }catch(_){}
 }
 
+function forceStartBGMFromPrologue(){
+  try{
+    // ★序章closeのタッチを、ゲーム開始BGMの初期動作にする
+    if (typeof userGesture === "function"){
+      userGesture();
+    }
+  }catch(_){}
+
+  try{
+    // ★初回でも必ずBGM ON扱いに戻す
+    bgmOn = true;
+    bgmMuted = false;
+
+    try{ store.set("bgmOn", true); }catch(_){}
+    try{ store.set("bgmMuted", false); }catch(_){}
+
+    // ★音量が0なら、最低限聴こえる値へ戻す
+    let vol = Number(store.get("bgmVol", NaN));
+    if (!isFinite(vol) || vol <= 0){
+      vol = (typeof BGM_DEFAULT_VOL !== "undefined") ? BGM_DEFAULT_VOL : 0.25;
+      try{ store.set("bgmVol", vol); }catch(_){}
+      try{ store.set("bgmLast", vol); }catch(_){}
+      try{ store.set("bgmLastPct", Math.round(vol * 100)); }catch(_){}
+    }
+
+    try{
+      if (typeof setBGMVol === "function"){
+        setBGMVol(vol);
+      }
+    }catch(_){}
+
+    try{
+      if (typeof __applyBgmVolume === "function"){
+        __applyBgmVolume();
+      }
+    }catch(_){}
+
+    try{
+      if (typeof updateBgmIcon === "function"){
+        updateBgmIcon(vol);
+      }
+    }catch(_){}
+
+    try{
+      if (typeof safeStartBGM === "function" && typeof currentBGM === "function"){
+        safeStartBGM(currentBGM());
+      }
+    }catch(_){}
+
+  }catch(_){}
+}
+
 function closePrologueOverlay(){
   try{
     const overlay = document.getElementById("prologueOverlay");
@@ -2333,19 +2386,12 @@ function closePrologueOverlay(){
     overlay.classList.remove("open");
     overlay.setAttribute("aria-hidden", "true");
 
-    // ★このタッチを初期動作にする
-    try{
-      if (typeof userGesture === "function"){
-        userGesture();
-      }
-    }catch(_){}
-
-    // ★BGMをこのタイミングで開始
-    try{
-      if (typeof safeStartBGM === "function" && typeof currentBGM === "function"){
-        safeStartBGM(currentBGM());
-      }
-    }catch(_){}
+    // ★このタッチでBGMを必ず開始する
+try{
+  if (typeof forceStartBGMFromPrologue === "function"){
+    forceStartBGMFromPrologue();
+  }
+}catch(_){}
 
     // ★閉じるSE
     try{
