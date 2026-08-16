@@ -5112,24 +5112,22 @@ function schedulePendingFinalRankMaxCeremony(){
           ? getRankUpDelayAfterSkill()
           : 0;
 
-  const rankBusy =
-  (typeof isRankPriorityActive === "function" && isRankPriorityActive()) ||
-  !!window.__rankUpAwakenRunning ||
-  !!window.__maxTitleCeremonyRunning ||
-  !!window.__finalRankMaxCeremonyRunning;
+        const rankBusy =
+          (typeof isRankPriorityActive === "function" && isRankPriorityActive()) ||
+          !!window.__rankUpAwakenRunning ||
+          !!window.__maxTitleCeremonyRunning ||
+          !!window.__finalRankMaxCeremonyRunning;
 
-const boardBusy =
-  typeof animState !== "undefined" &&
-  animState &&
-  animState !== "idle";
-
-// スキル演出・スキルボイス・落下・他演出が残っていれば待つ
-if (skillWait > 0 || rankBusy || boardBusy){
-  setTimeout(check, Math.max(220, Math.min(900, skillWait || 300)));
-  return;
-}
+        // ★重要：
+        // 永遠の焦土演出は animState / boardBusy では待たない。
+        // ここで待つと、到達済みフラグだけ立って演出が回収されない事故が起きる。
+        if (skillWait > 0 || rankBusy){
+          setTimeout(check, Math.max(260, Math.min(900, skillWait || 360)));
+          return;
+        }
 
         window.__pendingFinalRankMaxCeremony = false;
+        try{ localStorage.removeItem("pending_final_rank_max_ceremony_v1"); }catch(_){}
 
         // ★ここで初めてランクMAXボイスを再生
         try{
@@ -5167,6 +5165,21 @@ if (skillWait > 0 || rankBusy || boardBusy){
   }catch(_){
     try{ window.__finalRankMaxCeremonySchedulerActive = false; }catch(__){}
   }
+}
+
+function recoverPendingFinalRankMaxCeremony(){
+  try{
+    if (localStorage.getItem("pending_final_rank_max_ceremony_v1") !== "1") return;
+
+    // 永遠の焦土到達済みのときだけ、未回収演出を拾う
+    if (typeof hasReachedMaxRank !== "undefined" && hasReachedMaxRank === true){
+      window.__pendingFinalRankMaxCeremony = true;
+
+      if (typeof schedulePendingFinalRankMaxCeremony === "function"){
+        schedulePendingFinalRankMaxCeremony();
+      }
+    }
+  }catch(_){}
 }
 
 function resetComboForNewMove(){
@@ -5721,6 +5734,7 @@ if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
 
 // ★もし過去に予約だけ残っていたら、UI更新時に必ず拾う
 try{ recoverPendingMaxTitleCeremony(); }catch(_){}
+try{ recoverPendingFinalRankMaxCeremony(); }catch(_){}
 
 // 永続
 store.set("score",score);
@@ -8878,6 +8892,8 @@ if (ok){
         try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
         try{
   window.__pendingFinalRankMaxCeremony = true;
+  localStorage.setItem("pending_final_rank_max_ceremony_v1", "1");
+
   if (typeof schedulePendingFinalRankMaxCeremony === "function"){
     schedulePendingFinalRankMaxCeremony();
   }
