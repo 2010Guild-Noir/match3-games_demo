@@ -3409,13 +3409,39 @@ const Sound={
   _last:{},
   init(){
     for(const k in SE_BANK){
-      if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6);
+      if(SE_BANK[k]){
+  const poolCount = (typeof IS_IOS !== "undefined" && IS_IOS) ? 3 : 6;
+  this.pools[k] = makePool(SE_BANK[k], poolCount);
+}
     }
   },
   play(n, volMul=1){
-    if(!this.enabled) return;
-    const p=this.pools[n];
-    if(!p) return;
+  if(!this.enabled) return;
+
+  // ★iPhone救済：SE軽量モード
+  // 盤面処理中に多発するSEを鳴らさず、重さを減らす。
+  // PC / Android には影響しない。
+  try{
+    const iosLightSE =
+      typeof IS_IOS !== "undefined" &&
+      IS_IOS &&
+      store.get("iosLightSE", true);
+
+    if (iosLightSE){
+      const allow = {
+        push:true,
+        bell:true,
+        not:true,
+        shine:true,
+        index:true
+      };
+
+      if (!allow[n]) return;
+    }
+  }catch(_){}
+
+  const p=this.pools[n];
+  if(!p) return;
 
     // rumbleは同フレーム多重発火で加算的に大きくなりやすいのでレート制限
     if (n==="rumble"){
