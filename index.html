@@ -3409,18 +3409,14 @@ const Sound={
   _last:{},
   init(){
     for(const k in SE_BANK){
-      if(SE_BANK[k]){
-  const poolCount = (typeof IS_IOS !== "undefined" && IS_IOS) ? 3 : 6;
-  this.pools[k] = makePool(SE_BANK[k], poolCount);
-}
+      if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6);
     }
   },
   play(n, volMul=1){
-  if(!this.enabled) return;
+    if(!this.enabled) return;
 
-  // ★iPhone救済：SE軽量モード
-  // 盤面処理中に多発するSEを鳴らさず、重さを減らす。
-  // PC / Android には影響しない。
+ // ★iPhone救済：SE軽量モード
+  // 最初から全部止めるのではなく、重くなりやすいSEだけ間引く
   try{
     const iosLightSE =
       typeof IS_IOS !== "undefined" &&
@@ -3428,15 +3424,12 @@ const Sound={
       store.get("iosLightSE", true);
 
     if (iosLightSE){
-      const allow = {
-        push:true,
-        bell:true,
-        not:true,
-        shine:true,
-        index:true
+      const block = {
+        pop:true,
+        rumble:true
       };
 
-      if (!allow[n]) return;
+      if (block[n]) return;
     }
   }catch(_){}
 
