@@ -5687,7 +5687,7 @@ function playMaxTitleCeremony(){
     overlay.innerHTML = `
       <div class="max-title-core">
         <div class="max-title-main">永遠の観測者</div>
-        <div class="max-title-sub">すべての焦土を、見届けし者</div>
+        <div class="max-title-sub">石畳の焦土を見届けし者</div>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -5882,8 +5882,13 @@ store.set("rankIndex",rankIndex);
 store.set("rankProgress",rankProgress);
 store.set("hasReachedMaxRank", hasReachedMaxRank);
 store.set("hasReachedMaxTitle", hasReachedMaxTitle);
+
 try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
 try{ if (typeof armReplayMaxCeremonyUI === "function") armReplayMaxCeremonyUI(); }catch(_){}
+
+// ★永遠の焦土・真completeの記録
+try{ if (typeof reportFinalRankMaxOnce === "function") reportFinalRankMaxOnce(); }catch(_){}
+try{ if (typeof reportTrueCompleteOnce === "function") reportTrueCompleteOnce(); }catch(_){}
 }
 
 /* ===== 盤面 (省略: 変更なし) ===== */
@@ -9034,6 +9039,8 @@ if (ok){
 
       try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
       try{ store && store.set("replayFinalRankMaxCeremony", false); }catch(_){}
+try{ reportFinalRankMaxOnce(); }catch(_){}
+try{ reportTrueCompleteOnce(); }catch(_){}
 
       try{
         window.__pendingFinalRankMaxCeremony = true;
