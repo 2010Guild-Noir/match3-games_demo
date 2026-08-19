@@ -371,6 +371,28 @@ canvas{ display:block; margin:18px auto; width:min(96vw, 480px); height:auto; as
   .btn:active{ transform:translateY(0); box-shadow:0 6px 14px rgba(0,0,0,.44) inset; }
   .btn-kanki{ background:linear-gradient(180deg,#233246,#17212c); border-color:#2b3b4f; }
   .btn-shodo{ background:linear-gradient(180deg,#3a1b1e,#1d0e10); border-color:#4b2a2f; }
+
+/* ★MAX演出リプレイ可能な表示枠：焦土ボタンと同系色 */
+.badge-shodo-ready{
+  background:linear-gradient(180deg,#3a1b1e,#1d0e10) !important;
+  border-color:#4b2a2f !important;
+  color:#fff !important;
+  cursor:pointer;
+
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 10px 24px rgba(0,0,0,.35),
+    0 0 10px rgba(255,80,80,0.28);
+}
+
+.badge-shodo-ready:hover{
+  transform:translateY(-1px);
+  border-color:#a53939 !important;
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.44),
+    0 0 12px rgba(255,100,100,0.45);
+}
+
   /* ★発光効果 (Active) */
   .btn.active{ outline:2px solid #7fb7ff; box-shadow:0 14px 28px rgba(0,0,0,.44), 0 0 15px rgba(127, 183, 255, 0.8); }
   .btn-shuffle{ background:linear-gradient(180deg,#44224a,#2c1430); border-color:#5c3563; }
@@ -2205,7 +2227,7 @@ height:clamp(82px, 21vw, 132px);
       <div class="foot">
         うまくいかない時：URL末尾に <span class="mono" style="display:inline; padding:2px 6px;">?v=8</span> を付けてリロードしてください（キャッシュ回避）<br/>
         ※解錠後はブラウザの履歴削除をしないようご注意ください。<br/><br/>
-        ⒸGuild Noir. 修羅王丸®
+        ⒸGuild Noir. 修羅王丸® デモ
       </div>
     </div>  </div>
   <div id="unlockFx" aria-hidden="true"></div>
@@ -2659,7 +2681,7 @@ try{
 
 
 
-      <small class="note">Ⓒ Guild Noir. 　修羅王丸®</small>
+      <small class="note">Ⓒ Guild Noir. 　修羅王丸®　デモ</small>
 
       <div id="charModal" class="modal-overlay" onclick="if(event.target.id === 'charModal') closeCharModal()" hidden>
         <div class="modal-content char-modal-content">
@@ -4086,6 +4108,7 @@ function onSliderDragSE(){
 /* ===== DOM & 基本設定（A 基準） ===== */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha:true });
+
 // PCの駒描画をシャープに（負荷はDPR設定に依存）
 ctx.imageSmoothingEnabled = true;
 ctx.imageSmoothingQuality = "high";
@@ -4094,6 +4117,73 @@ const $score = document.getElementById("score");
 const $rank = document.getElementById("rank");
 let $rankProgress = document.getElementById("rankProgress");
 const $status = document.getElementById("status");
+
+function armReplayMaxCeremonyUI(){
+  try{
+    const titleMax =
+      typeof isTitleMaxReached === "function" &&
+      isTitleMaxReached();
+
+    const finalRankMax =
+      typeof hasReachedMaxRank !== "undefined" &&
+      hasReachedMaxRank === true;
+
+    // 暗躍値：永遠の観測者到達後、称号MAX演出を再生可能にする
+    if ($score){
+      $score.classList.toggle("badge-shodo-ready", !!titleMax);
+      $score.title = titleMax ? "永遠の観測者 演出を再生" : "";
+      $score.style.cursor = titleMax ? "pointer" : "";
+
+      if (!$score.__replayMaxTitleBound){
+        $score.__replayMaxTitleBound = true;
+
+        $score.addEventListener("click", ()=>{
+          try{
+            const ok =
+              typeof isTitleMaxReached === "function" &&
+              isTitleMaxReached();
+
+            if (!ok) return;
+
+            if (typeof playMaxTitleCeremony === "function"){
+              playMaxTitleCeremony();
+            }else if (typeof window.playMaxTitleCeremony === "function"){
+              window.playMaxTitleCeremony();
+            }
+          }catch(_){}
+        });
+      }
+    }
+
+    // 修羅王丸ランク：永遠の焦土到達後、覚醒MAX演出を再生可能にする
+    if ($rank){
+      $rank.classList.toggle("badge-shodo-ready", !!finalRankMax);
+      $rank.title = finalRankMax ? "永遠の焦土 演出を再生" : "";
+      $rank.style.cursor = finalRankMax ? "pointer" : "";
+
+      if (!$rank.__replayFinalRankBound){
+        $rank.__replayFinalRankBound = true;
+
+        $rank.addEventListener("click", ()=>{
+          try{
+            const ok =
+              typeof hasReachedMaxRank !== "undefined" &&
+              hasReachedMaxRank === true;
+
+            if (!ok) return;
+
+            if (typeof playFinalRankMAXCeremony === "function"){
+              playFinalRankMAXCeremony();
+            }else if (typeof window.playFinalRankMAXCeremony === "function"){
+              window.playFinalRankMAXCeremony();
+            }
+          }catch(_){}
+        });
+      }
+    }
+  }catch(_){}
+}
+
 /* ★IDをchar-modalからcharModalに変更 */
 const $charModal = document.getElementById("charModal");
 const $charList = document.getElementById("char-list");
@@ -4612,12 +4702,39 @@ function closeResetConfirmModal(){
 })();
 function resetRank(){
   closeResetConfirmModal();
-  // ランク、進捗、スコアをリセット
+   // ランク、進捗、スコアをリセット
   score = 0;
   rankIndex = 0;
   rankProgress = 0;
-  store.set("score",score); store.set("rankIndex",rankIndex); store.set("rankProgress",rankProgress);
-try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
+
+  // ★リセット後の再挑戦で、永遠の焦土演出をもう一度出すための準備
+  // ※hasReachedMaxRank は触らない。永遠の焦土ご褒美ボタンを消さないため。
+  unknownStageProgress = 0;
+  replayFinalRankMaxCeremony = true;
+
+  // ★称号MAX「永遠の観測者」演出も再到達で出せるようにする
+  hasReachedMaxTitle = false;
+
+  selectedSpecialOverride = null;
+
+  store.set("score", score);
+  store.set("rankIndex", rankIndex);
+  store.set("rankProgress", rankProgress);
+
+  try{ store.set("unknownStageProgress", 0); }catch(_){}
+  try{ store.set("replayFinalRankMaxCeremony", true); }catch(_){}
+
+  // ★称号MAX演出の予約もリセット
+  try{ store.set("hasReachedMaxTitle", false); }catch(_){}
+  try{ localStorage.removeItem("pending_max_title_ceremony_v1"); }catch(_){}
+  try{ window.__pendingMaxTitleCeremony = false; }catch(_){}
+
+  try{ store.set("selectedSpecialOverride", null); }catch(_){}
+  try{ localStorage.removeItem("pending_final_rank_max_ceremony_v1"); }catch(_){}
+  try{ window.__pendingFinalRankMaxCeremony = false; }catch(_){}
+
+  try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
+  try{ if (typeof armReplayMaxCeremonyUI === "function") armReplayMaxCeremonyUI(); }catch(_){}
 
   // 盤面を初期化（既存描画は消える）
   initGame(true);
@@ -4719,6 +4836,8 @@ let isBgmReady = false; // BGMの準備完了フラグ
 /* ★ランクMAX到達フラグを追加 (永続化) */
 let hasReachedMaxRank = store.get("hasReachedMaxRank", false);
 let hasReachedMaxTitle = !!store.get("hasReachedMaxTitle", false);
+let replayFinalRankMaxCeremony = !!store.get("replayFinalRankMaxCeremony", false);
+
 
 /* === 連鎖メーター・称号用 === */
 let comboCount = 0;
@@ -5699,7 +5818,9 @@ function updateScoresUI(){
     const sp=document.createElement('span'); sp.className='rank-progress'; sp.id='rankProgress'; $rank.appendChild(sp); return sp;
   })();
   if (rankIndex===MAX_RANK_INDEX){
-    $rankProgress.textContent = hasReachedMaxRank ? 'MAX' : `(${unknownStageProgress}/${UNKNOWN_THRESH})`;
+    $rankProgress.textContent = (hasReachedMaxRank && !replayFinalRankMaxCeremony)
+  ? 'MAX'
+  : `(${unknownStageProgress}/${UNKNOWN_THRESH})`;
   } else {
     $rankProgress.textContent = `(${rankProgress}/${RANK_THRESH[rankIndex]})`;
   }
@@ -5762,6 +5883,7 @@ store.set("rankProgress",rankProgress);
 store.set("hasReachedMaxRank", hasReachedMaxRank);
 store.set("hasReachedMaxTitle", hasReachedMaxTitle);
 try{ if (typeof armAllMaxUI === "function") armAllMaxUI(); }catch(_){}
+try{ if (typeof armReplayMaxCeremonyUI === "function") armReplayMaxCeremonyUI(); }catch(_){}
 }
 
 /* ===== 盤面 (省略: 変更なし) ===== */
@@ -6163,7 +6285,7 @@ if (!isShuraCrossVanish){
     /* === Unknown 闘値インクリメント（MAX直前のみ） === */
     try{
       if (specialsHit && specialsHit.has && specialsHit.has("S_UNK")){
-        if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && !hasReachedMaxRank){
+        if (typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined' && rankIndex===MAX_RANK_INDEX && (!hasReachedMaxRank || replayFinalRankMaxCeremony)){
           if (typeof unknownStageProgress!=='number') unknownStageProgress = Number(unknownStageProgress)||0;
           unknownStageProgress += 1;
           try{ if (typeof store!=='undefined' && store.set) store.set('unknownStageProgress', unknownStageProgress); }catch(_){}
@@ -8904,24 +9026,29 @@ if (ok){
     window.unknownStageProgress = (typeof store !== 'undefined' && store) ? store.get('unknownStageProgress', 0) : 0;
   }
   function maybeReachMax(){
-    if (typeof rankIndex !== 'undefined' && typeof MAX_RANK_INDEX !== 'undefined' &&
-        rankIndex === MAX_RANK_INDEX && !hasReachedMaxRank) {
-      if (unknownStageProgress >= UNKNOWN_THRESH) {
-        hasReachedMaxRank = true;
-        try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
-        try{
-  window.__pendingFinalRankMaxCeremony = true;
-  localStorage.setItem("pending_final_rank_max_ceremony_v1", "1");
+  if (typeof rankIndex !== 'undefined' && typeof MAX_RANK_INDEX !== 'undefined' &&
+      rankIndex === MAX_RANK_INDEX && (!hasReachedMaxRank || replayFinalRankMaxCeremony)) {
+    if (unknownStageProgress >= UNKNOWN_THRESH) {
+      hasReachedMaxRank = true;
+      replayFinalRankMaxCeremony = false;
 
-  if (typeof schedulePendingFinalRankMaxCeremony === "function"){
-    schedulePendingFinalRankMaxCeremony();
-  }
-}catch(_){}
-        try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
-        try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
-      }
+      try{ store && store.set('hasReachedMaxRank', true); }catch(_){}
+      try{ store && store.set("replayFinalRankMaxCeremony", false); }catch(_){}
+
+      try{
+        window.__pendingFinalRankMaxCeremony = true;
+        localStorage.setItem("pending_final_rank_max_ceremony_v1", "1");
+
+        if (typeof schedulePendingFinalRankMaxCeremony === "function"){
+          schedulePendingFinalRankMaxCeremony();
+        }
+      }catch(_){}
+
+      try{ var row=document.getElementById('rankSelectRow'); if(row){ row.style.display=''; } }catch(_){}
+      try{ if(typeof updateScoresUI==='function') updateScoresUI(); }catch(_){}
     }
   }
+}
 
   // Patch updateScoresUI to show (x/闘値) at MAX until reached
   try{
@@ -8936,8 +9063,11 @@ if (ok){
           var span = document.getElementById('rankProgress'); 
           if(span && typeof rankIndex!=='undefined' && typeof MAX_RANK_INDEX!=='undefined'){
             if (rankIndex===MAX_RANK_INDEX){
-              if (hasReachedMaxRank){ span.textContent = 'MAX'; }
-              else { span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')'; }
+              if (hasReachedMaxRank && !replayFinalRankMaxCeremony){
+  span.textContent = 'MAX';
+} else {
+  span.textContent = '('+unknownStageProgress+'/'+UNKNOWN_THRESH+')';
+}
             }
           }
         }catch(_){}
