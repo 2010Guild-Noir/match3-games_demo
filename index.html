@@ -2541,7 +2541,7 @@ setTimeout(()=>{
       if (!pass) return;
 
       // 同じ端末から何度も報告しない
-      const alreadyReported = localStorage.getItem("title_complete_reported_v1");
+      const alreadyReported = localStorage.getItem("title_complete_reported_v2");
       if (alreadyReported === "1") return;
 
       const data = await apiPost({
@@ -2565,7 +2565,7 @@ async function reportFinalRankMaxOnce(){
     if (!pass) return;
 
     // 同じ端末から何度も報告しない
-    const alreadyReported = localStorage.getItem("final_rank_max_reported_v1");
+    const alreadyReported = localStorage.getItem("final_rank_max_reported_v2");
     if (alreadyReported === "1") return;
 
     const finalRankMax =
@@ -2595,7 +2595,7 @@ async function reportTrueCompleteOnce(){
     if (!pass) return;
 
     // 同じ端末から何度も報告しない
-    const alreadyReported = localStorage.getItem("true_complete_reported_v1");
+    const alreadyReported = localStorage.getItem("true_complete_reported_v2");
     if (alreadyReported === "1") return;
 
     const titleMax =
