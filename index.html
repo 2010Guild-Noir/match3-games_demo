@@ -2258,7 +2258,7 @@ height:clamp(82px, 21vw, 132px);
 
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7eELMc8rQ5AT4700vi7skMyIVha7GJ-s5vzFR5qsMSNcSpYS5b55c7VnY8E5kcvWVBw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbx0aG80GdC10F1l_2GjQRedSHNi-oesBDhcWLYiQjzvUonBfF_dJ9yck4Q1hi4sEABZ/exec";
   const LS_UNLOCKED = "supporter_unlocked_v1";
 
   function normalizePasscode(s){
@@ -5933,7 +5933,11 @@ if (currentTitle === "称号：永遠の観測者(MAX)" && !hasReachedMaxTitle){
   }catch(_){}
 
   // ★Apps Scriptへ称号MAX到達を報告
-  try{ reportTitleComplete(); }catch(_){}
+try{ reportTitleComplete(); }catch(_){}
+
+// ★Apps Scriptへ永遠の焦土・真complete到達を報告
+try{ reportFinalRankMaxOnce(); }catch(_){}
+try{ reportTrueCompleteOnce(); }catch(_){}
 }
 
 // ★もし過去に予約だけ残っていたら、UI更新時に必ず拾う
