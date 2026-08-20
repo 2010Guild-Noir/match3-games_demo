@@ -2558,6 +2558,70 @@ setTimeout(()=>{
     }
   }
 
+// ★永遠の焦土到達をApps Scriptへ報告
+async function reportFinalRankMaxOnce(){
+  try{
+    const pass = localStorage.getItem("supporter_player_id_v1");
+    if (!pass) return;
+
+    // 同じ端末から何度も報告しない
+    const alreadyReported = localStorage.getItem("final_rank_max_reported_v1");
+    if (alreadyReported === "1") return;
+
+    const finalRankMax =
+      typeof hasReachedMaxRank !== "undefined" &&
+      hasReachedMaxRank === true;
+
+    if (!finalRankMax) return;
+
+    const data = await apiPost({
+      action: "reportFinalRankMax",
+      passcode: pass
+    });
+
+    if (data && data.ok){
+      localStorage.setItem("final_rank_max_reported_v1", "1");
+    }
+  }catch(e){
+    console.warn("final rank max report failed", e);
+  }
+}
+
+
+// ★真complete到達をApps Scriptへ報告
+async function reportTrueCompleteOnce(){
+  try{
+    const pass = localStorage.getItem("supporter_player_id_v1");
+    if (!pass) return;
+
+    // 同じ端末から何度も報告しない
+    const alreadyReported = localStorage.getItem("true_complete_reported_v1");
+    if (alreadyReported === "1") return;
+
+    const titleMax =
+      typeof isTitleMaxReached === "function" &&
+      isTitleMaxReached();
+
+    const finalRankMax =
+      typeof hasReachedMaxRank !== "undefined" &&
+      hasReachedMaxRank === true;
+
+    if (!titleMax || !finalRankMax) return;
+
+    const data = await apiPost({
+      action: "reportTrueComplete",
+      passcode: pass
+    });
+
+    if (data && data.ok){
+      localStorage.setItem("true_complete_reported_v1", "1");
+    }
+  }catch(e){
+    console.warn("true complete report failed", e);
+  }
+}
+
+
   async function unlock(){
     setMsg("", "");
     const raw = document.getElementById("passcode")?.value || "";
