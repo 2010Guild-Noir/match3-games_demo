@@ -3495,7 +3495,10 @@ const Sound={
   _last:{},
   init(){
     for(const k in SE_BANK){
-      if(SE_BANK[k]) this.pools[k]=makePool(SE_BANK[k],6);
+      if(SE_BANK[k]){
+  const poolCount = (typeof IS_IOS !== "undefined" && IS_IOS) ? 2 : 6;
+  this.pools[k]=makePool(SE_BANK[k], poolCount);
+}
     }
   },
   play(n, volMul=1){
@@ -3510,12 +3513,18 @@ const Sound={
       store.get("iosLightSE", true);
 
     if (iosLightSE){
-      const block = {
-        pop:true,
-        rumble:true
-      };
+      // ★iPhoneでは重いSEを大幅にカットする
+// 残す：重要な操作音・演出音だけ
+const allow = {
+  bell:true,
+  push:true,
+  index:true,
+  not:true,
+  scream:true,
+  whoosh:true
+};
 
-      if (block[n]) return;
+if (!allow[n]) return;
     }
   }catch(_){}
 
